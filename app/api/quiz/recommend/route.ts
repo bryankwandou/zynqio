@@ -9,13 +9,13 @@ export async function GET() {
     const session = await getServerSession(authOptions);
     const publicQuizzes = await listPublicQuizzes();
     
-    if (!session?.user?.id || publicQuizzes.length === 0) {
+    if (!session || !(session.user as any)?.id || publicQuizzes.length === 0) {
       // Return top 10 general public quizzes if no session or no data
       return NextResponse.json(publicQuizzes.slice(0, 10));
     }
 
     // Rule-based recommendation (Section 13.3)
-    const historyKeys = await kv.keys(`user:${session.user.id}:history:*`);
+    const historyKeys = await kv.keys(`user:${(session.user as any).id}:history:*`);
     const categories: Record<string, number> = {};
     
     for (const key of historyKeys) {

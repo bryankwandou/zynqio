@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     const initialState = {
       roomCode,
       quizId,
-      hostId: session?.user?.id || 'admin',
+      hostId: (session?.user as any)?.id || 'admin',
       status: 'waiting',
       players: [],
       gameMode: 'classic',
