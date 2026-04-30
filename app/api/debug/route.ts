@@ -5,8 +5,8 @@ export async function GET() {
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? 'SET ✅' : 'MISSING ❌',
     NEXTAUTH_URL: process.env.NEXTAUTH_URL ? 'SET ✅' : 'MISSING ❌',
     KV_REST_API_URL: process.env.KV_REST_API_URL ? 'SET ✅' : 'AUTONOMOUS MODE ⚡',
-    BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN ? 'SET ✅' : 'MISSING ❌',
-    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? 'SET ✅' : 'MISSING ❌',
+    BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN ? 'SET ✅' : 'OPTIONAL ⚪',
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? 'SET ✅' : 'OPTIONAL ⚪',
     PUSHER_APP_ID: process.env.PUSHER_APP_ID ? 'SET ✅' : 'AUTONOMOUS MODE ⚡',
     NODE_ENV: process.env.NODE_ENV,
   };

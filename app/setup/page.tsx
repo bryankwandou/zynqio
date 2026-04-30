@@ -113,6 +113,7 @@ export default function SetupPage() {
           {Object.entries(envs).map(([key, status]: [string, any], i) => {
             const isSet = status.includes('SET');
             const isAuto = status.includes('AUTONOMOUS');
+            const isOpt = status.includes('OPTIONAL');
             
             return (
             <motion.div 
@@ -126,6 +127,7 @@ export default function SetupPage() {
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
                   isSet ? 'bg-green-500/10 text-green-400' : 
                   isAuto ? 'bg-blue-500/10 text-blue-400' : 
+                  isOpt ? 'bg-slate-500/10 text-slate-400' :
                   'bg-red-500/10 text-red-400'
                 }`}>
                   {key.includes('KV') ? <Database size={22} /> : 
@@ -134,11 +136,14 @@ export default function SetupPage() {
                 </div>
                 <div>
                   <div className="text-xs font-black text-slate-500 uppercase tracking-widest">{key}</div>
-                  <div className={`font-bold ${isSet ? 'text-white' : isAuto ? 'text-blue-300' : 'text-red-400 animate-pulse'}`}>{status}</div>
+                  <div className={`font-bold ${isSet ? 'text-white' : isAuto ? 'text-blue-300' : isOpt ? 'text-slate-400' : 'text-red-400 animate-pulse'}`}>{status}</div>
                 </div>
               </div>
-              {!isSet && !isAuto && (
+              {!isSet && !isAuto && !isOpt && (
                 <div className="text-[10px] font-black bg-red-500/20 text-red-400 px-3 py-1 rounded-full border border-red-500/20">REQUIRED</div>
+              )}
+              {isOpt && (
+                <div className="text-[10px] font-black bg-slate-500/20 text-slate-400 px-3 py-1 rounded-full border border-slate-500/20">OPTIONAL</div>
               )}
             </motion.div>
           )})}
