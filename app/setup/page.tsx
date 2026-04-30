@@ -33,6 +33,8 @@ export default function SetupPage() {
 
   const envs = config?.details || {};
   const isFullyConfigured = config?.status === 'Fully Configured 🚀';
+  const isAutonomous = config?.status === 'Autonomous Mode Active ⚡';
+  const isMissing = !isFullyConfigured && !isAutonomous;
 
   return (
     <div className="min-h-screen bg-[#050508] text-white p-6 md:p-12 selection:bg-blue-500/30">
@@ -53,15 +55,17 @@ export default function SetupPage() {
           </div>
           
           <div className={`px-6 py-3 rounded-2xl border flex items-center gap-3 font-bold ${
-            isFullyConfigured ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+            isFullyConfigured ? 'bg-green-500/10 border-green-500/20 text-green-400' : 
+            isAutonomous ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 
+            'bg-amber-500/10 border-amber-500/20 text-amber-400'
           }`}>
-            {isFullyConfigured ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
+            {isFullyConfigured ? <CheckCircle2 size={20} /> : isAutonomous ? <Zap size={20} /> : <AlertTriangle size={20} />}
             {config?.status}
           </div>
         </div>
 
         {/* Info Box */}
-        {!isFullyConfigured && (
+        {isMissing && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -86,19 +90,43 @@ export default function SetupPage() {
           </motion.div>
         )}
 
+        {isAutonomous && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-12 bg-gradient-to-br from-blue-600 to-indigo-800 rounded-[2rem] p-8 shadow-2xl relative overflow-hidden"
+          >
+            <div className="relative z-10">
+              <h2 className="text-2xl font-black mb-4 flex items-center gap-2">
+                <Zap size={28} /> AUTONOMOUS MODE ACTIVE
+              </h2>
+              <p className="text-blue-100 font-medium mb-6 leading-relaxed max-w-2xl">
+                Zynqio is running in 100% Autonomous Zero-Config Mode! It is using public cloud fallbacks for Database and Real-time functionality. No manual Vercel KV or Pusher configuration is required.
+              </p>
+            </div>
+            <Shield className="absolute bottom-[-20px] right-[-20px] opacity-10 rotate-12" size={240} />
+          </motion.div>
+        )}
+
         {/* Env Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-          {Object.entries(envs).map(([key, status]: [string, any], i) => (
+          {Object.entries(envs).map(([key, status]: [string, any], i) => {
+            const isSet = status.includes('SET');
+            const isAuto = status.includes('AUTONOMOUS');
+            
+            return (
             <motion.div 
               key={key}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.05 }}
-              className="bg-slate-900/50 border border-white/5 rounded-3xl p-6 flex items-center justify-between group hover:border-blue-500/30 transition-all"
+              className={`bg-slate-900/50 border rounded-3xl p-6 flex items-center justify-between group transition-all ${isAuto ? 'border-blue-500/30' : 'border-white/5 hover:border-blue-500/30'}`}
             >
               <div className="flex items-center gap-4">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                  status.includes('SET') ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+                  isSet ? 'bg-green-500/10 text-green-400' : 
+                  isAuto ? 'bg-blue-500/10 text-blue-400' : 
+                  'bg-red-500/10 text-red-400'
                 }`}>
                   {key.includes('KV') ? <Database size={22} /> : 
                    key.includes('BLOB') ? <Globe size={22} /> : 
@@ -106,14 +134,14 @@ export default function SetupPage() {
                 </div>
                 <div>
                   <div className="text-xs font-black text-slate-500 uppercase tracking-widest">{key}</div>
-                  <div className={`font-bold ${status.includes('SET') ? 'text-white' : 'text-red-400 animate-pulse'}`}>{status}</div>
+                  <div className={`font-bold ${isSet ? 'text-white' : isAuto ? 'text-blue-300' : 'text-red-400 animate-pulse'}`}>{status}</div>
                 </div>
               </div>
-              {status.includes('MISSING') && (
+              {!isSet && !isAuto && (
                 <div className="text-[10px] font-black bg-red-500/20 text-red-400 px-3 py-1 rounded-full border border-red-500/20">REQUIRED</div>
               )}
             </motion.div>
-          ))}
+          )})}
         </div>
 
         {/* Footer Actions */}
