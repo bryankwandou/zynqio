@@ -7,6 +7,8 @@ import { Navbar } from "@/components/navbar";
 import { Search, Rocket, Zap, Globe, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
+import { ThemeToggle } from "@/components/ThemeToggle";
+
 export default function Home() {
   const [roomCode, setRoomCode] = useState("");
   const router = useRouter();
@@ -19,7 +21,10 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#050510] selection:bg-blue-500/30 selection:text-blue-200 overflow-x-hidden">
+    <div className="flex flex-col min-h-screen bg-background selection:bg-blue-500/30 selection:text-blue-200 overflow-x-hidden relative">
+      <div className="fixed top-6 right-6 z-[100] animate-in fade-in slide-in-from-right-8 duration-1000">
+        <ThemeToggle />
+      </div>
       <Navbar />
       
       {/* Hero Section */}

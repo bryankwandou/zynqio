@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import { saveQuizData } from '@/lib/kv';
-import { kv } from "@vercel/kv";
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import { saveQuizData, redis } from '@/lib/kv';
 
 export async function POST(req: Request) {
   try {
@@ -16,34 +15,41 @@ export async function POST(req: Request) {
     }
 
     const quizId = Math.random().toString(36).substring(2, 9);
-    
+
     const quizData = {
       id: quizId,
       title,
-      questions,
+      questions: questions || [],
       visibility: visibility || 'private',
       category: category || 'General',
       author: session?.user?.name || 'Anonymous',
       createdAt: new Date().toISOString(),
       plays: 0,
-      rating: 0
+      rating: 0,
     };
 
     await saveQuizData(userId, quizId, quizData);
 
-    // Phase 3: Index for Explore Page (Section 15.3)
+    // Index for Explore Page (public quizzes)
     if (quizData.visibility === 'public') {
-      await kv.zadd('public_quizzes', { score: Date.now(), member: quizId });
-      await kv.set(`public_quiz_data:${quizId}`, {
-        id: quizId,
-        title: quizData.title,
-        author: quizData.author,
-        category: quizData.category,
-        questionCount: questions.length,
-        createdAt: quizData.createdAt,
-        plays: 0,
-        rating: 0
-      });
+      try {
+        await (redis as any).zadd('public_quizzes_sorted', {
+          score: Date.now(),
+          member: quizId,
+        });
+        await redis.set(`public_quiz_data:${quizId}`, {
+          id: quizId,
+          title: quizData.title,
+          author: quizData.author,
+          category: quizData.category,
+          questionCount: questions?.length || 0,
+          createdAt: quizData.createdAt,
+          plays: 0,
+          rating: 0,
+        });
+      } catch (e) {
+        console.error('Failed to index public quiz (non-fatal):', e);
+      }
     }
 
     return NextResponse.json({ success: true, quizId });

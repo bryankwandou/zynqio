@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function Navbar() {
   const { data: session } = useSession();
@@ -39,12 +40,15 @@ export function Navbar() {
               </Button>
             </>
           ) : (
-            <Link href="/api/auth/signin">
+            <Link href="/auth/signin">
               <Button className="bg-blue-600 hover:bg-blue-700 text-white font-medium">
                 Host Login
               </Button>
             </Link>
           )}
+          <div className="pl-2 border-l border-slate-800">
+            <ThemeToggle />
+          </div>
         </nav>
       </div>
     </header>

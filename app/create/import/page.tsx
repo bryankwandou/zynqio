@@ -21,10 +21,10 @@ export default function ImportQuiz() {
 
     const reader = new FileReader();
     reader.onload = (evt) => {
-      const bstr = evt.target?.result;
+      const data = evt.target?.result;
       if (selected.name.endsWith('.csv')) {
         // Parse CSV
-        Papa.parse(bstr as string, {
+        Papa.parse(data as string, {
           header: true,
           skipEmptyLines: true,
           complete: (results: any) => processParsedData(results.data),
@@ -32,18 +32,18 @@ export default function ImportQuiz() {
         });
       } else if (selected.name.endsWith('.xlsx') || selected.name.endsWith('.xls')) {
         // Parse Excel
-        const wb = XLSX.read(bstr, { type: 'binary' });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws);
-        processParsedData(data);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+        processParsedData(jsonData);
       }
     };
 
     if (selected.name.endsWith('.csv')) {
       reader.readAsText(selected, 'UTF-8');
     } else {
-      reader.readAsBinaryString(selected);
+      reader.readAsArrayBuffer(selected);
     }
   };
 
@@ -51,36 +51,55 @@ export default function ImportQuiz() {
     const processed: any[] = [];
     const errs: string[] = [];
 
+    const headerAliases: Record<string, string[]> = {
+      text: ['question', 'pertanyaan', 'soal', 'q', 'text', 'isi soal'],
+      type: ['type', 'tipe', 'jenis', 'kategori'],
+      correctAnswer: ['correct', 'answer', 'correct_answer', 'jawaban benar', 'kunci', 'key', 'jawaban'],
+      points: ['points', 'poin', 'score', 'nilai'],
+      option_a: ['option_a', 'pilihan a', 'a', 'choice a', 'jawaban a', 'option1', 'opsi a'],
+      option_b: ['option_b', 'pilihan b', 'b', 'choice b', 'jawaban b', 'option2', 'opsi b'],
+      option_c: ['option_c', 'pilihan c', 'c', 'choice c', 'jawaban c', 'option3', 'opsi c'],
+      option_d: ['option_d', 'pilihan d', 'd', 'choice d', 'jawaban d', 'option4', 'opsi d'],
+    };
+
     data.forEach((row, idx) => {
       // Flexible Header Detection (Section 11.4)
-      const getVal = (keys: string[]) => {
-        const foundKey = Object.keys(row).find(k => keys.includes(k.toLowerCase().trim()));
-        return foundKey ? row[foundKey] : undefined;
+      const getVal = (aliases: string[]) => {
+        const key = Object.keys(row).find(k => {
+          const normalizedKey = k.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+          return aliases.some(a => {
+            const normalizedAlias = a.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+            return normalizedKey === normalizedAlias;
+          });
+        });
+        return key ? row[key] : null;
       };
 
-      const question = getVal(["question", "pertanyaan", "soal", "q"]);
+      const question = getVal(headerAliases.text);
       if (!question) {
         errs.push(`Row ${idx + 2}: Missing question text. Skipped.`);
         return;
       }
 
-      const typeRaw = getVal(["type", "tipe", "jenis", "questiontype"]) || "MCQ";
+      const typeRaw = getVal(headerAliases.type) || "MCQ";
       const type = typeRaw.toUpperCase();
       
-      const optionA = getVal(["option_a", "pilihan a", "a", "choice a", "jawaban a", "opsi_a"]);
-      const optionB = getVal(["option_b", "pilihan b", "b"]);
-      const optionC = getVal(["option_c", "pilihan c", "c"]);
-      const optionD = getVal(["option_d", "pilihan d", "d"]);
+      const options = [
+        getVal(headerAliases.option_a),
+        getVal(headerAliases.option_b),
+        getVal(headerAliases.option_c),
+        getVal(headerAliases.option_d)
+      ].filter(Boolean);
       
-      const correctRaw = getVal(["correct_answer", "correct", "answer", "jawaban benar", "kunci", "key"]);
+      const correctRaw = getVal(headerAliases.correctAnswer);
       
       processed.push({
         id: Math.random().toString(36).substr(2, 9),
         type,
         text: question,
-        options: [optionA, optionB, optionC, optionD].filter(Boolean),
+        options,
         correctAnswer: correctRaw?.toString().trim(),
-        points: parseInt(getVal(["points", "poin", "score", "mark"]) || "1")
+        points: parseInt(getVal(headerAliases.points) || "1")
       });
     });
 
@@ -126,10 +145,29 @@ export default function ImportQuiz() {
             </label>
             
             <div className="mt-12 flex justify-center gap-4">
-              <Button variant="outline" className="border-slate-700 text-slate-300">
+              <Button variant="outline" className="border-slate-700 text-slate-300" onClick={() => {
+                const ws = XLSX.utils.json_to_sheet([
+                  { "Question": "What is the capital of Indonesia?", "Type": "MCQ", "Option A": "Jakarta", "Option B": "Surabaya", "Option C": "Bandung", "Option D": "Medan", "Correct Answer": "A", "Points": 1 },
+                  { "Question": "Is the Earth flat?", "Type": "TF", "Option A": "True", "Option B": "False", "Correct Answer": "B", "Points": 1 }
+                ]);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Questions");
+                XLSX.writeFile(wb, "Zynqio_Template.xlsx");
+              }}>
                 <FileSpreadsheet size={16} className="mr-2" /> Download Template
               </Button>
-              <Button variant="outline" className="border-slate-700 text-slate-300">
+              <Button variant="outline" className="border-slate-700 text-slate-300" onClick={() => {
+                const csv = Papa.unparse([
+                  ["Question", "Type", "Option A", "Option B", "Option C", "Option D", "Correct Answer", "Points"],
+                  ["Siapa penemu lampu?", "MCQ", "Edison", "Tesla", "Newton", "Einstein", "A", "1"],
+                  ["2+2=5", "TF", "True", "False", "", "", "B", "1"]
+                ]);
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = "Zynqio_Example.csv";
+                link.click();
+              }}>
                 <FileSpreadsheet size={16} className="mr-2" /> Download Example
               </Button>
             </div>

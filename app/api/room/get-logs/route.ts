@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
+import { redis } from '@/lib/kv';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -11,11 +11,18 @@ export async function GET(req: Request) {
 
   try {
     const logKey = `room:${roomCode}:logs`;
-    const logs = await kv.lrange(logKey, 0, -1);
-    
-    const parsedLogs = logs.map(l => typeof l === 'string' ? JSON.parse(l) : l);
-    
-    return NextResponse.json(parsedLogs);
+    let logs: any[] = [];
+
+    try {
+      const raw = await (redis as any).lrange(logKey, 0, -1);
+      logs = (raw || []).map((l: any) => (typeof l === 'string' ? JSON.parse(l) : l));
+    } catch {
+      // Fallback if lrange not available
+      const raw = await redis.get<any[]>(logKey);
+      logs = (raw || []).map((l: any) => (typeof l === 'string' ? JSON.parse(l) : l));
+    }
+
+    return NextResponse.json(logs);
   } catch (error) {
     console.error('Get logs error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

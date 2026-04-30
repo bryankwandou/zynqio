@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Plus, Settings, Save, ArrowLeft, Trash2, GripVertical, FileUp, X, CheckCircle2 } from "lucide-react";
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
+import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type QuestionType = 'MCQ' | 'TF' | 'FIB' | 'MSQ' | 'ORDER' | 'OPEN';
 
@@ -18,6 +21,7 @@ interface Question {
   options?: string[];
   correctAnswer?: string | string[];
   points: number;
+  timeOverride?: number;
 }
 
 const QUESTION_TYPES: { id: QuestionType; label: string; desc: string }[] = [
@@ -38,6 +42,14 @@ export default function CreateQuiz() {
   const [isImporting, setIsImporting] = useState(false);
   const [importPreview, setImportPreview] = useState<Question[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [headerRowIndex, setHeaderRowIndex] = useState(-1);
+
+  const downloadTemplate = () => {
+    const link = document.createElement("a");
+    link.href = "/Zynqio_Template.xlsx";
+    link.download = "Zynqio_Template.xlsx";
+    link.click();
+  };
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/signin");
@@ -63,66 +75,200 @@ export default function CreateQuiz() {
 
     reader.onload = (evt) => {
       const data = evt.target?.result;
-      if (extension === 'csv') {
-        Papa.parse(data as string, {
-          header: true,
-          skipEmptyLines: true,
-          complete: (results) => processImportedData(results.data as any[]),
-        });
-      } else if (['xlsx', 'xls'].includes(extension!)) {
-        const workbook = XLSX.read(data, { type: 'binary' });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json(sheet);
-        processImportedData(json as any[]);
+      try {
+        if (extension === 'csv') {
+          Papa.parse(data as string, {
+            header: false, // Use raw mode to find header row manually if needed
+            skipEmptyLines: true,
+            complete: (results) => processImportedData(results.data as any[]),
+          });
+        } else if (['xlsx', 'xls'].includes(extension!)) {
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+          // Use header: 1 to get array of arrays for robust header detection
+          const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+          processImportedData(json as any[]);
+        }
+      } catch (err) {
+        console.error("Parse error:", err);
+        alert("Failed to parse file. Please ensure it is a valid CSV or Excel file.");
       }
     };
 
-    if (extension === 'csv') reader.readAsText(file);
-    else reader.readAsBinaryString(file);
+    if (extension === 'csv') {
+      reader.readAsText(file, 'UTF-8');
+    } else {
+      reader.readAsArrayBuffer(file);
+    }
   };
 
-  const processImportedData = (data: any[]) => {
+  const processImportedData = (rawData: any[]) => {
+    console.log("Processing imported data:", rawData);
+    if (!rawData || rawData.length === 0) {
+      alert("ERROR: The file seems to be empty or unreadable. Please check your file content.");
+      return;
+    }
+
+    // MEGA PROMPT COMPLIANT & THIRD-PARTY (Quizizz, Blooket) COMPATIBLE HEADERS
     const headerAliases: Record<string, string[]> = {
-      text: ['question', 'pertanyaan', 'soal', 'q', 'text'],
-      type: ['type', 'tipe', 'jenis'],
-      correctAnswer: ['correct', 'answer', 'correct_answer', 'jawaban benar', 'kunci', 'key'],
-      points: ['points', 'poin', 'score'],
-      option_a: ['option_a', 'pilihan a', 'a', 'choice a', 'jawaban a', 'option1'],
-      option_b: ['option_b', 'pilihan b', 'b', 'choice b', 'jawaban b', 'option2'],
-      option_c: ['option_c', 'pilihan c', 'c', 'choice c', 'jawaban c', 'option3'],
-      option_d: ['option_d', 'pilihan d', 'd', 'choice d', 'jawaban d', 'option4'],
+      text: ['question', 'pertanyaan', 'soal', 'q', 'text', 'isi soal', 'question text', 'problem', 'deskripsi soal'],
+      type: ['type', 'tipe', 'jenis', 'kategori', 'questiontype', 'model', 'format'],
+      correctAnswer: ['correctanswer', 'jawaban benar', 'kunci', 'key', 'jawaban', 'correct', 'answer', 'correct answer', 'kunci jawaban'],
+      points: ['points', 'poin', 'score', 'nilai', 'weight', 'mark', 'point'],
+      option_a: ['optiona', 'pilihana', 'a', 'choicea', 'jawabana', 'option1', 'opsia', 'option 1', 'answer 1', 'choice 1', 'pilihan 1'],
+      option_b: ['optionb', 'pilihanb', 'b', 'choiceb', 'jawabanb', 'option2', 'opsib', 'option 2', 'answer 2', 'choice 2', 'pilihan 2'],
+      option_c: ['optionc', 'pilihanc', 'c', 'choicec', 'jawabanc', 'option3', 'opsic', 'option 3', 'answer 3', 'choice 3', 'pilihan 3'],
+      option_d: ['optiond', 'pilihand', 'd', 'choiced', 'jawaband', 'option4', 'opsid', 'option 4', 'answer 4', 'choice 4', 'pilihan 4'],
+      time_override: ['timeoverride', 'timer', 'waktu', 'duration', 'limit', 'time', 'time limit', 'time limit (seconds)'],
     };
 
-    const mappedQuestions: Question[] = data.map(row => {
-      // Flexible Header Detection (Section 11.4)
+    // 1. PRESIDENTIAL SMART SCANNER (Section 11.4 & 11.11)
+    let data = rawData;
+    let localHeaderRowIndex = -1;
+    if (Array.isArray(data) && data.length > 0) {
+      let maxMatches = 0;
+      let bestHeaders: string[] = [];
+      
+      // Heuristic: Scan first 30 rows for headers
+      for (let i = 0; i < Math.min(data.length, 30); i++) {
+        const row = data[i];
+        if (!Array.isArray(row)) continue;
+        
+        let matches = 0;
+        const currentHeaders: string[] = [];
+        
+        row.forEach((cell: any, idx: number) => {
+          if (!cell) {
+            currentHeaders.push(`col_${idx}`);
+            return;
+          }
+          const normalized = cell.toString().toLowerCase().trim().replace(/[^a-z0-9 ]/g, '');
+          let found = false;
+          Object.entries(headerAliases).forEach(([key, aliases]) => {
+            if (aliases.includes(normalized) || aliases.some(a => normalized.includes(a))) {
+              matches++;
+              currentHeaders.push(normalized);
+              found = true;
+            }
+          });
+          if (!found) currentHeaders.push(normalized);
+        });
+        
+        if (matches > maxMatches) {
+          maxMatches = matches;
+          localHeaderRowIndex = i;
+          bestHeaders = currentHeaders;
+        }
+      }
+
+      if (localHeaderRowIndex !== -1 && maxMatches >= 2) {
+        // Table found! Slice data from the row after headers
+        const rows = data.slice(localHeaderRowIndex + 1);
+        data = rows.map(r => {
+          const obj: any = {};
+          if (Array.isArray(r)) {
+            bestHeaders.forEach((h: string, idx: number) => {
+              if (h) obj[h] = r[idx];
+            });
+          } else {
+            return r; // Already an object?
+          }
+          return obj;
+        });
+      } else {
+        // Fallback: If no clear headers, try to find the first row that looks like a question
+        console.warn("No clear headers found, applying heuristic scan");
+        if (Array.isArray(data[0])) {
+          const headers = data[0].map((h: any, idx: number) => h?.toString().toLowerCase().trim().replace(/[^a-z0-9 ]/g, '') || `col_${idx}`);
+          const rows = data.slice(1);
+          data = rows.map(r => {
+            const obj: any = {};
+            if (Array.isArray(r)) {
+              headers.forEach((h: string, idx: number) => {
+                if (h) obj[h] = r[idx];
+              });
+            }
+            return obj;
+          });
+        }
+      }
+    }
+
+    // 2. Map Rows to Questions (Section 5.4 & 11.3)
+    const mappedQuestions = data.map((row, idx) => {
       const getVal = (aliases: string[]) => {
         const key = Object.keys(row).find(k => {
-          const normalized = k.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
-          return aliases.some(a => a.replace(/[^a-z0-9]/g, '') === normalized);
+          const normalizedKey = k.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+          return aliases.some(a => {
+            const normalizedAlias = a.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+            return normalizedKey === normalizedAlias;
+          });
         });
         return key ? row[key] : null;
       };
 
-      const qType = (getVal(headerAliases.type) || 'MCQ').toUpperCase();
+      const text = getVal(headerAliases.text);
+      if (!text || text.toString().trim() === "") return null;
+
+      const rawType = (getVal(headerAliases.type) || 'MCQ').toString().toUpperCase().trim();
+      const type = (['MCQ', 'TF', 'FIB', 'MSQ', 'ORDER', 'OPEN'].includes(rawType) ? rawType : 'MCQ') as QuestionType;
+      
       const options = [
         getVal(headerAliases.option_a),
         getVal(headerAliases.option_b),
         getVal(headerAliases.option_c),
         getVal(headerAliases.option_d)
-      ].filter(Boolean);
+      ].map(v => v?.toString().trim() || "").filter((v, i) => v !== "" || i < 2);
+
+      // Handle correct answer mapping (Section 11.3)
+      let correctAnswer = getVal(headerAliases.correctAnswer)?.toString().trim() || "";
+      
+      if (type === 'MCQ' || type === 'MSQ') {
+        // 1. Try letter mapping (A, B, C, D)
+        const letterMap: Record<string, string> = { 'A': '0', 'B': '1', 'C': '2', 'D': '3', '1': '0', '2': '1', '3': '2', '4': '3' };
+        
+        // 2. Try full text mapping (Quizizz style)
+        const findIndexByText = (text: string) => {
+          const idx = options.findIndex(opt => opt.toLowerCase() === text.toLowerCase());
+          return idx !== -1 ? idx.toString() : null;
+        };
+
+        if (type === 'MSQ' && (correctAnswer.includes(';') || correctAnswer.includes(','))) {
+          const delimiter = correctAnswer.includes(';') ? ';' : ',';
+          correctAnswer = correctAnswer.split(delimiter).map((ans: string) => {
+            const trimmed = ans.trim();
+            return findIndexByText(trimmed) || letterMap[trimmed.toUpperCase()] || trimmed;
+          }).join(';');
+        } else {
+          const mappedIdx = findIndexByText(correctAnswer);
+          if (mappedIdx !== null) {
+            correctAnswer = mappedIdx;
+          } else {
+            correctAnswer = letterMap[correctAnswer.toUpperCase()] || correctAnswer;
+          }
+        }
+      }
 
       return {
         id: Math.random().toString(36).substr(2, 9),
-        type: qType as any,
-        text: getVal(headerAliases.text) || "Untitled Question",
-        points: parseInt(getVal(headerAliases.points) || "1"),
-        options: options.length > 0 ? options : (qType === 'TF' ? ["True", "False"] : []),
-        correctAnswer: getVal(headerAliases.correctAnswer) || ""
-      };
-    }).filter(q => q.text !== "Untitled Question");
+        type,
+        text: text.toString(),
+        points: parseInt(getVal(headerAliases.points)?.toString() || "1"),
+        options: options.length >= 2 ? options : (type === 'TF' ? ["True", "False"] : options),
+        correctAnswer,
+        timeOverride: parseInt(getVal(headerAliases.time_override)?.toString() || "0")
+      } as Question;
+    }).filter((q): q is Question => q !== null);
+
+    if (mappedQuestions.length === 0) {
+      const foundHeaders = Object.keys(data[0] || {}).join(', ');
+      alert(`ERROR: Could not find valid questions. \n\nFound columns: [${foundHeaders}] \n\nRequired: 'Question', 'Option A', 'Option B', 'Correct Answer'. \n\nPlease use the provided template.`);
+      return;
+    }
 
     setImportPreview(mappedQuestions);
+    setHeaderRowIndex(localHeaderRowIndex);
     setIsImporting(true);
   };
 
@@ -166,8 +312,37 @@ export default function CreateQuiz() {
   if (status === "loading") return <div className="min-h-screen bg-slate-950" />;
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-200">
-      <Navbar />
+    <div className="min-h-screen bg-[#0a0a0f] text-white">
+      <header className="border-b border-slate-800 bg-slate-950/50 backdrop-blur-md sticky top-0 z-50">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard">
+              <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
+                <ChevronLeft size={24} />
+              </Button>
+            </Link>
+            <h1 className="text-xl font-bold tracking-tight">Quiz Builder</h1>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
+            <div className="h-6 w-[1px] bg-slate-800 mx-2" />
+            <Button 
+              variant="outline" 
+              className="border-slate-700 text-slate-300 hover:bg-slate-800"
+              onClick={downloadTemplate}
+            >
+              Download Template
+            </Button>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 font-bold"
+              onClick={saveQuiz}
+            >
+              Save Quiz
+            </Button>
+          </div>
+        </div>
+      </header>
       
       {/* Top Action Bar */}
       <div className="border-b border-slate-800 bg-slate-900/50 sticky top-16 z-40 backdrop-blur-sm">
@@ -408,8 +583,40 @@ export default function CreateQuiz() {
               </div>
               
               <div className="p-6 bg-slate-950 border-t border-slate-800 flex justify-between items-center">
-                <div className="text-slate-400 text-sm">
-                  Found <span className="text-white font-bold">{importPreview.length}</span> questions in file.
+                <div className="flex flex-col">
+                  <div className="text-slate-400 text-sm flex items-center gap-2">
+                    Found <span className="text-white font-bold">{importPreview.length}</span> questions in file.
+                    {headerRowIndex > 0 && (
+                      <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-black uppercase rounded-full border border-green-500/20">
+                        Smart-Scan Optimized (Row {headerRowIndex + 1})
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-4 mt-1">
+                    <button 
+                      onClick={() => {
+                        const link = document.createElement("a");
+                        link.href = "/Zynqio_Template.xlsx";
+                        link.download = "Zynqio_Template.xlsx";
+                        link.click();
+                      }}
+                      className="text-xs text-blue-500 hover:underline text-left"
+                    >
+                      Download Excel Template
+                    </button>
+                    <span className="text-slate-800 text-xs">|</span>
+                    <button 
+                      onClick={() => {
+                        const link = document.createElement("a");
+                        link.href = "/Zynqio_Example.csv";
+                        link.download = "Zynqio_Example.csv";
+                        link.click();
+                      }}
+                      className="text-xs text-blue-500 hover:underline text-left"
+                    >
+                      Download CSV Example
+                    </button>
+                  </div>
                 </div>
                 <div className="flex gap-4">
                   <Button variant="ghost" className="text-slate-400 hover:text-white" onClick={() => setIsImporting(false)}>Cancel</Button>

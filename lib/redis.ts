@@ -1,59 +1,77 @@
 import { Redis } from '@upstash/redis';
 import pako from 'pako';
-import fs from 'fs';
-import path from 'path';
 
-// Local File Fallback for "Akalin" zero-config requirement
-const LOCAL_DB_FILE = path.join(process.cwd(), 'local_database.json');
+// ============================================================
+// VERCEL-SAFE REDIS LAYER
+// NO fs/filesystem imports — Vercel serverless is READ-ONLY.
+// Primary: Upstash Redis REST API
+// Fallback: In-memory Map (data lost between invocations, but won't crash)
+// ============================================================
 
-// Helper to initialize local DB
-function initLocalDb() {
-  if (!fs.existsSync(LOCAL_DB_FILE)) {
-    fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify({}), 'utf-8');
-  }
-}
+const hasUpstashKeys =
+  process.env.UPSTASH_REDIS_REST_URL &&
+  process.env.UPSTASH_REDIS_REST_URL !== 'your_upstash_redis_rest_url' &&
+  process.env.UPSTASH_REDIS_REST_TOKEN &&
+  process.env.UPSTASH_REDIS_REST_TOKEN !== 'your_upstash_redis_rest_token';
 
-// Local mock for Redis client
-const localRedis = {
+// In-memory fallback (works for single-request, non-persistent)
+const memStore = new Map<string, any>();
+
+const memRedis = {
   async get<T>(key: string): Promise<T | null> {
-    initLocalDb();
-    const data = JSON.parse(fs.readFileSync(LOCAL_DB_FILE, 'utf-8'));
-    return data[key] || null;
+    return (memStore.get(key) as T) ?? null;
   },
-  async set(key: string, value: any, options?: any): Promise<void> {
-    initLocalDb();
-    const data = JSON.parse(fs.readFileSync(LOCAL_DB_FILE, 'utf-8'));
-    data[key] = value;
-    fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  async set(key: string, value: any, _options?: any): Promise<void> {
+    memStore.set(key, value);
   },
   async zadd(key: string, data: { score: number; member: string }): Promise<void> {
-    initLocalDb();
-    const dbData = JSON.parse(fs.readFileSync(LOCAL_DB_FILE, 'utf-8'));
-    if (!dbData[key]) dbData[key] = [];
-    
-    // Simple mock for sorted set
-    const set = dbData[key];
-    const existingIndex = set.findIndex((item: any) => item.member === data.member);
+    const set: Array<{ score: number; member: string }> = memStore.get(key) || [];
+    const existingIndex = set.findIndex((item) => item.member === data.member);
     if (existingIndex >= 0) {
       set[existingIndex].score = data.score;
     } else {
       set.push(data);
     }
-    set.sort((a: any, b: any) => a.score - b.score);
-    dbData[key] = set;
-    
-    fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify(dbData, null, 2), 'utf-8');
-  }
+    set.sort((a, b) => a.score - b.score);
+    memStore.set(key, set);
+  },
+  async zrange(key: string, start: number, stop: number): Promise<string[]> {
+    const set: Array<{ score: number; member: string }> = memStore.get(key) || [];
+    return set.slice(start, stop === -1 ? undefined : stop + 1).map((i) => i.member);
+  },
+  async keys(pattern: string): Promise<string[]> {
+    // Simple glob-like prefix matching
+    const prefix = pattern.replace('*', '');
+    return Array.from(memStore.keys()).filter((k) => k.startsWith(prefix));
+  },
+  async sadd(key: string, ...members: string[]): Promise<void> {
+    const set: Set<string> = new Set(memStore.get(key) || []);
+    members.forEach((m) => set.add(m));
+    memStore.set(key, Array.from(set));
+  },
+  async srem(key: string, ...members: string[]): Promise<void> {
+    const arr: string[] = memStore.get(key) || [];
+    memStore.set(key, arr.filter((m) => !members.includes(m)));
+  },
+  async smembers(key: string): Promise<string[]> {
+    return memStore.get(key) || [];
+  },
+  async del(key: string): Promise<void> {
+    memStore.delete(key);
+  },
+  async setnx(key: string, value: any): Promise<number> {
+    if (memStore.has(key)) return 0;
+    memStore.set(key, value);
+    return 1;
+  },
 };
 
-const hasUpstashKeys = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_URL !== 'your_upstash_redis_rest_url';
-
-export const redis = hasUpstashKeys 
+export const redis: Redis = hasUpstashKeys
   ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL || '',
-      token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
+      url: process.env.UPSTASH_REDIS_REST_URL!,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
     })
-  : localRedis as unknown as Redis; // Use local file mock if no keys are provided
+  : (memRedis as unknown as Redis);
 
 /**
  * Compresses a JSON object using pako (gzip) and encodes it to base64.
@@ -81,15 +99,20 @@ export function decompressData<T>(base64String: string): T {
     const jsonString = new TextDecoder().decode(decompressed);
     return JSON.parse(jsonString) as T;
   } catch (error) {
-    console.error('Failed to decompress data:', error);
-    throw error;
+    // Attempt raw JSON parse as fallback (e.g., if data was never compressed)
+    try {
+      return JSON.parse(base64String) as T;
+    } catch {
+      console.error('Failed to decompress or parse data:', error);
+      throw error;
+    }
   }
 }
 
 export async function saveQuizData(userId: string, quizId: string, quizData: any) {
   const compressed = compressData(quizData);
   await redis.set(`quiz:${userId}:${quizId}`, compressed);
-  await redis.zadd(`user:${userId}:quizzes`, { score: Date.now(), member: quizId });
+  await (redis as any).zadd(`user:${userId}:quizzes`, { score: Date.now(), member: quizId });
 }
 
 export async function getQuizData(userId: string, quizId: string) {
@@ -98,12 +121,23 @@ export async function getQuizData(userId: string, quizId: string) {
   return decompressData<any>(compressed);
 }
 
-export async function saveRoomData(roomCode: string, roomData: any) {
-  await redis.set(`room:${roomCode}`, roomData, { ex: 24 * 60 * 60 });
+export async function listUserQuizIds(userId: string): Promise<string[]> {
+  try {
+    return await (redis as any).zrange(`user:${userId}:quizzes`, 0, -1);
+  } catch {
+    return [];
+  }
 }
 
-export async function getRoomData(roomCode: string) {
-  return await redis.get<any>(`room:${roomCode}`);
+export async function saveRoomData(roomCode: string, roomData: any) {
+  await redis.set(`room:${roomCode}`, JSON.stringify(roomData), { ex: 24 * 60 * 60 });
+}
+
+export async function getRoomData(roomCode: string): Promise<any | null> {
+  const raw = await redis.get<string>(`room:${roomCode}`);
+  if (!raw) return null;
+  if (typeof raw === 'object') return raw; // Upstash auto-parses sometimes
+  try { return JSON.parse(raw); } catch { return raw; }
 }
 
 export async function saveSessionResults(sessionId: string, results: any) {
@@ -115,4 +149,16 @@ export async function getSessionResults(sessionId: string) {
   const compressed = await redis.get<string>(`session:${sessionId}:results`);
   if (!compressed) return null;
   return decompressData<any>(compressed);
+}
+
+export async function setAnswerOnce(
+  sessionId: string,
+  playerId: string,
+  questionId: string,
+  answerData: any
+): Promise<boolean> {
+  const key = `session:${sessionId}:player:${playerId}:q:${questionId}`;
+  // SETNX — only set if not exists. Returns 1 (new) or 0 (already answered)
+  const result = await (redis as any).setnx(key, JSON.stringify(answerData));
+  return result === 1;
 }
