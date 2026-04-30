@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getRoomState } from '@/lib/kv';
-import { kv } from '@vercel/kv';
+import { getRoomState, redis } from '@/lib/kv';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -13,9 +12,13 @@ export async function GET(req: Request) {
   try {
     const state = await getRoomState(roomCode);
     if (state && state.status === 'playing') {
-      const qId = state.currentQuestionId || `q${state.currentQuestionIndex + 1}`; // Fallback logic
-      const answersCount = await kv.scard(`room:${roomCode}:q:${qId}:answers`);
-      state.answersCount = answersCount;
+      const qId = state.currentQuestionId || `q${state.currentQuestionIndex + 1}`;
+      try {
+        const answersCount = await (redis as any).scard(`room:${roomCode}:q:${qId}:answers`);
+        state.answersCount = answersCount || 0;
+      } catch {
+        state.answersCount = 0;
+      }
     }
     return NextResponse.json(state);
   } catch (error) {
