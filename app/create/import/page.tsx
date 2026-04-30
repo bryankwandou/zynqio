@@ -27,8 +27,8 @@ export default function ImportQuiz() {
         Papa.parse(bstr as string, {
           header: true,
           skipEmptyLines: true,
-          complete: (results) => processParsedData(results.data),
-          error: (err) => setErrors([err.message])
+          complete: (results: any) => processParsedData(results.data),
+          error: (err: any) => setErrors([err.message])
         });
       } else if (selected.name.endsWith('.xlsx') || selected.name.endsWith('.xls')) {
         // Parse Excel

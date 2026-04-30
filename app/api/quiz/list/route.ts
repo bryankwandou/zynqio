@@ -6,7 +6,7 @@ import { listUserQuizzes } from '@/lib/kv';
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    const userId = session?.user?.id || 'admin';
+    const userId = (session?.user as any)?.id || 'admin';
     const quizzes = await listUserQuizzes(userId);
     return NextResponse.json(quizzes);
   } catch (error) {

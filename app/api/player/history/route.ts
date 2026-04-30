@@ -6,9 +6,9 @@ import { kv } from '@vercel/kv';
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session || !(session.user as any)?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const historyKeys = await kv.keys(`user:${session.user.id}:history:*`);
+    const historyKeys = await kv.keys(`user:${(session.user as any).id}:history:*`);
     const history = [];
     
     for (const key of historyKeys) {
@@ -29,13 +29,13 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session || !(session.user as any)?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
     const { quizId, title, score, accuracy, rank, totalPlayers, date } = body;
 
     const historyId = Math.random().toString(36).substring(2, 9);
-    const key = `user:${session.user.id}:history:${historyId}`;
+    const key = `user:${(session.user as any).id}:history:${historyId}`;
     
     const historyItem = {
       id: historyId,

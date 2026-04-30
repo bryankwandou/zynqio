@@ -31,7 +31,7 @@ export async function GET(req: Request) {
     // Calculate Team Scores (Section 10.6)
     const teamScores: Record<string, { totalAccuracy: number, count: number }> = {};
     if (state.gameMode === 'team') {
-      leaderboard.forEach(p => {
+      leaderboard.forEach((p: any) => {
         if (p.team) {
           if (!teamScores[p.team]) teamScores[p.team] = { totalAccuracy: 0, count: 0 };
           teamScores[p.team].totalAccuracy += p.accuracy;
@@ -80,7 +80,7 @@ export async function GET(req: Request) {
     // Calculate stats
     const totalPlayers = leaderboard.length;
     const avgAccuracy = totalPlayers > 0 
-      ? Math.round(leaderboard.reduce((acc, p) => acc + (p.accuracy || 0), 0) / totalPlayers) 
+      ? Math.round(leaderboard.reduce((acc: any, p: any) => acc + (p.accuracy || 0), 0) / totalPlayers) 
       : 0;
 
     return NextResponse.json({
@@ -90,7 +90,7 @@ export async function GET(req: Request) {
       stats: {
         totalPlayers,
         avgAccuracy,
-        hardestQuestion: questionStats.sort((a, b) => a.accuracy - b.accuracy)[0]?.text || 'N/A'
+        hardestQuestion: questionStats.sort((a: any, b: any) => a.accuracy - b.accuracy)[0]?.text || 'N/A'
       },
       questions: questionStats,
       matrix: performanceMatrix,

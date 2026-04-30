@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
+import { Zap } from "lucide-react";
 
 export default function PlayerGame({ params }: { params: Promise<{ roomCode: string }> }) {
   const router = useRouter();
@@ -59,9 +60,6 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
                 setSelectedAnswer(null);
                 setResult(null);
               }
-            }
-            } else if (state.status === 'ended') {
-              router.push(`/results/${unwrappedParams.roomCode}`);
             }
 
             // Check for new events

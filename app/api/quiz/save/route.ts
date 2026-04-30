@@ -7,7 +7,7 @@ import { kv } from "@vercel/kv";
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const userId = session?.user?.id || 'admin';
+    const userId = (session?.user as any)?.id || 'admin';
     const body = await req.json();
     const { title, questions, visibility, category } = body;
 

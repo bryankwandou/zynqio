@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState, use } from "react";
 import { Navbar } from "@/components/navbar";
 import { Button } from "@/components/ui/button";
-import { Trophy, Download, BarChart2, Star } from "lucide-react";
+import { Trophy, Download, BarChart2, Star, Users } from "lucide-react";
 
 export default function ResultsPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { data: session } = useSession();
@@ -30,12 +30,12 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
           
           // Determine if user is host
           const hostId = localStorage.getItem('zynqio_host_id');
-          const amIHost = hostId === data.hostId || session?.user?.id === data.hostId;
+          const amIHost = hostId === data.hostId || (session?.user as any)?.id === data.hostId;
           setIsHost(amIHost);
           setShowRating(!amIHost);
 
           // AUTO-SAVE TO HISTORY (Section 13.1)
-          if (session?.user?.id && !amIHost) {
+          if ((session?.user as any)?.id && !amIHost) {
             const nickname = localStorage.getItem("zynqio_nickname");
             const myResult = data.leaderboard.find((p: any) => p.name === nickname);
             if (myResult) {
