@@ -1,34 +1,40 @@
 import { NextResponse } from "next/server";
-import { kv } from "@vercel/kv";
-import { getServerSession } from "next-auth/next";
+import { redis, updateQuizRating } from "@/lib/kv";
+
+async function resolveHostId(quizId: string, providedHostId?: string | null) {
+  if (providedHostId) return providedHostId;
+
+  try {
+    const publicRefs: string[] = await (redis as any).smembers("public_quizzes");
+    const matched = publicRefs.find((ref) => ref.endsWith(`:${quizId}`));
+    if (!matched) return null;
+
+    const [hostId] = matched.split(":");
+    return hostId || null;
+  } catch (error) {
+    console.error("Host lookup failed:", error);
+    return null;
+  }
+}
 
 export async function POST(req: Request) {
   try {
-    const { quizId, rating, review, sessionId } = await req.json();
+    const { quizId, rating, review, hostId } = await req.json();
 
-    if (!quizId || !rating) {
+    const numericRating = Number(rating);
+    if (!quizId || Number.isNaN(numericRating)) {
       return NextResponse.json({ error: "Missing data" }, { status: 400 });
     }
+    if (numericRating < 1 || numericRating > 5) {
+      return NextResponse.json({ error: "Rating must be between 1 and 5" }, { status: 400 });
+    }
 
-    // 1. Save individual review
-    const reviewId = Math.random().toString(36).substring(7);
-    const reviewData = {
-      id: reviewId,
-      rating,
-      review,
-      timestamp: Date.now(),
-    };
+    const resolvedHostId = await resolveHostId(quizId, hostId);
+    if (!resolvedHostId) {
+      return NextResponse.json({ error: "Quiz owner not found" }, { status: 404 });
+    }
 
-    await kv.lpush(`quiz:${quizId}:reviews`, JSON.stringify(reviewData));
-
-    // 2. Update aggregate rating
-    const ratingKey = `quiz:${quizId}:rating_stats`;
-    const stats = (await kv.get(ratingKey) as { total: number, count: number }) || { total: 0, count: 0 };
-    
-    stats.total += rating;
-    stats.count += 1;
-    
-    await kv.set(ratingKey, stats);
+    await updateQuizRating(resolvedHostId, quizId, numericRating, review);
 
     return NextResponse.json({ success: true });
   } catch (err) {

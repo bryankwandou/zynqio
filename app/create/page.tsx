@@ -45,15 +45,51 @@ export default function CreateQuiz() {
   const [headerRowIndex, setHeaderRowIndex] = useState(-1);
 
   const downloadTemplate = () => {
+    const ws = XLSX.utils.json_to_sheet([
+      { "Question": "What is the capital of Indonesia?", "Type": "MCQ", "Option A": "Jakarta", "Option B": "Surabaya", "Option C": "Bandung", "Option D": "Medan", "Correct Answer": "A", "Points": 1, "Time Limit (Seconds)": 30 },
+      { "Question": "Is the Earth flat?", "Type": "TF", "Option A": "True", "Option B": "False", "Correct Answer": "B", "Points": 1, "Time Limit (Seconds)": 15 },
+      { "Question": "Zynqio is the best quiz platform ___.", "Type": "FIB", "Correct Answer": "ever;in the world", "Points": 2, "Time Limit (Seconds)": 45 },
+      { "Question": "Which of these are programming languages?", "Type": "MSQ", "Option A": "HTML", "Option B": "JavaScript", "Option C": "CSS", "Option D": "Python", "Correct Answer": "B;D", "Points": 3, "Time Limit (Seconds)": 60 }
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Questions");
+    XLSX.writeFile(wb, "Zynqio_Template.xlsx");
+  };
+
+  const downloadCsvExample = () => {
+    const csv = Papa.unparse([
+      ["Question", "Type", "Option A", "Option B", "Option C", "Option D", "Correct Answer", "Points", "Time Limit (Seconds)"],
+      ["Siapa penemu bola lampu pijar?", "MCQ", "Edison", "Tesla", "Newton", "Einstein", "A", "1", "30"],
+      ["Matahari terbit dari barat.", "TF", "True", "False", "", "", "B", "1", "15"]
+    ]);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
-    link.href = "/Zynqio_Template.xlsx";
-    link.download = "Zynqio_Template.xlsx";
+    link.href = URL.createObjectURL(blob);
+    link.download = "Zynqio_Example.csv";
     link.click();
   };
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/signin");
   }, [status, router]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const pendingImport = sessionStorage.getItem("zynqio_import_preview");
+    if (!pendingImport) return;
+
+    try {
+      const parsed = JSON.parse(pendingImport);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setQuestions((prev) => [...prev, ...parsed]);
+      }
+    } catch (error) {
+      console.error("Failed to restore imported questions:", error);
+    } finally {
+      sessionStorage.removeItem("zynqio_import_preview");
+    }
+  }, []);
 
   const addQuestion = () => {
     const newQ: Question = {

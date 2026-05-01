@@ -125,9 +125,9 @@ export default function ExplorePage() {
                     <div className="flex items-center gap-1.5 text-yellow-500 font-bold">
                       <Star size={16} fill="currentColor" /> {quiz.rating || "New"}
                     </div>
-                    <Link href={`/join?code=${quiz.id}`}>
+                    <Link href={`/quiz/${quiz.hostId}/${quiz.id}`}>
                       <Button className="bg-white text-slate-900 font-black px-8 rounded-2xl hover:scale-105 transition-transform">
-                        <Play size={16} className="mr-2" /> Play
+                        <Play size={16} className="mr-2" /> Open
                       </Button>
                     </Link>
                   </div>
