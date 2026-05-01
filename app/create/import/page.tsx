@@ -107,6 +107,15 @@ export default function ImportQuiz() {
     setErrors(errs);
   };
 
+  const importToBuilder = () => {
+    try {
+      sessionStorage.setItem("zynqio_import_preview", JSON.stringify(preview));
+    } catch (error) {
+      console.error("Failed to store import preview", error);
+    }
+    router.push("/create?fromImport=1");
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-slate-950 text-slate-200">
       <Navbar />
@@ -185,7 +194,7 @@ export default function ImportQuiz() {
                   </div>
                 )}
               </div>
-              <Button className="bg-green-600 hover:bg-green-700 text-white font-bold" onClick={() => router.push('/create')}>
+              <Button className="bg-green-600 hover:bg-green-700 text-white font-bold" onClick={importToBuilder}>
                 Import to Builder
               </Button>
             </div>

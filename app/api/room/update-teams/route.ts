@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { kv } from "@vercel/kv";
+import { getRoomState, setRoomState } from "@/lib/kv";
 
 export async function POST(req: Request) {
   try {
@@ -9,8 +9,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing data" }, { status: 400 });
     }
 
-    const roomKey = `room:${roomCode}`;
-    const roomState: any = await kv.get(roomKey);
+    const roomState: any = await getRoomState(roomCode);
 
     if (!roomState) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
@@ -31,7 +30,7 @@ export async function POST(req: Request) {
     roomState.players = updatedPlayers;
     roomState.teams = teams; // Store team structure for host
 
-    await kv.set(roomKey, roomState);
+    await setRoomState(roomCode, roomState);
 
     return NextResponse.json({ success: true });
   } catch (err) {

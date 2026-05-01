@@ -1,7 +1,7 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Shield, ArrowRight, Zap, Trophy, Layout } from "lucide-react";
@@ -10,9 +10,32 @@ import { motion } from "framer-motion";
 export default function SignIn() {
   const [username, setUsername] = useState("admin");
   const [isLazarusMode, setIsLazarusMode] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState<boolean | null>(null);
 
-  const hasGoogleConfig = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && 
-                         process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID !== 'your_google_client_id';
+  useEffect(() => {
+    let isMounted = true;
+
+    async function checkGoogleProvider() {
+      try {
+        const res = await fetch("/api/auth/providers", { cache: "no-store" });
+        if (!res.ok) {
+          if (isMounted) setGoogleEnabled(false);
+          return;
+        }
+
+        const providers = await res.json();
+        if (isMounted) setGoogleEnabled(Boolean(providers?.google));
+      } catch (error) {
+        console.error("Failed to load auth providers:", error);
+        if (isMounted) setGoogleEnabled(false);
+      }
+    }
+
+    checkGoogleProvider();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#050508] p-4 relative overflow-hidden">
@@ -48,12 +71,13 @@ export default function SignIn() {
           <div className="space-y-4">
             <Button 
               className={`w-full py-8 text-lg font-bold transition-all rounded-2xl flex items-center justify-center gap-3 shadow-xl ${
-                hasGoogleConfig ? "bg-white text-black hover:bg-slate-200" : "bg-slate-800 text-slate-500 hover:bg-slate-700"
+                googleEnabled ? "bg-white text-black hover:bg-slate-200" : "bg-slate-800 text-slate-500 hover:bg-slate-700"
               }`}
+              disabled={googleEnabled === null}
               onClick={() => {
-                if (hasGoogleConfig) {
+                if (googleEnabled) {
                   signIn("google", { callbackUrl: "/dashboard" });
-                } else {
+                } else if (googleEnabled === false) {
                   // EMERGENCY REDIRECT TO SETUP
                   window.location.href = "/setup";
                 }
@@ -65,7 +89,13 @@ export default function SignIn() {
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="currentColor" opacity="0.6"/>
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="currentColor" opacity="0.8"/>
               </svg>
-              <span>{hasGoogleConfig ? "Continue with Google" : "Setup Google Login"}</span>
+              <span>
+                {googleEnabled === null
+                  ? "Checking Google Login..."
+                  : googleEnabled
+                    ? "Continue with Google"
+                    : "Setup Google Login"}
+              </span>
             </Button>
 
             <div className="relative py-4">

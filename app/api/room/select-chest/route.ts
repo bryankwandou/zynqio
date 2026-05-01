@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { kv } from "@vercel/kv";
+import { getRoomState, setRoomState, redis } from "@/lib/kv";
 
 export async function POST(req: Request) {
   try {
@@ -9,8 +9,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing data" }, { status: 400 });
     }
 
-    const roomKey = `room:${roomCode}`;
-    const roomState: any = await kv.get(roomKey);
+    const roomState: any = await getRoomState(roomCode);
 
     if (!roomState) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
@@ -52,16 +51,22 @@ export async function POST(req: Request) {
     }
 
     // Log the event for realtime signaling
-    const logKey = `logs:${roomCode}`;
-    await kv.lpush(logKey, JSON.stringify({
+    const logKey = `room:${roomCode}:logs`;
+    const logEntry = {
       event: 'steal',
       playerId: roomState.players[playerIndex].name,
       label: outcome.label,
       timestamp: Date.now()
-    }));
-    await kv.ltrim(logKey, 0, 19); // Keep last 20 logs
+    };
+    try {
+      await (redis as any).rpush(logKey, JSON.stringify(logEntry));
+    } catch {
+      const existing: string[] = (await redis.get<string[]>(logKey)) || [];
+      existing.push(JSON.stringify(logEntry));
+      await redis.set(logKey, existing, { ex: 86400 });
+    }
 
-    await kv.set(roomKey, roomState);
+    await setRoomState(roomCode, roomState);
 
     return NextResponse.json({ success: true, outcome });
   } catch (err) {

@@ -70,6 +70,7 @@ export async function listPublicQuizzes() {
           rating: data.rating || 0,
           category: data.category || 'General',
           questions: data.questions?.length || 0,
+          questionCount: data.questions?.length || 0,
           hostId: userId,
           createdAt: data.createdAt,
         });

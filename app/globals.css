@@ -128,3 +128,46 @@
     @apply font-sans;
   }
 }
+
+@layer base {
+  html.light body {
+    background-color: rgb(248 250 252);
+    color: rgb(15 23 42);
+  }
+
+  html.light [class*="bg-slate-950"] {
+    background-color: rgb(248 250 252) !important;
+  }
+
+  html.light [class*="bg-slate-900"] {
+    background-color: rgb(241 245 249) !important;
+  }
+
+  html.light [class*="bg-slate-800"] {
+    background-color: rgb(226 232 240) !important;
+  }
+
+  html.light [class*="border-slate-"] {
+    border-color: rgb(203 213 225) !important;
+  }
+
+  html.light [class*="text-slate-300"],
+  html.light [class*="text-slate-400"],
+  html.light [class*="text-slate-500"],
+  html.light [class*="text-slate-600"] {
+    color: rgb(71 85 105) !important;
+  }
+
+  html.light [class*="text-white"] {
+    color: rgb(15 23 42) !important;
+  }
+
+  html.light [class*="bg-blue-"] [class*="text-white"],
+  html.light [class*="bg-indigo-"] [class*="text-white"],
+  html.light [class*="bg-purple-"] [class*="text-white"],
+  html.light [class*="bg-green-"] [class*="text-white"],
+  html.light [class*="bg-red-"] [class*="text-white"],
+  html.light [class*="bg-amber-"] [class*="text-white"] {
+    color: white !important;
+  }
+}
