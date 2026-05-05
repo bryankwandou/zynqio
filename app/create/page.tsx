@@ -453,8 +453,10 @@ export default function CreateQuiz() {
           quizId: editingQuizId || undefined,
           title,
           questions,
-          visibility: 'public', // Default for now
-          category: 'General'
+          visibility: quizPrivacy,
+          category: quizCategory,
+          description: quizDescription,
+          coverImage,
         })
       });
       if (res.ok) {
@@ -538,7 +540,7 @@ export default function CreateQuiz() {
             >
               <FileUp size={18} className="mr-2" /> Import CSV/Excel
             </Button>
-            <Button variant="outline" className="border-border text-muted-foreground hover:bg-accent">
+            <Button variant="outline" className="border-border text-muted-foreground hover:bg-accent" onClick={() => setShowSettings(true)}>
               <Settings size={18} className="mr-2" /> Settings
             </Button>
             <Button 
@@ -714,6 +716,110 @@ export default function CreateQuiz() {
           )}
         </div>
       </main>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 z-[110] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-card border border-border rounded-3xl w-full max-w-lg shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-border">
+              <h2 className="text-xl font-black uppercase tracking-wider text-foreground">Quiz Settings</h2>
+              <button onClick={() => setShowSettings(false)} className="p-2 hover:bg-accent rounded-full text-muted-foreground transition-colors">
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Privacy */}
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Visibility</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setQuizPrivacy('public')}
+                    className={`flex-1 flex items-center gap-3 p-4 rounded-2xl border-2 transition-all ${quizPrivacy === 'public' ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}
+                  >
+                    <Globe size={20} />
+                    <div className="text-left">
+                      <div className="font-black text-sm">Public</div>
+                      <div className="text-xs opacity-70">Anyone can find & play</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setQuizPrivacy('private')}
+                    className={`flex-1 flex items-center gap-3 p-4 rounded-2xl border-2 transition-all ${quizPrivacy === 'private' ? 'border-amber-500 bg-amber-500/10 text-amber-500' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}
+                  >
+                    <Lock size={20} />
+                    <div className="text-left">
+                      <div className="font-black text-sm">Private</div>
+                      <div className="text-xs opacity-70">Only via direct link</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Category */}
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Category</p>
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORIES.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setQuizCategory(cat)}
+                      className={`px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all ${quizCategory === cat ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Description</p>
+                <textarea
+                  placeholder="Short description of your quiz..."
+                  value={quizDescription}
+                  onChange={(e) => setQuizDescription(e.target.value)}
+                  maxLength={200}
+                  rows={3}
+                  className="w-full bg-background border border-border rounded-xl p-3 text-sm text-foreground outline-none focus:border-blue-500 resize-none placeholder:text-muted-foreground/30"
+                />
+                <p className="text-right text-xs text-muted-foreground mt-1">{quizDescription.length}/200</p>
+              </div>
+
+              {/* Cover Image URL */}
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Cover Image URL</p>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    placeholder="https://..."
+                    value={coverImage}
+                    onChange={(e) => setCoverImage(e.target.value)}
+                    className="flex-1 bg-background border border-border rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-blue-500 placeholder:text-muted-foreground/30"
+                  />
+                  {coverImage && (
+                    <button onClick={() => setCoverImage('')} className="p-2 text-muted-foreground hover:text-red-500 transition-colors">
+                      <X size={18} />
+                    </button>
+                  )}
+                </div>
+                {coverImage && (
+                  <div className="mt-3 h-24 rounded-xl overflow-hidden border border-border">
+                    <img src={coverImage} alt="Cover preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
+              <Button variant="ghost" className="text-muted-foreground" onClick={() => setShowSettings(false)}>Cancel</Button>
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6" onClick={() => setShowSettings(false)}>
+                Apply Settings
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Import Preview Modal */}
       {isImporting && (
