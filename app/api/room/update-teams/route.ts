@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getRoomState, setRoomState } from "@/lib/kv";
+import { pusherServer } from "@/lib/pusher";
 
 export async function POST(req: Request) {
   try {
@@ -31,6 +32,16 @@ export async function POST(req: Request) {
     roomState.teams = teams; // Store team structure for host
 
     await setRoomState(roomCode, roomState);
+    
+    // Trigger Pusher event
+    try {
+      await pusherServer.trigger(`room-${roomCode}`, 'teams_updated', {
+        teams: roomState.teams,
+        players: roomState.players
+      });
+    } catch (e) {
+      console.error("[Pusher] Teams-updated trigger error:", e);
+    }
 
     return NextResponse.json({ success: true });
   } catch (err) {

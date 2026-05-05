@@ -1,20 +1,39 @@
 import { NextResponse } from "next/server";
 import { getQuizData, getRoomState, setRoomState, redis, setAnswerOnce } from "@/lib/kv";
+import { validateAnswer, calculateScore } from "@/lib/scoring";
+import { pusherServer } from "@/lib/pusher";
+import { rateLimit, getIP } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
   try {
+    // Rate limit: 30 answer submits per minute per IP
+    const ip = getIP(req);
+    const allowed = await rateLimit(ip, "answer", 30, 60);
+    if (!allowed) {
+      return NextResponse.json({ error: "Too many requests. Slow down." }, { status: 429 });
+    }
+
     const body = await req.json();
     const {
       playerId,
       questionId,
       selectedAnswer,
       roomCode,
-      quizId,
-      hostId,
       sessionId,
     } = body;
 
+    let { quizId, hostId } = body;
+
     const serverTimestamp = Date.now();
+
+    // Get room state first so we can use quizId/hostId as fallbacks
+    const room = await getRoomState(roomCode);
+    if (!quizId && room?.quizId) quizId = room.quizId;
+    if (!hostId && room?.hostId) hostId = room.hostId;
+
+    if (!quizId) {
+      return NextResponse.json({ error: "Quiz ID not found" }, { status: 400 });
+    }
 
     if (sessionId && playerId && questionId) {
       const isFirstAttempt = await setAnswerOnce(sessionId, playerId, questionId, {
@@ -47,7 +66,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Question not found" }, { status: 404 });
     }
 
-    const room = await getRoomState(roomCode);
     const gameMode = room?.gameMode || "classic";
     const globalTimer = room?.settings?.timer || 30;
 
@@ -57,48 +75,23 @@ export async function POST(req: Request) {
       // Non-fatal
     }
 
-    let isCorrect = false;
+    const isCorrect = validateAnswer(question, selectedAnswer);
 
-    if (question.type === "MCQ" || question.type === "TF") {
-      isCorrect = question.correctAnswer === selectedAnswer;
-    } else if (question.type === "FIB") {
-      const validAnswers =
-        (question.correctAnswer as string)?.split(";").map((a: string) => a.trim().toLowerCase()) || [];
-      isCorrect = validAnswers.includes((selectedAnswer || "").trim().toLowerCase());
-    } else if (question.type === "MSQ") {
-      const correctSet = new Set(
-        (question.correctAnswer as string)?.split(";").map((a: string) => a.trim()) || []
-      );
-      const selectedSet = new Set(
-        Array.isArray(selectedAnswer)
-          ? selectedAnswer
-          : (selectedAnswer as string)?.split(";").map((a: string) => a.trim()) || []
-      );
-      isCorrect =
-        correctSet.size === selectedSet.size && [...correctSet].every((value) => selectedSet.has(value));
-    }
+    const questionStart = room?.questionStartTimestamp || serverTimestamp;
+    const elapsedSeconds = (serverTimestamp - questionStart) / 1000;
+    const totalTime = globalTimer || 30;
+    const timeLeft = Math.max(0, totalTime - elapsedSeconds);
 
-    const pointsValue = question.points || 1;
-    const accuracyPoints = isCorrect ? pointsValue : 0;
+    const scoring = calculateScore({
+      isCorrect,
+      gameMode: gameMode as any,
+      timeLeft,
+      totalTime,
+      pointsWeight: question.points || 1,
+    });
 
-    let speedBonus = 0;
-    let baseScore = 0;
-
-    if (isCorrect) {
-      baseScore = 600 * pointsValue;
-
-      const speedMultiplier = gameMode === "speed_rush" ? 1.5 : 1.0;
-      const questionStart = room?.questionStartTimestamp || serverTimestamp;
-      const elapsedSeconds = (serverTimestamp - questionStart) / 1000;
-      const totalTime = globalTimer || 30;
-      const remainingTime = Math.max(0, totalTime - elapsedSeconds);
-
-      speedBonus = Math.floor(400 * pointsValue * (remainingTime / totalTime) * speedMultiplier);
-    } else if (gameMode === "speed_rush") {
-      baseScore = -100;
-    }
-
-    const sessionScore = baseScore + speedBonus;
+    const { totalScore: sessionScore, accuracyPoints } = scoring;
+    const speedBonus = scoring.speedBonus;
 
     if (room?.players) {
       const playerIndex = room.players.findIndex((p: any) => p.id === playerId);
@@ -129,12 +122,36 @@ export async function POST(req: Request) {
         );
         room.players[playerIndex] = player;
 
+        // Track per-question answer stats for analytics
+        if (!room.answerStats) room.answerStats = {};
+        if (!room.answerStats[questionId]) {
+          room.answerStats[questionId] = { total: 0, correct: 0, byAnswer: {} };
+        }
+        room.answerStats[questionId].total++;
+        if (isCorrect) room.answerStats[questionId].correct++;
+        const ansKey = String(selectedAnswer ?? "null");
+        room.answerStats[questionId].byAnswer[ansKey] =
+          (room.answerStats[questionId].byAnswer[ansKey] || 0) + 1;
+
         try {
           await setRoomState(roomCode, room);
         } catch (error) {
           console.error("Failed to update room state:", error);
         }
       }
+    }
+
+    // Trigger Pusher event for real-time leaderboard update
+    try {
+      await pusherServer.trigger(`room-${roomCode}`, 'answer_submitted', {
+        playerId,
+        isCorrect,
+        sessionScore,
+        totalScore: room?.players?.find((p: any) => p.id === playerId)?.score || 0,
+        answersCount: await (redis as any).scard(`room:${roomCode}:q:${questionId}:answers`)
+      });
+    } catch (e) {
+      console.error("[Pusher] Trigger error:", e);
     }
 
     return NextResponse.json({

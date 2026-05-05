@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ⚡ ZYNQIO — REALTIME INTERACTIVE QUIZ PLATFORM
+## Live Demo: [zynqio.vercel.app](https://zynqio.vercel.app)
 
-## Getting Started
+---
 
-First, run the development server:
+### 1. One-liner + live demo link
+Zynqio is a next-generation, cloud-native interactive quiz platform designed for high-concurrency educational and corporate environments.
+**Live Demo:** [https://zynqio.vercel.app](https://zynqio.vercel.app)
 
+### 2. Problem
+Traditional quiz tools often suffer from high latency, rigid import structures, and complex infrastructure requirements. Teachers and hosts need a solution that works instantly without manual database configuration or local hosting dependencies.
+
+### 3. Solution
+Zynqio provides a 100% autonomous serverless architecture that runs entirely on Vercel. It features an intelligent multi-format "Smart Scanner" for seamless quiz imports and a high-performance real-time engine powered by Pusher.
+
+### 4. Why Zynqio?
+- **Zero-Config Deployment**: Optimized for Vercel with automatic storage failovers.
+- **English-First Interface**: 100% professional localization for international usage.
+- **Anti-Cheat Logic**: Server-side scoring and validation to ensure competitive integrity.
+- **Theme-Aware UI**: Dynamic HSL design system that is fully accessible and contrast-verified.
+
+### 5. Architecture
+- **Framework**: Next.js 15 (App Router)
+- **Real-time**: Pusher Channels (WebSocket)
+- **Persistence**: Upstash Redis (REST API)
+- **Authentication**: NextAuth.js (Google OAuth & Native Credentials)
+- **Styling**: Tailwind CSS & Framer Motion
+
+### 6. What's Built
+- **Interactive Game Lobby**: Instant joining via QR Code or 6-digit PIN.
+- **Multi-Format Builder**: Support for MCQ, True/False, and Fill-in-the-Blank with global type toggling.
+- **Advanced Analytics**: Real-time difficulty scoring and performance matrices.
+- **Excel/CSV Import**: Flexible heuristic scanner compatible with major quiz platform exports.
+
+### 7. Team
+Built with precision for professional educators and game-show hosts worldwide.
+
+### 8. Quick Start
 ```bash
+# Clone and Install
+git clone https://github.com/nayrbryanGaming/zynqio.git
+npm install
+
+# Run Locally
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

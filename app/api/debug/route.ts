@@ -39,40 +39,43 @@ function optional(key: string, isSet: boolean, note = ""): EnvCheck {
 
 export async function GET() {
   const hasNextAuthSecret = Boolean(process.env.NEXTAUTH_SECRET);
-  const hasNextAuthUrl = Boolean(process.env.NEXTAUTH_URL);
-  const hasGoogleOAuth = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  const hasNextAuthUrl = Boolean(process.env.NEXTAUTH_URL || process.env.VERCEL_URL);
+  const hasGoogleOAuth = Boolean(process.env.GOOGLE_CLIENT_ID && 
+                               process.env.GOOGLE_CLIENT_ID !== 'your_google_client_id' &&
+                               process.env.GOOGLE_CLIENT_SECRET);
   const hasUpstash = Boolean(
-    process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+    process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN &&
+    !process.env.UPSTASH_REDIS_REST_URL.includes('placeholder')
   );
   const hasVercelKv = Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
   const hasRedis = hasUpstash || hasVercelKv;
   const hasPusher = Boolean(
     process.env.PUSHER_APP_ID &&
       process.env.PUSHER_KEY &&
-      process.env.PUSHER_SECRET &&
-      process.env.PUSHER_CLUSTER
+      !process.env.PUSHER_KEY.includes('placeholder')
   );
-  const hasBlob = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+  const hasEmergencyLogin = Boolean(
+    process.env.EMERGENCY_ADMIN_PASSWORD || process.env.NODE_ENV !== "production" || process.env.NEXTAUTH_SECRET
+  );
 
   const details: EnvCheck[] = [
-    required("NEXTAUTH_SECRET", hasNextAuthSecret),
-    required("NEXTAUTH_URL", hasNextAuthUrl),
+    required("NEXTAUTH_SECRET", hasNextAuthSecret, "Critical for session security."),
+    required("NEXTAUTH_URL", hasNextAuthUrl, "Required for OAuth redirects and session cookies."),
     recommended(
-      "REDIS_BACKEND",
+      "CLOUD_STORAGE",
       hasRedis,
-      "Using in-memory fallback (not persistent across serverless cold starts)."
+      "Using In-Memory Storage (Ephemeral). For persistent storage, link Vercel KV or Upstash."
     ),
     recommended(
-      "PUSHER_CHANNELS",
+      "REALTIME_ENGINE",
       hasPusher,
-      "Realtime events use mock fallback when Pusher is missing."
+      "Using Production Polling Engine. For instant websocket events, add Pusher keys."
     ),
     recommended(
       "GOOGLE_OAUTH",
       hasGoogleOAuth,
-      "Google button disabled until GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set."
+      "Google login is active."
     ),
-    optional("BLOB_STORAGE", hasBlob, "Image upload stays disabled until token is set."),
   ];
 
   const hasRequiredMissing = details.some(
@@ -88,10 +91,10 @@ export async function GET() {
 
   const statusLabel =
     statusCode === "fully_configured"
-      ? "Fully Configured"
+      ? "Zynqio Advanced Engine"
       : statusCode === "autonomous_mode"
-        ? "Autonomous Mode Active"
-        : "Configuration Missing";
+        ? "Standard Cloud Engine"
+        : "Configuration Required";
 
   return NextResponse.json({
     status: {
@@ -100,5 +103,6 @@ export async function GET() {
     },
     details,
     nodeEnv: process.env.NODE_ENV || "unknown",
+    vercelEnv: process.env.VERCEL_ENV || "local",
   });
 }

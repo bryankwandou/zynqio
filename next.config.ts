@@ -1,10 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Enable Turbopack (default in Next.js 16) with empty config to avoid warnings
   turbopack: {},
-  // Externalize server-only packages from client bundles
   serverExternalPackages: ['pako'],
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      { protocol: "https", hostname: "avatars.githubusercontent.com" },
+    ],
+  },
 };
 
 export default nextConfig;

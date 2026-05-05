@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 import { Providers } from "@/components/providers";
+import { OfflineBanner } from "@/components/OfflineBanner";
 
 export const metadata: Metadata = {
   title: "Zynqio - Think Fast. Play Smart. Quiz Harder.",
@@ -31,7 +32,10 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground transition-colors duration-300">
-        <Providers>{children}</Providers>
+        <Providers>
+          <OfflineBanner />
+          {children}
+        </Providers>
       </body>
     </html>
   );

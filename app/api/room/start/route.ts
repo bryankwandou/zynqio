@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getRoomState, setRoomState } from '@/lib/kv';
+import { pusherServer } from '@/lib/pusher';
 
 export async function POST(req: Request) {
   try {
@@ -19,7 +20,21 @@ export async function POST(req: Request) {
     state.status = 'playing';
     state.gameMode = gameMode || 'classic';
     state.settings = settings || state.settings || {};
+    state.currentQuestionIndex = 0;
+    state.questionStartTimestamp = Date.now();
+    state.updatedAt = Date.now();
     await setRoomState(roomCode, state);
+    
+    // Trigger Pusher event
+    try {
+      await pusherServer.trigger(`room-${roomCode}`, 'game_started', {
+        status: state.status,
+        gameMode: state.gameMode,
+        settings: state.settings
+      });
+    } catch (e) {
+      console.error("[Pusher] Start trigger error:", e);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

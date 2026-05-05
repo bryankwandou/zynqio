@@ -15,19 +15,27 @@ export function Navbar() {
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white">
             Z
           </div>
-          <span className="text-xl font-bold tracking-tight text-foreground">
+          <span className="text-xl font-black uppercase tracking-tighter text-foreground">
             Zynqio
           </span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">
-          <Link href="/explore" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Explore</Link>
-          {session && <Link href="/history" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">My Journey</Link>}
+          <Link href="/explore" className="text-sm font-black uppercase tracking-widest text-muted-foreground hover:text-blue-500 transition-colors">Explore</Link>
+          <Link href="/dashboard" className="text-sm font-black uppercase tracking-widest text-muted-foreground hover:text-blue-500 transition-colors">
+            Dashboard
+          </Link>
         </nav>
 
         <nav className="flex items-center gap-4">
           {session ? (
-            <>
+            <div className="flex items-center gap-4">
+              <div className="hidden lg:flex flex-col items-end">
+                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Authenticated</span>
+                <span className="text-sm font-bold text-foreground truncate max-w-[150px]">
+                  {session.user?.name || session.user?.email}
+                </span>
+              </div>
               <Link href="/dashboard">
                 <Button variant="ghost" className="text-muted-foreground hover:text-foreground">Dashboard</Button>
               </Link>
@@ -38,7 +46,7 @@ export function Navbar() {
               >
                 Sign Out
               </Button>
-            </>
+            </div>
           ) : (
             <Link href="/auth/signin">
               <Button className="bg-blue-600 hover:bg-blue-700 text-white font-medium">

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/navbar";
-import { Search, Rocket, Zap, Globe, ShieldCheck } from "lucide-react";
+import { Search, Rocket, Zap, Globe, Shield } from "lucide-react";
 import Link from "next/link";
 
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -35,43 +35,39 @@ export default function Home() {
         
         <div className="w-full max-w-xl relative z-10">
           <div className="text-center mb-12 space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-bold mb-4">
-              <Zap size={16} className="fill-blue-400" />
-              <span>NEXT-GEN INTERACTIVE QUIZ PLATFORM</span>
-            </div>
-            <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-none">
-              THINK <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">FAST.</span><br />
-              PLAY <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">SMART.</span>
+            <h1 className="text-5xl md:text-7xl font-black text-foreground tracking-tighter leading-none uppercase">
+              THINK <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">FAST.</span><br />
+              PLAY <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">SMART.</span>
             </h1>
           </div>
 
           <div className="relative group animate-in zoom-in duration-700">
-            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-[2.5rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
-            <div className="relative bg-slate-950/90 backdrop-blur-xl rounded-[2.3rem] p-8 md:p-12 border border-white/5">
+            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-[2.5rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
+            <div className="relative bg-card/80 backdrop-blur-2xl rounded-[2.3rem] p-8 md:p-12 border border-border shadow-[0_30px_100px_rgba(0,0,0,0.1)] dark:shadow-[0_30px_100px_rgba(0,0,0,0.5)]">
               <form onSubmit={handleJoin} className="space-y-10">
                 <div className="space-y-6">
                   <div className="flex flex-col items-center">
-                    <label className="text-slate-400 font-black text-center block uppercase tracking-[0.3em] text-xs mb-4">Enter Game Code</label>
+                    <label className="text-muted-foreground font-black text-center block uppercase tracking-[0.4em] text-[10px] mb-4 opacity-70">Enter Game Code</label>
                     <input
                       type="text"
                       placeholder="000000"
                       value={roomCode}
                       onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
                       maxLength={6}
-                      className="w-full text-center text-6xl md:text-7xl font-black tracking-[0.2em] bg-transparent text-white border-none focus:ring-0 outline-none transition-all placeholder:text-slate-900 selection:bg-blue-500/50"
+                      className="w-full text-center text-6xl md:text-7xl font-black tracking-[0.25em] bg-transparent text-foreground border-none focus:ring-0 outline-none transition-all placeholder:text-muted-foreground/10 selection:bg-blue-500/20"
                       autoFocus
                     />
                   </div>
-                  <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
+                  <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-border to-transparent" />
                 </div>
                 
                 <Button 
                   type="submit" 
                   disabled={roomCode.length !== 6}
-                  className="w-full py-10 text-2xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl disabled:bg-slate-900 disabled:text-slate-700 transition-all shadow-[0_20px_50px_rgba(37,99,235,0.3)] group overflow-hidden relative border-none"
+                  className="w-full py-10 text-2xl font-black bg-blue-600 hover:bg-blue-500 text-white rounded-2xl disabled:bg-muted disabled:text-muted-foreground transition-all shadow-2xl shadow-blue-900/20 group overflow-hidden relative border-none"
                 >
-                  <span className="relative z-10 flex items-center justify-center gap-4">
-                    JOIN THE BATTLE <Rocket size={28} className="group-hover:translate-x-2 group-hover:-translate-y-2 transition-transform duration-500" />
+                  <span className="relative z-10 flex items-center justify-center gap-4 tracking-widest">
+                    JOIN BATTLE <Rocket size={28} className="group-hover:translate-x-2 group-hover:-translate-y-2 transition-transform duration-500" />
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite]" />
                 </Button>
@@ -79,25 +75,30 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Features Row */}
-          <div className="grid grid-cols-3 gap-4 mt-16 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-500">
-            {[
-              { icon: Globe, label: "GLOBAL", href: "#" },
-              { icon: ShieldCheck, label: "SECURE", href: "#" },
-              { icon: Search, label: "EXPLORE", href: "/explore" }
-            ].map((f, i) => (
-              <Link key={i} href={f.href} className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-                <f.icon className="text-slate-400" size={20} />
-                <span className="text-[10px] font-black tracking-widest text-slate-500 uppercase">{f.label}</span>
-              </Link>
-            ))}
+          <div className="mt-12 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-500">
+            <Link href="/auth/signup" className="flex items-center gap-3 px-8 py-4 rounded-2xl bg-blue-600 text-white hover:bg-blue-500 transition-all text-sm font-black uppercase tracking-widest shadow-lg">
+              <Zap size={16} className="fill-white" /> Get Started for Free
+            </Link>
+            
+            <div className="flex justify-center gap-4 w-full">
+              {[
+                { icon: Globe, label: "GLOBAL", href: "#" },
+                { icon: Zap, label: "FAST", href: "#" },
+                { icon: Search, label: "EXPLORE", href: "/explore" }
+              ].map((f, i) => (
+                <Link key={i} href={f.href} className="flex-1 flex flex-col items-center gap-2 p-5 rounded-[2rem] bg-card border border-border hover:bg-accent/50 transition-all transform hover:scale-105 shadow-sm">
+                  <f.icon className="text-blue-500" size={24} />
+                  <span className="text-[10px] font-black tracking-widest text-muted-foreground uppercase">{f.label}</span>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </main>
 
       {/* Subtle Footer */}
-      <footer className="p-8 text-center text-slate-600 text-xs font-medium uppercase tracking-[0.3em]">
-        &copy; 2026 ZYNQIO &bull; POWERED BY VERCEL
+      <footer className="p-8 text-center text-muted-foreground/50 text-[10px] font-black uppercase tracking-[0.4em]">
+        &copy; 2026 ZYNQIO &bull; ADVANCED QUIZ PLATFORM
       </footer>
     </div>
   );
