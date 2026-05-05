@@ -174,7 +174,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({
-      correct: isCorrect,
+      correct: quiz.hideAnswer ? null : isCorrect,
       sessionScore,
       accuracyPoints,
       speedBonus,

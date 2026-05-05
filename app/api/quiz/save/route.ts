@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     const userId = (session?.user as any)?.id || 'admin';
     const body = await req.json();
-    const { quizId: rawQuizId, title, questions, visibility, category } = body;
+    const { quizId: rawQuizId, title, questions, visibility, category, description, coverImage, hideAnswer } = body;
 
     if (!title) {
       return NextResponse.json({ error: 'Missing title' }, { status: 400 });
@@ -27,6 +27,9 @@ export async function POST(req: Request) {
       questions: questions || [],
       visibility: visibility || 'private',
       category: category || 'General',
+      description: description || existingQuiz?.description || '',
+      coverImage: coverImage || existingQuiz?.coverImage || '',
+      hideAnswer: !!hideAnswer,
       author: session?.user?.name || 'Anonymous',
       createdAt: existingQuiz?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),

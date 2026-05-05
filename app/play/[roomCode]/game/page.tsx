@@ -39,7 +39,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
   const [currentQuestion, setCurrentQuestion] = useState<any>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [result, setResult] = useState<{ correct: boolean; points: number; message?: string; speedBonus?: number } | null>(null);
+  const [result, setResult] = useState<{ correct: boolean | null; points: number; message?: string; speedBonus?: number } | null>(null);
   const [gameMode, setGameMode] = useState<string>("classic");
   const [lives, setLives] = useState(3);
   const [gold, setGold] = useState(0);
@@ -317,19 +317,23 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       }
 
       const data = await res.json();
-      const isCorrect = data.correct === true && !isTimeout;
+      const answerHidden = data.correct === null; // quiz has hideAnswer: true
+      const isCorrect = !answerHidden && data.correct === true && !isTimeout;
 
       let finalScore = data.sessionScore || 0;
       if (activePowerup === "2x") finalScore *= 2;
 
-      if (memeMode) {
+      if (memeMode && !answerHidden) {
         const pool = isCorrect ? CORRECT_MEMES : WRONG_MEMES;
         setCurrentMeme(pool[Math.floor(Math.random() * pool.length)]);
       }
 
-      setResult({ correct: isCorrect, points: finalScore, speedBonus: data.speedBonus });
+      setResult({ correct: answerHidden ? null : isCorrect, points: finalScore, speedBonus: data.speedBonus });
 
-      if (isCorrect) {
+      if (answerHidden) {
+        // Score still counted server-side; add locally so display is consistent
+        setScore((p) => p + finalScore);
+      } else if (isCorrect) {
         setCorrectStreak((prev) => {
           const next = prev + 1;
           if (next >= 3) { setStreakAnimation(true); setTimeout(() => setStreakAnimation(false), 1200); }
@@ -666,9 +670,12 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       {/* Result Overlay — Wayground: compact 0.8s flash */}
       {result && !showChests && (
         <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-6 ${
+          result.correct === null ? "bg-indigo-700/92" :
           result.correct ? "bg-green-600/92" : "bg-red-600/92"
         } backdrop-blur-sm`}>
-          {memeMode && currentMeme ? (
+          {result.correct === null ? (
+            <div className="text-7xl mb-5 animate-bounce">📝</div>
+          ) : memeMode && currentMeme ? (
             <div className="flex flex-col items-center mb-5">
               <img src={currentMeme.gif} alt="meme" className="rounded-2xl max-h-52 shadow-2xl mb-3" />
               <div className="text-white font-black text-lg tracking-widest">{currentMeme.caption}</div>
@@ -678,10 +685,16 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
           )}
 
           <h2 className="text-3xl font-black text-white mb-2 tracking-wide uppercase">
-            {result.message || (result.correct ? "Correct!" : "Incorrect")}
+            {result.message || (result.correct === null ? "Answered!" : result.correct ? "Correct!" : "Incorrect")}
           </h2>
 
-          {result.correct && result.points > 0 && (
+          {result.correct === null && (
+            <div className="mt-2 text-white/60 text-sm font-medium text-center max-w-xs">
+              Answer hidden by host — results revealed at the end
+            </div>
+          )}
+
+          {result.correct === true && result.points > 0 && (
             <div className="bg-white/20 px-5 py-2 rounded-full mt-3 font-bold text-lg text-white">
               +{result.points} pts
               {result.speedBonus && result.speedBonus > 0 && (
@@ -690,13 +703,19 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
             </div>
           )}
 
-          {result.correct && correctStreak >= 3 && (
+          {result.correct === null && result.points > 0 && (
+            <div className="bg-white/15 px-5 py-2 rounded-full mt-3 font-bold text-lg text-white">
+              +{result.points} pts recorded
+            </div>
+          )}
+
+          {result.correct === true && correctStreak >= 3 && (
             <div className="mt-3 px-4 py-1.5 bg-orange-500 rounded-full font-black text-white text-sm animate-bounce">
               🔥 {correctStreak}x streak!
             </div>
           )}
 
-          {gameMode === "battle_royale" && !result.correct && (
+          {gameMode === "battle_royale" && result.correct === false && (
             <div className="mt-4 text-2xl">💔 -1 Life</div>
           )}
 
