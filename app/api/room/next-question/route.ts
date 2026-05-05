@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getRoomState, setRoomState, getQuizData } from '@/lib/kv';
+import { pusherServer } from '@/lib/pusher';
 
 export async function POST(req: Request) {
   try {
@@ -17,6 +18,7 @@ export async function POST(req: Request) {
     // Move to next question
     state.currentQuestionIndex = (state.currentQuestionIndex ?? -1) + 1;
     state.questionStartTimestamp = Date.now();
+    state.updatedAt = Date.now();
     state.status = 'playing';
 
     // Check if game should end
@@ -26,6 +28,17 @@ export async function POST(req: Request) {
     }
 
     await setRoomState(roomCode, state);
+    
+    // Trigger Pusher event
+    try {
+      await pusherServer.trigger(`room-${roomCode}`, 'question_started', {
+        index: state.currentQuestionIndex,
+        status: state.status,
+        timestamp: state.questionStartTimestamp
+      });
+    } catch (e) {
+      console.error("[Pusher] Next-question trigger error:", e);
+    }
 
     return NextResponse.json({ success: true, state });
   } catch (error) {

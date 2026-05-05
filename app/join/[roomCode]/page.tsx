@@ -13,7 +13,7 @@ export default function JoinRedirect({ params }: { params: Promise<{ roomCode: s
   }, [unwrappedParams.roomCode, router]);
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
+    <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground font-black uppercase tracking-widest">
       Redirecting to room {unwrappedParams.roomCode}...
     </div>
   );

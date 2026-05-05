@@ -1,20 +1,25 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { saveQuizData, redis } from '@/lib/kv';
+import { saveQuizData, redis, getQuizData } from '@/lib/kv';
 
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     const userId = (session?.user as any)?.id || 'admin';
     const body = await req.json();
-    const { title, questions, visibility, category } = body;
+    const { quizId: rawQuizId, title, questions, visibility, category } = body;
 
     if (!title) {
       return NextResponse.json({ error: 'Missing title' }, { status: 400 });
     }
 
-    const quizId = Math.random().toString(36).substring(2, 9);
+    const quizId =
+      typeof rawQuizId === 'string' && rawQuizId.trim().length > 0
+        ? rawQuizId.trim()
+        : Math.random().toString(36).substring(2, 9);
+
+    const existingQuiz = await getQuizData(userId, quizId);
 
     const quizData = {
       id: quizId,
@@ -23,9 +28,10 @@ export async function POST(req: Request) {
       visibility: visibility || 'private',
       category: category || 'General',
       author: session?.user?.name || 'Anonymous',
-      createdAt: new Date().toISOString(),
-      plays: 0,
-      rating: 0,
+      createdAt: existingQuiz?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      plays: existingQuiz?.plays || 0,
+      rating: existingQuiz?.rating || 0,
     };
 
     await saveQuizData(userId, quizId, quizData);
@@ -49,6 +55,13 @@ export async function POST(req: Request) {
         });
       } catch (e) {
         console.error('Failed to index public quiz (non-fatal):', e);
+      }
+    } else {
+      try {
+        await (redis as any).zrem('public_quizzes_sorted', quizId);
+        await redis.del(`public_quiz_data:${quizId}`);
+      } catch (e) {
+        console.error('Failed to remove public quiz index (non-fatal):', e);
       }
     }
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getQuizData } from '@/lib/kv';
+import { getQuizData, getRoomState } from '@/lib/kv';
 
 export async function GET(req: Request) {
   try {
@@ -12,10 +12,18 @@ export async function GET(req: Request) {
     }
 
     const index = parseInt(indexStr);
+    const roomCode = searchParams.get('roomCode');
     
-    // In a real app, you'd get the hostId from the session or room state
-    // For simplicity, we search public quizzes or use 'admin' fallback
-    const quiz = await getQuizData('admin', quizId); 
+    let hostId = searchParams.get('hostId') || 'admin';
+    
+    if (roomCode) {
+      const room = await getRoomState(roomCode);
+      if (room && room.hostId) {
+        hostId = room.hostId;
+      }
+    }
+
+    const quiz = await getQuizData(hostId, quizId); 
     
     if (!quiz || !quiz.questions || !quiz.questions[index]) {
       return NextResponse.json({ error: 'Question not found' }, { status: 404 });
