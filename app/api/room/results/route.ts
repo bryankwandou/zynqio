@@ -21,11 +21,14 @@ export async function GET(req: Request) {
       .map((p: any, i: number) => ({
         rank: i + 1,
         name: p.name,
+        avatarId: p.avatarId || "fox",
         score: p.score || 0,
         accuracy: p.accuracy || 0,
+        totalCorrect: p.totalCorrect || 0,
+        totalAnswered: p.totalAnswered || 0,
         gold: p.gold || 0,
         lives: p.lives ?? 3,
-        team: p.team
+        team: p.team,
       }));
 
     // Calculate Team Scores (Section 10.6)
@@ -90,12 +93,15 @@ export async function GET(req: Request) {
       stats: {
         totalPlayers,
         avgAccuracy,
-        hardestQuestion: questionStats.sort((a: any, b: any) => a.accuracy - b.accuracy)[0]?.text || 'N/A'
+        hardestQuestion: [...questionStats].sort((a: any, b: any) => a.accuracy - b.accuracy)[0]?.text || 'N/A',
       },
       questions: questionStats,
       matrix: performanceMatrix,
       quizId: state.quizId,
-      hostId: state.hostId
+      hostId: state.hostId,
+      quizTitle: quiz?.title || state.quizTitle || "Quiz Session",
+      roomCode,
+      settings: state.settings || {},
     });
   } catch (error) {
     console.error('Error fetching results:', error);

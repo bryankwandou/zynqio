@@ -2,212 +2,343 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, useRef, use, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Users, Timer, SkipForward, Pause, Play, Trophy } from "lucide-react";
+import { getAvatar } from "@/lib/avatars";
+import { Users, SkipForward, Trophy, LayoutList, Eye } from "lucide-react";
+
+const COLORS = [
+  { bg: "bg-red-500",   bar: "bg-red-400",   ring: "ring-red-400",   shape: "▲", label: "bg-red-600" },
+  { bg: "bg-blue-500",  bar: "bg-blue-400",  ring: "ring-blue-400",  shape: "◆", label: "bg-blue-600" },
+  { bg: "bg-amber-500", bar: "bg-amber-400", ring: "ring-amber-400", shape: "●", label: "bg-amber-600" },
+  { bg: "bg-green-500", bar: "bg-green-400", ring: "ring-green-400", shape: "■", label: "bg-green-600" },
+];
 
 export default function HostGame({ params }: { params: Promise<{ roomCode: string }> }) {
   const { status } = useSession();
   const router = useRouter();
-  const unwrappedParams = use(params);
+  const { roomCode } = use(params);
+
   const [currentQuestion, setCurrentQuestion] = useState<any>(null);
-  const [timeLeft, setTimeLeft] = useState(30);
-  const [answersCount, setAnswersCount] = useState(0);
-  const [totalPlayers, setTotalPlayers] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(30);
+  const [totalTime, setTotalTime] = useState(30);
   const [roomState, setRoomState] = useState<any>(null);
-  const [logs, setLogs] = useState<any[]>([]);
+
+  // PERSISTENT toggle — state never resets on question change
+  const [viewMode, setViewMode] = useState<"question" | "leaderboard">("question");
+
+  const prevIndexRef = useRef<number | null>(null);
+  const lastUpdatedAtRef = useRef(0);
+
+  const fetchQuestion = useCallback(
+    async (state: any) => {
+      if (state.currentQuestionIndex == null) return;
+      try {
+        const res = await fetch(
+          `/api/quiz/get-question?quizId=${state.quizId}&index=${state.currentQuestionIndex}&roomCode=${roomCode}`
+        );
+        if (!res.ok) return;
+        const q = await res.json();
+        setCurrentQuestion(q);
+        setIsRevealed(false);
+        const t = state.settings?.timer || 30;
+        setTotalTime(t);
+        setTimeLeft(t);
+        prevIndexRef.current = state.currentQuestionIndex;
+      } catch {}
+    },
+    [roomCode]
+  );
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/auth/signin");
-    }
+    if (status === "unauthenticated") router.push("/auth/signin");
+  }, [status, router]);
 
-    const pollState = async () => {
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+
+    const poll = async () => {
       try {
-        const res = await fetch(`/api/room/state?code=${unwrappedParams.roomCode}`);
-        if (res.ok) {
-          const state = await res.json();
-          setRoomState(state);
-          setTotalPlayers(state.players?.length || 0);
-          setAnswersCount(state.answersCount || 0);
-          
-          if (!currentQuestion || state.currentQuestionIndex !== roomState?.currentQuestionIndex) {
-            const qRes = await fetch(
-              `/api/quiz/get-question?quizId=${state.quizId}&index=${state.currentQuestionIndex}&roomCode=${unwrappedParams.roomCode}`
-            );
-            if (qRes.ok) {
-              const q = await qRes.json();
-              setCurrentQuestion(q);
-              setIsRevealed(false);
-              const timer = state.settings?.timer || 30;
-              setTimeLeft(timer);
-            }
-          }
+        const since = lastUpdatedAtRef.current;
+        const url = since
+          ? `/api/room/state?code=${roomCode}&since=${since}`
+          : `/api/room/state?code=${roomCode}`;
 
-          if (state.status === 'ended') {
-            router.push(`/results/${unwrappedParams.roomCode}`);
-          }
+        const res = await fetch(url);
+        if (res.status === 304) return;
+        if (!res.ok) return;
 
-          // Fetch logs
-          const logRes = await fetch(`/api/room/get-logs?code=${unwrappedParams.roomCode}`);
-          if (logRes.ok) {
-            const logData = await logRes.json();
-            setLogs(logData);
-          }
+        const state = await res.json();
+        if (state.updatedAt) lastUpdatedAtRef.current = state.updatedAt;
+
+        setRoomState(state);
+
+        if (state.currentQuestionIndex !== prevIndexRef.current) {
+          await fetchQuestion(state);
         }
-      } catch (err) {
-        console.error("Poll error", err);
-      }
+
+        if (state.status === "ended") {
+          clearInterval(interval);
+          router.push(`/results/${roomCode}`);
+        }
+      } catch {}
     };
 
-    const interval = setInterval(pollState, 2000);
-    pollState();
-
+    poll();
+    interval = setInterval(poll, 2000);
     return () => clearInterval(interval);
-  }, [status, router, unwrappedParams.roomCode, currentQuestion, roomState]);
+  }, [roomCode, router, fetchQuestion]);
 
+  // Timer countdown
   useEffect(() => {
-    if (timeLeft > 0 && !isRevealed) {
-      const timer = setTimeout(() => setTimeLeft(prev => prev - 1), 1000);
-      return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && !isRevealed) {
-      setIsRevealed(true);
-    }
+    if (isRevealed || timeLeft <= 0) return;
+    const t = setTimeout(() => setTimeLeft((p) => p - 1), 1000);
+    return () => clearTimeout(t);
   }, [timeLeft, isRevealed]);
 
   const handleNextQuestion = async () => {
     try {
-      await fetch('/api/room/next-question', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomCode: unwrappedParams.roomCode })
+      await fetch("/api/room/next-question", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomCode }),
       });
-    } catch (err) {
-      console.error("Next question error", err);
-    }
+    } catch {}
   };
 
+  // ── Derived data ─────────────────────────────────────────
+  const questionId = currentQuestion?.id;
+  const answerStats = roomState?.answerStats?.[questionId] || { total: 0, correct: 0, byAnswer: {} };
+  const totalAnswered = answerStats.total || 0;
+  const leaderboard = [...(roomState?.players || [])].sort((a, b) => (b.score || 0) - (a.score || 0));
+  const totalPlayers = leaderboard.length;
+
+  const timerPct = totalTime > 0 ? (timeLeft / totalTime) * 100 : 0;
+  const timerColor = timerPct > 60 ? "bg-green-400" : timerPct > 30 ? "bg-amber-400" : "bg-red-500";
+
   if (status === "loading" || !currentQuestion) {
-    return <div className="min-h-screen bg-background flex items-center justify-center text-foreground font-black uppercase tracking-widest animate-pulse">Loading Question...</div>;
+    return (
+      <div className="min-h-screen bg-[#0f0f1a] flex flex-col items-center justify-center gap-4">
+        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-white/60 font-bold animate-pulse">Loading Question...</p>
+      </div>
+    );
   }
 
-  // Same colors as player view
-  const colors = [
-    "bg-red-500",
-    "bg-blue-500",
-    "bg-amber-500",
-    "bg-green-500"
-  ];
-
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground overflow-hidden">
-      {/* Top Header */}
-      <header className="p-4 border-b border-border flex justify-between items-center bg-card shadow-sm">
-        <div className="flex items-center gap-6">
-          <div className="bg-accent/50 px-4 py-2 rounded-lg font-bold text-lg tracking-widest border border-border text-foreground">
-            {unwrappedParams.roomCode}
+    <div className="flex flex-col min-h-screen bg-[#0f0f1a] text-white overflow-hidden">
+      {/* ── Header ──────────────────────────────────────────── */}
+      <header className="flex items-center gap-4 px-4 py-3 bg-[#16162a] border-b border-white/10 shadow-lg">
+        {/* Room + count */}
+        <div className="flex items-center gap-3 mr-auto">
+          <div className="bg-blue-600 px-3 py-1.5 rounded-lg font-black tracking-widest text-sm">{roomCode}</div>
+          <div className="text-sm text-white/50 flex items-center gap-1.5">
+            <Users size={14} className="text-blue-400" />
+            <span className="font-bold text-white">{totalAnswered}</span>
+            <span>/ {totalPlayers}</span>
           </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Users size={20} className="text-blue-400" />
-            <span className="font-bold text-foreground">{answersCount} / {totalPlayers}</span> Answers
+          {/* Timer circle */}
+          <div className={`w-10 h-10 rounded-full border-[3px] flex items-center justify-center font-black text-sm ${
+            isRevealed ? "border-white/20 text-white/40" : timerPct > 30 ? "border-blue-500 text-white" : "border-red-500 text-red-400 animate-pulse"
+          }`}>
+            {isRevealed ? "✓" : timeLeft}
           </div>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" className="border-border text-muted-foreground hover:bg-accent">
-            <Pause size={18} className="mr-2" /> Pause
+
+        {/* ── View toggle — PERSISTENT ────────────────────────── */}
+        <div className="flex items-center bg-white/5 rounded-xl p-1 border border-white/10">
+          <button
+            onClick={() => setViewMode("question")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              viewMode === "question" ? "bg-blue-600 text-white shadow" : "text-white/40 hover:text-white"
+            }`}
+          >
+            <LayoutList size={13} /> Per Question
+          </button>
+          <button
+            onClick={() => setViewMode("leaderboard")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              viewMode === "leaderboard" ? "bg-blue-600 text-white shadow" : "text-white/40 hover:text-white"
+            }`}
+          >
+            <Trophy size={13} /> Leaderboard
+          </button>
+        </div>
+
+        {/* Action buttons */}
+        {!isRevealed ? (
+          <Button
+            onClick={() => { setIsRevealed(true); setTimeLeft(0); }}
+            className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm"
+          >
+            <Eye size={15} className="mr-1" /> Reveal
           </Button>
-          {isRevealed ? (
-            <Button className="bg-blue-600 hover:bg-blue-700 font-bold" onClick={handleNextQuestion}>
-              Next <SkipForward size={18} className="ml-2" />
-            </Button>
-          ) : (
-            <Button className="bg-amber-600 hover:bg-amber-700 font-bold" onClick={() => setIsRevealed(true)}>
-              Reveal Answer
-            </Button>
-          )}
-        </div>
+        ) : (
+          <Button onClick={handleNextQuestion} className="bg-blue-600 hover:bg-blue-500 font-bold text-sm">
+            Next <SkipForward size={15} className="ml-1" />
+          </Button>
+        )}
       </header>
 
-      <main className="flex-1 flex flex-col p-6 max-w-6xl mx-auto w-full">
-        {/* Timer Bar */}
-        <div className="w-full bg-accent/30 rounded-full h-2 mb-8 overflow-hidden">
-          <div 
-            className="bg-blue-500 h-full transition-all ease-linear duration-1000" 
-            style={{ width: `${(timeLeft / (roomState?.settings?.timer || 30)) * 100}%` }}
-          />
-        </div>
-
-        {/* Question Text */}
-        <div className="flex-1 flex flex-col items-center justify-center mb-12 relative">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-center leading-tight">
-            {currentQuestion.text}
-          </h1>
-          
-          {/* Circular Timer (Absolute center if we want that Kahoot feel) */}
-          {!isRevealed && (
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-24 h-24 rounded-full border-4 border-border flex items-center justify-center text-3xl font-black bg-card shadow-xl text-foreground">
-              {timeLeft}
-            </div>
-          )}
-        </div>
-
-        {/* Options Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-64">
-          {currentQuestion.options?.map((opt: string, i: number) => {
-            const isCorrect = currentQuestion.correctAnswer === i.toString();
-            const bgClass = colors[i % colors.length];
-            
-            // Dim wrong answers if revealed
-            const revealStateClass = isRevealed 
-              ? (isCorrect ? 'ring-4 ring-white scale-[1.02] z-10' : 'opacity-20 grayscale')
-              : '';
-
-            return (
-              <div
-                key={i}
-                className={`w-full rounded-2xl flex items-center p-6 text-2xl font-bold border-b-8 shadow-lg transition-all duration-500 ${bgClass} ${revealStateClass}`}
-                style={{ borderColor: 'rgba(0,0,0,0.2)' }}
-              >
-                {/* Option shape indicator (mock) */}
-                <div className="w-10 h-10 bg-white/20 mr-4 rounded-sm flex-shrink-0" />
-                <span className="break-words line-clamp-2">{opt}</span>
-                
-                {isRevealed && isCorrect && (
-                  <div className="ml-auto bg-white/20 p-2 rounded-full">
-                    <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </main>
-
-      {/* Side Logs Panel (Phase 2/3) */}
-      <div className="fixed right-4 bottom-4 w-64 max-h-96 bg-card/90 border border-border rounded-2xl p-4 overflow-y-auto z-50 backdrop-blur-md shadow-2xl">
-        <h3 className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
-          <Shield size={14} className="text-blue-500" /> Security Logs
-        </h3>
-        <div className="space-y-3">
-          {logs.filter(l => l.event === 'tab_switch').map((log, i) => (
-            <div key={i} className="text-[10px] bg-red-500/10 border border-red-500/20 p-2 rounded-lg text-red-400">
-              <span className="font-bold">{log.playerId}</span> switched tabs
-            </div>
-          ))}
-          {logs.length === 0 && <div className="text-[10px] text-muted-foreground/50 text-center py-4">No incidents detected</div>}
-        </div>
+      {/* ── Timer bar ───────────────────────────────────────── */}
+      <div className="h-1.5 w-full bg-white/5">
+        <div
+          className={`h-full ${timerColor} transition-all ease-linear duration-1000`}
+          style={{ width: `${timerPct}%` }}
+        />
       </div>
-    </div>
-  );
-}
 
-function Shield({ size, className }: { size: number, className?: string }) {
-  return (
-    <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-    </svg>
+      {/* ── Main content ────────────────────────────────────── */}
+      <main className="flex-1 flex overflow-hidden">
+
+        {/* === Per-Question View (Blooket-style) === */}
+        {viewMode === "question" && (
+          <div className="flex-1 flex flex-col p-5 gap-5 overflow-y-auto">
+            {/* Question */}
+            <div className="bg-[#16162a] border border-white/10 rounded-2xl p-6 text-center shadow-xl">
+              <div className="text-xs font-black text-white/30 uppercase tracking-widest mb-3">
+                Q{(roomState?.currentQuestionIndex ?? 0) + 1} · {currentQuestion.type}
+              </div>
+              <h1 className="text-2xl md:text-3xl font-black leading-tight">{currentQuestion.text}</h1>
+            </div>
+
+            {/* Answer tiles */}
+            {(currentQuestion.type === "MCQ" || currentQuestion.type === "TF") && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+                {(currentQuestion.options || []).map((opt: string, i: number) => {
+                  const col = COLORS[i % COLORS.length];
+                  const count = Number(answerStats.byAnswer?.[String(i)] || 0);
+                  const pct = totalAnswered > 0 ? Math.round((count / totalAnswered) * 100) : 0;
+                  const isCorrect = String(currentQuestion.correctAnswer) === String(i);
+
+                  return (
+                    <div
+                      key={i}
+                      className={`rounded-2xl overflow-hidden border-2 transition-all duration-500 ${
+                        isRevealed
+                          ? isCorrect
+                            ? "border-green-400 shadow-[0_0_24px_rgba(74,222,128,0.25)]"
+                            : "border-white/10 opacity-40"
+                          : "border-white/20"
+                      }`}
+                    >
+                      {/* Color header */}
+                      <div className={`${col.bg} px-4 py-3 flex items-center gap-3`}>
+                        <span className="text-white font-black text-lg w-7 text-center">{col.shape}</span>
+                        <span className="font-bold text-white text-base flex-1 leading-snug">{opt}</span>
+                        {isRevealed && isCorrect && (
+                          <span className="bg-white/25 rounded-full w-7 h-7 flex items-center justify-center text-white font-black">✓</span>
+                        )}
+                      </div>
+
+                      {/* Distribution bar (always visible, fills after reveal) */}
+                      <div className="bg-black/40 px-4 py-3">
+                        <div className="flex justify-between text-xs font-bold mb-1.5 text-white/60">
+                          <span>{count} players</span>
+                          <span>{pct}%</span>
+                        </div>
+                        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${col.bar} rounded-full transition-all duration-700`}
+                            style={{ width: isRevealed ? `${pct}%` : "0%" }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* FIB / OPEN type — show accepted answers on reveal */}
+            {(currentQuestion.type === "FIB" || currentQuestion.type === "OPEN") && isRevealed && (
+              <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-5">
+                <div className="text-xs font-black text-green-400 uppercase tracking-widest mb-2">Accepted Answers</div>
+                <div className="font-bold text-white text-lg">{currentQuestion.correctAnswer || "Open ended — no fixed answer"}</div>
+              </div>
+            )}
+
+            {/* Summary row */}
+            {isRevealed && (
+              <div className="flex gap-4 justify-center py-2">
+                {[
+                  { label: "Correct", val: answerStats.correct || 0, color: "text-green-400" },
+                  { label: "Wrong",   val: totalAnswered - (answerStats.correct || 0), color: "text-red-400" },
+                  { label: "No answer", val: totalPlayers - totalAnswered, color: "text-white/40" },
+                ].map((s) => (
+                  <div key={s.label} className="text-center">
+                    <div className={`text-3xl font-black ${s.color}`}>{s.val}</div>
+                    <div className="text-xs text-white/40 mt-0.5">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* === Cumulative Leaderboard View (Wayground-style) === */}
+        {viewMode === "leaderboard" && (
+          <div className="flex-1 flex flex-col p-5 overflow-hidden">
+            {/* Mini question pill */}
+            <div className="mb-4 px-4 py-2 bg-[#16162a] border border-white/10 rounded-xl text-sm text-white/50 line-clamp-1 flex-shrink-0">
+              <span className="text-white/30 mr-2">Q{(roomState?.currentQuestionIndex ?? 0) + 1}:</span>
+              {currentQuestion.text}
+            </div>
+
+            <h2 className="text-xs font-black text-white/30 uppercase tracking-widest mb-3 flex items-center gap-1.5 flex-shrink-0">
+              <Trophy size={12} className="text-yellow-400" /> Live Rankings
+            </h2>
+
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+              {leaderboard.map((p: any, i: number) => {
+                const av = getAvatar(p.avatarId);
+                const accPct = p.totalAnswered > 0 ? Math.round(((p.totalCorrect || 0) / p.totalAnswered) * 100) : 0;
+                const rankStyle =
+                  i === 0 ? "bg-yellow-500/20 border-yellow-500/30" :
+                  i === 1 ? "bg-slate-400/10 border-slate-400/20" :
+                  i === 2 ? "bg-amber-700/10 border-amber-600/20" :
+                  "bg-white/[0.03] border-white/5";
+                const rankNum =
+                  i === 0 ? "bg-yellow-500 text-yellow-950" :
+                  i === 1 ? "bg-slate-400 text-white" :
+                  i === 2 ? "bg-amber-700 text-white" :
+                  "bg-white/10 text-white/50";
+
+                return (
+                  <div key={p.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all ${rankStyle}`}>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-xs shrink-0 ${rankNum}`}>
+                      {i + 1}
+                    </div>
+                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${av.bg} flex items-center justify-center text-xl shrink-0`}>
+                      {av.emoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-sm text-white truncate">{p.name}</div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <div className="h-1 flex-1 bg-white/10 rounded-full overflow-hidden">
+                          <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${accPct}%` }} />
+                        </div>
+                        <span className="text-[10px] text-white/40 shrink-0">
+                          {p.totalCorrect || 0}/{p.totalAnswered || 0} correct
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-black text-blue-400 text-sm">{(p.score || 0).toLocaleString()}</div>
+                      <div className="text-[10px] text-white/30">{accPct}% acc</div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {leaderboard.length === 0 && (
+                <div className="text-center py-12 text-white/30 text-sm">No players have answered yet</div>
+              )}
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
   );
 }
