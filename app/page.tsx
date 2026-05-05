@@ -11,12 +11,57 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function Home() {
   const [roomCode, setRoomCode] = useState("");
+  const [joinError, setJoinError] = useState("");
+  const [isJoining, setIsJoining] = useState(false);
   const router = useRouter();
 
-  const handleJoin = (e: React.FormEvent) => {
+  const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (roomCode.trim().length === 6) {
-      router.push(`/join/${roomCode.toUpperCase()}`);
+    const code = roomCode.trim().toUpperCase();
+    if (code.length !== 6) return;
+
+    setJoinError("");
+    setIsJoining(true);
+
+    try {
+      const res = await fetch(`/api/room/state?code=${code}`);
+
+      if (res.status === 404) {
+        setJoinError("Game not found. Check your code.");
+        setIsJoining(false);
+        return;
+      }
+
+      if (!res.ok) {
+        setJoinError("Failed to check game status. Try again.");
+        setIsJoining(false);
+        return;
+      }
+
+      const data = await res.json();
+
+      if (data.status === "ended") {
+        setJoinError("This game has ended.");
+        setIsJoining(false);
+        return;
+      }
+
+      if (data.status === "playing") {
+        setJoinError("Game already in progress.");
+        setIsJoining(false);
+        return;
+      }
+
+      if (data.status === "waiting") {
+        router.push(`/join/${code}`);
+        return;
+      }
+
+      // Fallback: unknown status, still try to join
+      router.push(`/join/${code}`);
+    } catch (err) {
+      setJoinError("Network error. Please try again.");
+      setIsJoining(false);
     }
   };
 
@@ -52,7 +97,7 @@ export default function Home() {
                       type="text"
                       placeholder="· · · · · ·"
                       value={roomCode}
-                      onChange={(e) => setRoomCode(e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase())}
+                      onChange={(e) => { setRoomCode(e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase()); setJoinError(""); }}
                       maxLength={6}
                       inputMode="text"
                       autoCapitalize="characters"
@@ -61,15 +106,27 @@ export default function Home() {
                     />
                   </div>
                   <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-border to-transparent" />
+                  {joinError && (
+                    <p className="text-center text-sm font-black uppercase tracking-widest text-red-500">{joinError}</p>
+                  )}
                 </div>
-                
-                <Button 
-                  type="submit" 
-                  disabled={roomCode.length !== 6}
+
+                <Button
+                  type="submit"
+                  disabled={roomCode.length !== 6 || isJoining}
                   className="w-full py-10 text-2xl font-black bg-blue-600 hover:bg-blue-500 text-white rounded-2xl disabled:bg-muted disabled:text-muted-foreground transition-all shadow-2xl shadow-blue-900/20 group overflow-hidden relative border-none"
                 >
                   <span className="relative z-10 flex items-center justify-center gap-4 tracking-widest">
-                    JOIN BATTLE <Rocket size={28} className="group-hover:translate-x-2 group-hover:-translate-y-2 transition-transform duration-500" />
+                    {isJoining ? (
+                      <>
+                        <span className="w-7 h-7 border-4 border-white border-t-transparent rounded-full animate-spin" />
+                        CHECKING...
+                      </>
+                    ) : (
+                      <>
+                        JOIN BATTLE <Rocket size={28} className="group-hover:translate-x-2 group-hover:-translate-y-2 transition-transform duration-500" />
+                      </>
+                    )}
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite]" />
                 </Button>
@@ -84,8 +141,8 @@ export default function Home() {
             
             <div className="flex justify-center gap-4 w-full">
               {[
-                { icon: Globe, label: "GLOBAL", href: "#" },
-                { icon: Zap, label: "FAST", href: "#" },
+                { icon: Globe, label: "EXPLORE", href: "/explore" },
+                { icon: Zap, label: "CREATE", href: "/create" },
                 { icon: Search, label: "EXPLORE", href: "/explore" }
               ].map((f, i) => (
                 <Link key={i} href={f.href} className="flex-1 flex flex-col items-center gap-2 p-5 rounded-[2rem] bg-card border border-border hover:bg-accent/50 transition-all transform hover:scale-105 shadow-sm">

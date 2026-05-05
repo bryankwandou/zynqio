@@ -132,9 +132,52 @@ function SignInContent() {
   );
 }
 
+function SignInSkeleton() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background text-foreground p-4 relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-600/10 rounded-full blur-[120px]" />
+      </div>
+
+      <div className="w-full max-w-[480px] p-1 space-y-6 relative z-10">
+        <div className="bg-card backdrop-blur-3xl border border-border rounded-[2.5rem] p-10 md:p-12 shadow-[0_30px_100px_rgba(0,0,0,0.3)]">
+          <div className="text-center mb-10">
+            <div className="w-20 h-20 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl mx-auto flex items-center justify-center shadow-xl mb-8">
+              <Zap className="text-white fill-white" size={40} />
+            </div>
+            <h1 className="text-3xl font-black text-foreground tracking-tight mb-2 uppercase">Sign In</h1>
+            <p className="text-muted-foreground font-medium tracking-wide">Access your host dashboard</p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <div className="w-full bg-background border border-border rounded-2xl py-4 pl-12 pr-4 animate-pulse">
+                <div className="h-5 bg-muted rounded-lg w-2/3" />
+              </div>
+            </div>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <div className="w-full bg-background border border-border rounded-2xl py-4 pl-12 pr-4 animate-pulse">
+                <div className="h-5 bg-muted rounded-lg w-1/2" />
+              </div>
+            </div>
+            <div className="w-full py-7 bg-blue-600/60 rounded-2xl animate-pulse" />
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-border text-center">
+            <div className="h-4 bg-muted rounded-lg w-3/4 mx-auto animate-pulse" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SignIn() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center text-foreground font-black uppercase tracking-widest">Loading...</div>}>
+    <Suspense fallback={<SignInSkeleton />}>
       <SignInContent />
     </Suspense>
   );

@@ -17,7 +17,7 @@ export default function Dashboard() {
     if (status === "unauthenticated") {
       router.push("/auth/signin");
     }
-    
+
     async function fetchMyQuizzes() {
       try {
         const res = await fetch('/api/quiz/list');
@@ -29,7 +29,7 @@ export default function Dashboard() {
         console.error("Failed to fetch quizzes", err);
       }
     }
-    
+
     if (session) fetchMyQuizzes();
   }, [status, router, session]);
 
@@ -49,18 +49,41 @@ export default function Dashboard() {
     }
   };
 
+  const handleDelete = async (quizId: string) => {
+    if (!confirm("Are you sure you want to delete this quiz?")) return;
+    try {
+      const res = await fetch(`/api/quiz/delete?quizId=${encodeURIComponent(quizId)}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setQuizzes(prev => prev.filter(q => q.id !== quizId));
+      } else {
+        console.error("Failed to delete quiz");
+      }
+    } catch (err) {
+      console.error("Failed to delete quiz", err);
+    }
+  };
+
   if (status === "loading") {
     return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">
       <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
     </div>;
   }
 
-  if (!session) return null;
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center text-foreground gap-4">
+        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm font-black uppercase tracking-widest text-muted-foreground">Redirecting...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <Navbar />
-      
+
       <main className="flex-1 container mx-auto px-4 py-12 max-w-6xl">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
           <div>
@@ -87,24 +110,24 @@ export default function Dashboard() {
           {quizzes.map(quiz => (
             <div key={quiz.id} className="group bg-card border border-border rounded-[2.5rem] p-8 flex flex-col transition-all hover:border-blue-500/50 hover:shadow-2xl shadow-xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 blur-3xl -mr-16 -mt-16 group-hover:bg-blue-600/10 transition-colors" />
-              
+
               <div className="flex justify-between items-start mb-6">
                 <h3 className="text-2xl font-black text-foreground line-clamp-1 uppercase tracking-tight">{quiz.title}</h3>
-                <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest ${quiz.status === 'published' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'}`}>
-                  {quiz.status}
+                <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest ${quiz.status !== 'private' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'}`}>
+                  {quiz.status !== 'private' ? 'PUBLIC' : 'PRIVATE'}
                 </span>
               </div>
-              
+
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-8 font-bold uppercase tracking-widest">
                 <span className="text-blue-500">{quiz.questionCount} Questions</span>
                 <span className="opacity-30">•</span>
-                <span>{quiz.createdAt}</span>
+                <span>{new Date(quiz.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
               </div>
-              
+
               <div className="mt-auto grid grid-cols-2 gap-3">
-                <Button 
-                  className="w-full bg-blue-600 text-white hover:bg-blue-700 font-black rounded-xl py-6 shadow-md" 
-                  disabled={quiz.status === 'draft'}
+                <Button
+                  className="w-full bg-blue-600 text-white hover:bg-blue-700 font-black rounded-xl py-6 shadow-md"
+                  disabled={quiz.status === 'private'}
                   onClick={() => handleHost(quiz.id)}
                 >
                   <Play size={18} className="mr-2 fill-white" /> HOST
@@ -115,11 +138,11 @@ export default function Dashboard() {
                   </Button>
                 </Link>
               </div>
-              
+
               <div className="flex justify-between mt-6 pt-6 border-t border-border text-muted-foreground">
                 <button className="hover:text-blue-500 transition-colors p-2" title="Duplicate"><Copy size={18} /></button>
                 <button className="hover:text-blue-500 transition-colors p-2" title="Analytics"><BarChart2 size={18} /></button>
-                <button className="hover:text-red-500 transition-colors p-2" title="Delete"><Trash2 size={18} /></button>
+                <button className="hover:text-red-500 transition-colors p-2" title="Delete" onClick={() => handleDelete(quiz.id)}><Trash2 size={18} /></button>
               </div>
             </div>
           ))}
