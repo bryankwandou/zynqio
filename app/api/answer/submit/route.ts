@@ -61,7 +61,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Quiz not found" }, { status: 404 });
     }
 
-    const question = quiz.questions?.find((q: any) => q.id === questionId);
+    // Find by id first; fall back to current room question index
+    let question = quiz.questions?.find((q: any) => q.id === questionId);
+    if (!question && room?.currentQuestionIndex != null) {
+      question = quiz.questions?.[room.currentQuestionIndex];
+    }
     if (!question) {
       return NextResponse.json({ error: "Question not found" }, { status: 404 });
     }
@@ -94,7 +98,10 @@ export async function POST(req: Request) {
     const speedBonus = scoring.speedBonus;
 
     if (room?.players) {
-      const playerIndex = room.players.findIndex((p: any) => p.id === playerId);
+      // playerId may be UUID (p.id) or player name (p.name) — support both
+      const playerIndex = room.players.findIndex(
+        (p: any) => p.id === playerId || p.name === playerId
+      );
       if (playerIndex >= 0) {
         const player = room.players[playerIndex];
         player.totalAnswered = (player.totalAnswered || 0) + 1;
@@ -147,7 +154,7 @@ export async function POST(req: Request) {
         playerId,
         isCorrect,
         sessionScore,
-        totalScore: room?.players?.find((p: any) => p.id === playerId)?.score || 0,
+        totalScore: room?.players?.find((p: any) => p.id === playerId || p.name === playerId)?.score || 0,
         answersCount: await (redis as any).scard(`room:${roomCode}:q:${questionId}:answers`)
       });
     } catch (e) {

@@ -27,6 +27,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
 
   // PERSISTENT toggle — state never resets on question change
   const [viewMode, setViewMode] = useState<"question" | "leaderboard">("question");
+  const autoAdvanceRef = useRef(false);
 
   const prevIndexRef = useRef<number | null>(null);
   const lastUpdatedAtRef = useRef(0);
@@ -45,6 +46,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         const t = state.settings?.timer || 30;
         setTotalTime(t);
         setTimeLeft(t);
+        autoAdvanceRef.current = state.settings?.autoAdvance || false;
         prevIndexRef.current = state.currentQuestionIndex;
       } catch {}
     },
@@ -90,11 +92,21 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
     return () => clearInterval(interval);
   }, [roomCode, router, fetchQuestion]);
 
-  // Timer countdown
+  // Timer countdown + auto-advance
   useEffect(() => {
-    if (isRevealed || timeLeft <= 0) return;
+    if (isRevealed || timeLeft <= 0) {
+      if (timeLeft <= 0 && !isRevealed) {
+        setIsRevealed(true);
+        if (autoAdvanceRef.current) {
+          const t = setTimeout(() => handleNextQuestion(), 3000);
+          return () => clearTimeout(t);
+        }
+      }
+      return;
+    }
     const t = setTimeout(() => setTimeLeft((p) => p - 1), 1000);
     return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft, isRevealed]);
 
   const handleNextQuestion = async () => {
@@ -111,6 +123,9 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   const questionId = currentQuestion?.id;
   const answerStats = roomState?.answerStats?.[questionId] || { total: 0, correct: 0, byAnswer: {} };
   const totalAnswered = answerStats.total || 0;
+  const classAccuracyPct = totalAnswered > 0
+    ? Math.round(((answerStats.correct || 0) / totalAnswered) * 100)
+    : null;
   const leaderboard = [...(roomState?.players || [])].sort((a, b) => (b.score || 0) - (a.score || 0));
   const totalPlayers = leaderboard.length;
 
@@ -138,6 +153,16 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
             <span className="font-bold text-white">{totalAnswered}</span>
             <span>/ {totalPlayers}</span>
           </div>
+          {/* Class accuracy */}
+          {isRevealed && classAccuracyPct !== null && (
+            <div className={`px-3 py-1 rounded-full text-xs font-black border ${
+              classAccuracyPct >= 70 ? "bg-green-500/15 border-green-500/30 text-green-400" :
+              classAccuracyPct >= 40 ? "bg-amber-500/15 border-amber-500/30 text-amber-400" :
+              "bg-red-500/15 border-red-500/30 text-red-400"
+            }`}>
+              {classAccuracyPct}% Class Accuracy
+            </div>
+          )}
           {/* Timer circle */}
           <div className={`w-10 h-10 rounded-full border-[3px] flex items-center justify-center font-black text-sm ${
             isRevealed ? "border-white/20 text-white/40" : timerPct > 30 ? "border-blue-500 text-white" : "border-red-500 text-red-400 animate-pulse"

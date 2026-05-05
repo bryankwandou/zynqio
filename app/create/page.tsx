@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings, Save, ArrowLeft, Trash2, GripVertical, FileUp, X, CheckCircle2 } from "lucide-react";
+import { Plus, Settings, Save, ArrowLeft, Trash2, GripVertical, FileUp, X, CheckCircle2, Globe, Lock, Image } from "lucide-react";
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import Link from "next/link";
@@ -50,6 +50,15 @@ export default function CreateQuiz() {
   const [isSaving, setIsSaving] = useState(false);
   const [headerRowIndex, setHeaderRowIndex] = useState(-1);
   const [isEditingLoaded, setIsEditingLoaded] = useState(false);
+
+  // Quiz settings
+  const [showSettings, setShowSettings] = useState(false);
+  const [quizPrivacy, setQuizPrivacy] = useState<'public' | 'private'>('public');
+  const [quizCategory, setQuizCategory] = useState('General');
+  const [quizDescription, setQuizDescription] = useState('');
+  const [coverImage, setCoverImage] = useState('');
+
+  const CATEGORIES = ['General', 'Math', 'Science', 'History', 'Tech', 'Language', 'Gaming'];
 
   const downloadTemplate = () => {
     const link = document.createElement("a");
@@ -116,6 +125,10 @@ export default function CreateQuiz() {
 
         const quiz = await res.json();
         setTitle(quiz?.title || "");
+        setQuizPrivacy(quiz?.visibility === 'private' ? 'private' : 'public');
+        setQuizCategory(quiz?.category || 'General');
+        setQuizDescription(quiz?.description || '');
+        setCoverImage(quiz?.coverImage || '');
 
         if (Array.isArray(quiz?.questions)) {
           const restored = quiz.questions.map((q: any, index: number): Question => {
