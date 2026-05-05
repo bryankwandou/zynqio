@@ -10,6 +10,7 @@ import { getPusherClient } from "@/lib/pusher-client";
 import { getAvatar } from "@/lib/avatars";
 
 const GAME_MODES = [
+  { id: "wayground_classic", name: "WAYGROUND CLASSIC", icon: "🌊", desc: "Answer instantly, advance instantly. No timer waiting." },
   { id: "classic",      name: "Classic",      icon: "🏆", desc: "Standard scoring" },
   { id: "speed_rush",   name: "Speed Rush",   icon: "⚡", desc: "Faster = more pts" },
   { id: "battle_royale",name: "Battle Royale",icon: "⚔️", desc: "Elimination rounds" },

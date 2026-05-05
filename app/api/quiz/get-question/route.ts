@@ -29,7 +29,10 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Question not found' }, { status: 404 });
     }
 
-    return NextResponse.json(quiz.questions[index]);
+    return NextResponse.json({
+      ...quiz.questions[index],
+      totalQuestions: quiz.questions.length,
+    });
   } catch (error) {
     console.error('Error fetching question:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

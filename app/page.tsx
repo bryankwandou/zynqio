@@ -138,12 +138,12 @@ export default function Home() {
             <Link href="/auth/signup" className="flex items-center gap-3 px-8 py-4 rounded-2xl bg-blue-600 text-white hover:bg-blue-500 transition-all text-sm font-black uppercase tracking-widest shadow-lg">
               <Zap size={16} className="fill-white" /> Get Started for Free
             </Link>
-            
+
             <div className="flex justify-center gap-4 w-full">
               {[
                 { icon: Globe, label: "EXPLORE", href: "/explore" },
                 { icon: Zap, label: "CREATE", href: "/create" },
-                { icon: Search, label: "EXPLORE", href: "/explore" }
+                { icon: Shield, label: "HOST LOGIN", href: "/auth/signin" }
               ].map((f, i) => (
                 <Link key={i} href={f.href} className="flex-1 flex flex-col items-center gap-2 p-5 rounded-[2rem] bg-card border border-border hover:bg-accent/50 transition-all transform hover:scale-105 shadow-sm">
                   <f.icon className="text-blue-500" size={24} />

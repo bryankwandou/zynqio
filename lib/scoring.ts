@@ -5,7 +5,7 @@
  * Authoritative scoring MUST be done server-side.
  */
 
-export type GameMode = 'classic' | 'speed_rush' | 'gold_quest' | 'battle_royale' | 'team' | 'survival';
+export type GameMode = 'classic' | 'speed_rush' | 'gold_quest' | 'battle_royale' | 'team' | 'survival' | 'wayground_classic';
 
 export interface ScoringResult {
   isCorrect: boolean;
@@ -32,8 +32,9 @@ export function calculateScore(params: {
   timeLeft: number;
   totalTime: number;
   pointsWeight: number;
+  streak?: number;
 }): ScoringResult {
-  const { isCorrect, gameMode, timeLeft, totalTime, pointsWeight } = params;
+  const { isCorrect, gameMode, timeLeft, totalTime, pointsWeight, streak = 0 } = params;
 
   if (!isCorrect) {
     return {
@@ -45,12 +46,37 @@ export function calculateScore(params: {
     };
   }
 
+  // Wayground Classic: quartile-based scoring + streak bonus
+  if (gameMode === 'wayground_classic') {
+    const timeRatio = totalTime > 0 ? Math.max(0, timeLeft / totalTime) : 0;
+    let baseScore: number;
+    if (timeRatio >= 0.75) baseScore = 1000;
+    else if (timeRatio >= 0.50) baseScore = 850;
+    else if (timeRatio >= 0.25) baseScore = 700;
+    else baseScore = 500;
+
+    // Streak bonus (stacks on top of base)
+    let streakBonus = 0;
+    if (streak >= 10) streakBonus = 200;
+    else if (streak >= 5) streakBonus = 100;
+    else if (streak >= 3) streakBonus = 50;
+
+    const total = Math.floor((baseScore + streakBonus) * pointsWeight);
+    return {
+      isCorrect: true,
+      baseScore: total,
+      speedBonus: streakBonus,
+      totalScore: total,
+      accuracyPoints: pointsWeight,
+    };
+  }
+
   const baseScore = 600 * pointsWeight;
-  
+
   // Speed bonus logic
   let speedMultiplier = 1.0;
   if (gameMode === 'speed_rush') speedMultiplier = 1.5;
-  
+
   const timeRatio = totalTime > 0 ? Math.max(0, timeLeft / totalTime) : 0;
   const speedBonus = Math.floor(400 * pointsWeight * timeRatio * speedMultiplier);
 

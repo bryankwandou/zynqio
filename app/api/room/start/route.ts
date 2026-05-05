@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getRoomState, setRoomState } from '@/lib/kv';
+import { getRoomState, setRoomState, getQuizData } from '@/lib/kv';
 import { pusherServer } from '@/lib/pusher';
 
 export async function POST(req: Request) {
@@ -23,6 +23,17 @@ export async function POST(req: Request) {
     state.currentQuestionIndex = 0;
     state.questionStartTimestamp = Date.now();
     state.updatedAt = Date.now();
+
+    // For Wayground Classic: store totalQuestions so players know when they're done
+    if ((gameMode || 'classic') === 'wayground_classic' && state.quizId && state.hostId) {
+      try {
+        const quiz = await getQuizData(state.hostId, state.quizId);
+        if (quiz?.questions?.length) {
+          state.totalQuestions = quiz.questions.length;
+        }
+      } catch { /* non-fatal */ }
+    }
+
     await setRoomState(roomCode, state);
     
     // Trigger Pusher event

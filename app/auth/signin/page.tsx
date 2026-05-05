@@ -2,6 +2,7 @@
 
 import { signIn } from "next-auth/react";
 import { useState, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Zap, ArrowRight, Mail, Lock, AlertCircle, Loader2 } from "lucide-react";
@@ -11,22 +12,34 @@ import { useSearchParams } from "next/navigation";
 
 function SignInContent() {
   const searchParams = useSearchParams();
-  const error = searchParams.get("error");
+  const urlError = searchParams.get("error");
   const registered = searchParams.get("registered");
+  const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [localError, setLocalError] = useState("");
+
+  const error = localError || urlError;
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsAuthenticating(true);
-    await signIn("credentials", {
+    setLocalError("");
+
+    const result = await signIn("credentials", {
       email,
       password,
-      callbackUrl: "/dashboard"
+      redirect: false,
     });
-    setIsAuthenticating(false);
+
+    if (result?.error) {
+      setLocalError(result.error === "CredentialsSignin" ? "CredentialsSignin" : result.error);
+      setIsAuthenticating(false);
+    } else {
+      router.push("/dashboard");
+    }
   };
 
   return (

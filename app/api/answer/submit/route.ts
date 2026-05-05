@@ -86,12 +86,17 @@ export async function POST(req: Request) {
     const totalTime = globalTimer || 30;
     const timeLeft = Math.max(0, totalTime - elapsedSeconds);
 
+    const currentPlayerStreak = room?.players?.find(
+      (p: any) => p.id === playerId || p.name === playerId
+    )?.streak || 0;
+
     const scoring = calculateScore({
       isCorrect,
       gameMode: gameMode as any,
       timeLeft,
       totalTime,
       pointsWeight: question.points || 1,
+      streak: currentPlayerStreak,
     });
 
     const { totalScore: sessionScore, accuracyPoints } = scoring;
@@ -118,6 +123,13 @@ export async function POST(req: Request) {
         } else if (gameMode === "battle_royale") {
           if (!isCorrect && player.activePowerup !== "shield") {
             player.lives = Math.max(0, (player.lives ?? 3) - 1);
+          }
+          player.score = (player.score || 0) + sessionScore;
+        } else if (gameMode === "wayground_classic") {
+          if (isCorrect) {
+            player.streak = (player.streak || 0) + 1;
+          } else {
+            player.streak = 0;
           }
           player.score = (player.score || 0) + sessionScore;
         } else {
