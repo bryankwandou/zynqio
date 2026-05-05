@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef, use, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { getAvatar } from "@/lib/avatars";
-import { Users, SkipForward, Trophy, LayoutList, Eye, Flame } from "lucide-react";
+import { Users, SkipForward, Trophy, LayoutList, Eye, Flame, Waves } from "lucide-react";
 import { getPusherClient } from "@/lib/pusher-client";
 
 const COLORS = [
@@ -26,11 +26,20 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   const [totalTime, setTotalTime] = useState(30);
   const [roomState, setRoomState] = useState<any>(null);
 
-  const [viewMode, setViewMode] = useState<"question" | "leaderboard">("question");
+  const [viewMode, setViewMode] = useState<"question" | "leaderboard" | "wayground">("question");
   const autoAdvanceRef = useRef(false);
   const autoAdvanceScheduledRef = useRef(false);
   const prevIndexRef = useRef<number | null>(null);
   const lastUpdatedAtRef = useRef(0);
+
+  const isWaygroundClassic = roomState?.gameMode === 'wayground_classic';
+
+  // Auto-switch to wayground view when mode is detected
+  useEffect(() => {
+    if (isWaygroundClassic && viewMode === "question") {
+      setViewMode("wayground");
+    }
+  }, [isWaygroundClassic, viewMode]);
 
   const fetchQuestion = useCallback(
     async (state: any) => {
@@ -201,16 +210,18 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
 
         {/* View toggle */}
         <div className="flex items-center bg-white/5 rounded-xl p-1 border border-white/10">
-          <button
-            onClick={() => setViewMode("question")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              viewMode === "question"
-                ? "bg-blue-600 text-white shadow"
-                : "text-white/40 hover:text-white"
-            }`}
-          >
-            <LayoutList size={13} /> Per Question
-          </button>
+          {!isWaygroundClassic && (
+            <button
+              onClick={() => setViewMode("question")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                viewMode === "question"
+                  ? "bg-blue-600 text-white shadow"
+                  : "text-white/40 hover:text-white"
+              }`}
+            >
+              <LayoutList size={13} /> Per Question
+            </button>
+          )}
           <button
             onClick={() => setViewMode("leaderboard")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -221,6 +232,18 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
           >
             <Trophy size={13} /> Leaderboard
           </button>
+          {isWaygroundClassic && (
+            <button
+              onClick={() => setViewMode("wayground")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                viewMode === "wayground"
+                  ? "bg-blue-600 text-white shadow"
+                  : "text-white/40 hover:text-white"
+              }`}
+            >
+              <Waves size={13} /> Progress
+            </button>
+          )}
         </div>
 
         {/* Action buttons */}
@@ -500,6 +523,131 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                   </div>
                 );
               })}
+
+              {leaderboard.length === 0 && (
+                <div className="text-center py-12 text-white/30 text-sm">
+                  No players have answered yet
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* === Wayground Classic: Per-Player Progress View === */}
+        {viewMode === "wayground" && isWaygroundClassic && (
+          <div className="flex-1 flex flex-col overflow-hidden">
+
+            {/* Class Accuracy bar */}
+            <div className="flex items-center px-5 pt-4 pb-2 gap-3 flex-shrink-0">
+              <div className="flex-1 h-5 bg-green-900/30 rounded-l-full overflow-hidden">
+                <div
+                  className="h-full bg-green-500 rounded-l-full transition-all duration-700"
+                  style={{ width: `${classAccuracyPct ?? 0}%` }}
+                />
+              </div>
+              <div className="w-20 h-20 rounded-full border-4 border-white/20 bg-[#16162a] flex flex-col items-center justify-center shrink-0 shadow-xl">
+                <span className="text-xl font-black text-white leading-none">
+                  {classAccuracyPct !== null ? `${classAccuracyPct}%` : "—"}
+                </span>
+                <span className="text-[9px] font-black text-white/40 uppercase tracking-wide mt-0.5">
+                  Accuracy
+                </span>
+              </div>
+              <div className="flex-1 h-5 bg-red-900/30 rounded-r-full overflow-hidden">
+                <div
+                  className="h-full bg-red-500 rounded-r-full transition-all duration-700"
+                  style={{ width: `${classAccuracyPct !== null ? 100 - classAccuracyPct : 0}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Mode badge */}
+            <div className="mx-5 mb-2 px-4 py-2 bg-blue-600/10 border border-blue-500/20 rounded-xl flex items-center gap-2 flex-shrink-0">
+              <Waves size={14} className="text-blue-400" />
+              <span className="text-xs font-black text-blue-400 uppercase tracking-widest">WAYGROUND CLASSIC — Player-paced mode</span>
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center justify-between px-5 mb-2 flex-shrink-0">
+              <h2 className="text-xs font-black text-white/30 uppercase tracking-widest">
+                Player Progress · {totalPlayers} players
+              </h2>
+              <div className="text-[10px] font-black text-white/20 uppercase">
+                Questions completed / total
+              </div>
+            </div>
+
+            {/* Player progress rows */}
+            <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-2">
+              {[...leaderboard]
+                .sort((a, b) => (b.totalAnswered || 0) - (a.totalAnswered || 0))
+                .map((p: any, i: number) => {
+                  const av = getAvatar(p.avatarId);
+                  const answered = p.totalAnswered || 0;
+                  const correct = p.totalCorrect || 0;
+                  const accuracy = answered > 0 ? Math.round((correct / answered) * 100) : 0;
+                  const totalQs = roomState?.totalQuestions || answered || 1;
+                  const progressPct = Math.min(100, (answered / totalQs) * 100);
+                  const isDone = answered >= totalQs && totalQs > 0;
+
+                  return (
+                    <div
+                      key={p.id || p.name}
+                      className={`flex items-center gap-3 px-3 py-3 rounded-2xl border transition-all ${
+                        isDone
+                          ? "bg-green-500/10 border-green-500/30"
+                          : "bg-white/[0.03] border-white/5"
+                      }`}
+                    >
+                      {/* Rank by progress */}
+                      <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center font-black text-xs shrink-0 text-white/50">
+                        {i + 1}
+                      </div>
+
+                      {/* Avatar */}
+                      <div
+                        className={`w-9 h-9 rounded-xl bg-gradient-to-br ${av.bg} flex items-center justify-center text-lg shrink-0`}
+                      >
+                        {av.emoji}
+                      </div>
+
+                      {/* Name + progress bar */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-bold text-sm text-white truncate">{p.name}</span>
+                          <div className="flex items-center gap-1.5 text-xs shrink-0 ml-2">
+                            {isDone ? (
+                              <span className="text-green-400 font-black text-[10px] uppercase">✓ Done</span>
+                            ) : (
+                              <span className="text-white/40 font-bold">{answered}/{totalQs}</span>
+                            )}
+                          </div>
+                        </div>
+                        {/* Progress bar */}
+                        <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${isDone ? "bg-green-500" : "bg-blue-500"}`}
+                            style={{ width: `${progressPct}%` }}
+                          />
+                        </div>
+                        {/* Accuracy mini */}
+                        <div className="flex items-center gap-1 mt-1">
+                          <div className="text-[9px] text-white/20 font-bold">
+                            Acc: <span className={accuracy >= 70 ? "text-green-400" : accuracy >= 40 ? "text-amber-400" : "text-red-400"}>{accuracy}%</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Score */}
+                      <div className="text-right shrink-0 ml-1">
+                        <div className="font-black text-lg text-blue-400 leading-none">
+                          {(p.score || 0).toLocaleString()}
+                        </div>
+                        <div className="text-[10px] text-white/30 mt-0.5">pts</div>
+                      </div>
+                    </div>
+                  );
+                })}
 
               {leaderboard.length === 0 && (
                 <div className="text-center py-12 text-white/30 text-sm">

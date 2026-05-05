@@ -57,6 +57,14 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
   const [showCountdown, setShowCountdown] = useState(false);
   const [classAccuracy, setClassAccuracy] = useState<number | null>(null);
 
+  // --- Wayground Classic state ---
+  const [playerQuestionIndex, setPlayerQuestionIndex] = useState(0);
+  const [totalQuestions, setTotalQuestions] = useState(0);
+  const [waygroundDone, setWaygroundDone] = useState(false);
+  const [waygroundStats, setWaygroundStats] = useState<{
+    score: number; correct: number; total: number; rank?: string;
+  } | null>(null);
+
   const nicknameRef = useRef("");
   const playerIdRef = useRef("");
   const currentQuestionRef = useRef<any>(null);
@@ -67,8 +75,17 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
   const lastUpdatedAt = useRef<number>(0);
   const countdownDoneRef = useRef(false);
 
+  // Wayground-specific refs
+  const playerQuestionIndexRef = useRef(0);
+  const totalQuestionsRef = useRef(0);
+  const waygroundStartedRef = useRef(false);
+  const gameModeRef = useRef("classic");
+
   useEffect(() => { currentQuestionRef.current = currentQuestion; }, [currentQuestion]);
   useEffect(() => { activePowerupRef.current = activePowerup; }, [activePowerup]);
+  useEffect(() => { playerQuestionIndexRef.current = playerQuestionIndex; }, [playerQuestionIndex]);
+  useEffect(() => { totalQuestionsRef.current = totalQuestions; }, [totalQuestions]);
+  useEffect(() => { gameModeRef.current = gameMode; }, [gameMode]);
 
   const runCountdown = useCallback(() => {
     if (countdownDoneRef.current) return;
@@ -84,6 +101,74 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
     }, 900);
   }, []);
 
+  // Fetch a question by index (used by Wayground Classic)
+  const fetchWaygroundQuestion = useCallback(async (index: number) => {
+    const roomState = roomStateRef.current;
+    if (!roomState) return;
+    try {
+      const qRes = await fetch(
+        `/api/quiz/get-question?quizId=${roomState.quizId}&index=${index}&roomCode=${roomCode}`
+      );
+      if (!qRes.ok) {
+        // No more questions — player is done
+        setWaygroundDone(true);
+        setWaygroundStats({
+          score: score,
+          correct: 0, // will be set from live state
+          total: totalQuestionsRef.current,
+        });
+        setTimeout(() => router.push(`/results/${roomCode}`), 2000);
+        return;
+      }
+      const q = await qRes.json();
+      if (q.totalQuestions && q.totalQuestions > totalQuestionsRef.current) {
+        setTotalQuestions(q.totalQuestions);
+        totalQuestionsRef.current = q.totalQuestions;
+      }
+      const timerSeconds = roomState.settings?.timer || 20;
+      timerTotalRef.current = timerSeconds;
+      questionStartRef.current = Date.now();
+      setCurrentQuestion({ ...q, index });
+      currentQuestionRef.current = { ...q, index };
+      setTimeLeft(timerSeconds);
+      setIsSubmitted(false);
+      setSelectedAnswer(null);
+      setResult(null);
+      setCurrentMeme(null);
+      setClassAccuracy(null);
+    } catch {
+      // Network error — retry once
+      setTimeout(() => fetchWaygroundQuestion(index), 1000);
+    }
+  }, [roomCode, router, score]);
+
+  // Trigger first Wayground question after countdown ends
+  useEffect(() => {
+    if (
+      gameModeRef.current === 'wayground_classic' &&
+      !showCountdown &&
+      countdownDoneRef.current &&
+      !currentQuestion &&
+      waygroundStartedRef.current
+    ) {
+      fetchWaygroundQuestion(0);
+    }
+  }, [showCountdown, currentQuestion, fetchWaygroundQuestion]);
+
+  // Auto-submit for Wayground when timer hits 0 and player hasn't answered
+  useEffect(() => {
+    if (
+      gameModeRef.current === 'wayground_classic' &&
+      timeLeft === 0 &&
+      !isSubmitted &&
+      currentQuestion &&
+      !showCountdown
+    ) {
+      handleSubmit("__no_answer__");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft]);
+
   useEffect(() => {
     const savedName = localStorage.getItem("zynqio_nickname");
     const savedAvatar = localStorage.getItem("zynqio_avatar") || "fox";
@@ -98,7 +183,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
     setNickname(savedName);
     setMyAvatar(savedAvatar);
     nicknameRef.current = savedName;
-    playerIdRef.current = savedPlayerId || savedName; // fallback to name if no UUID
+    playerIdRef.current = savedPlayerId || savedName;
 
     const pollRoom = async () => {
       try {
@@ -112,12 +197,15 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
         const state = await res.json();
         if (state.updatedAt) lastUpdatedAt.current = state.updatedAt;
         roomStateRef.current = state;
-        setGameMode(state.gameMode || "classic");
+        const detectedMode = state.gameMode || 'classic';
+        setGameMode(detectedMode);
+        gameModeRef.current = detectedMode;
         if (state.settings?.memeMode) setMemeMode(true);
 
         // Kicked detection
+        const savedTok = localStorage.getItem("zynqio_session_token") || "";
         const kicked = (state.kickedPlayers || []).some(
-          (k: string) => k === savedName || k === savedName.toLowerCase() || k === savedToken
+          (k: string) => k === savedName || k === savedName.toLowerCase() || k === savedTok
         );
         if (kicked) {
           setIsKicked(true);
@@ -130,30 +218,50 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
           const myData = state.players?.find((p: any) => p.name === nicknameRef.current);
           if (myData?.team) setTeam(myData.team);
 
-          // Update class accuracy from answerStats
-          const curQ = currentQuestionRef.current;
-          if (curQ && state.answerStats?.[curQ.id]) {
-            const stats = state.answerStats[curQ.id];
-            if (stats.total > 0) setClassAccuracy(Math.round((stats.correct / stats.total) * 100));
-          }
-
-          if (!curQ || state.currentQuestionIndex !== curQ.index) {
-            if (!curQ) runCountdown();
-            const qRes = await fetch(
-              `/api/quiz/get-question?quizId=${state.quizId}&index=${state.currentQuestionIndex}&roomCode=${roomCode}`
-            );
-            if (qRes.ok) {
-              const q = await qRes.json();
-              const timerSeconds = state.settings?.timer || 30;
-              timerTotalRef.current = timerSeconds;
-              questionStartRef.current = state.questionStartTimestamp || Date.now();
-              setCurrentQuestion({ ...q, index: state.currentQuestionIndex });
-              setTimeLeft(timerSeconds);
-              setIsSubmitted(false);
-              setSelectedAnswer(null);
-              setResult(null);
-              setCurrentMeme(null);
-              setClassAccuracy(null);
+          if (detectedMode === 'wayground_classic') {
+            // ─── Wayground Classic: player-paced mode ───
+            if (!waygroundStartedRef.current) {
+              waygroundStartedRef.current = true;
+              // Store totalQuestions from room if available
+              if (state.totalQuestions) {
+                setTotalQuestions(state.totalQuestions);
+                totalQuestionsRef.current = state.totalQuestions;
+              }
+              runCountdown();
+              // After countdown (~3s), fetchWaygroundQuestion(0) fires via the effect above
+            }
+            // Track class accuracy from answerStats for current question
+            const curQ = currentQuestionRef.current;
+            if (curQ && state.answerStats?.[curQ.id]) {
+              const stats = state.answerStats[curQ.id];
+              if (stats.total > 0) setClassAccuracy(Math.round((stats.correct / stats.total) * 100));
+            }
+            // Don't sync with room's currentQuestionIndex in wayground mode
+          } else {
+            // ─── Classic / other modes: host-paced ───
+            const curQ = currentQuestionRef.current;
+            if (curQ && state.answerStats?.[curQ.id]) {
+              const stats = state.answerStats[curQ.id];
+              if (stats.total > 0) setClassAccuracy(Math.round((stats.correct / stats.total) * 100));
+            }
+            if (!curQ || state.currentQuestionIndex !== curQ.index) {
+              if (!curQ) runCountdown();
+              const qRes = await fetch(
+                `/api/quiz/get-question?quizId=${state.quizId}&index=${state.currentQuestionIndex}&roomCode=${roomCode}`
+              );
+              if (qRes.ok) {
+                const q = await qRes.json();
+                const timerSeconds = state.settings?.timer || 30;
+                timerTotalRef.current = timerSeconds;
+                questionStartRef.current = state.questionStartTimestamp || Date.now();
+                setCurrentQuestion({ ...q, index: state.currentQuestionIndex });
+                setTimeLeft(timerSeconds);
+                setIsSubmitted(false);
+                setSelectedAnswer(null);
+                setResult(null);
+                setCurrentMeme(null);
+                setClassAccuracy(null);
+              }
             }
           }
         } else if (state.status === "ended") {
@@ -167,7 +275,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
     return () => clearInterval(roomInterval);
   }, [roomCode, router, runCountdown]);
 
-  // Timer
+  // Timer countdown
   useEffect(() => {
     const total = timerTotalRef.current || 30;
     const interval = setInterval(() => {
@@ -183,15 +291,17 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
     setSelectedAnswer(answer);
     setIsSubmitted(true);
 
+    const isTimeout = answer === "__no_answer__";
     const roomState = roomStateRef.current;
+
     try {
       const res = await fetch("/api/answer/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          playerId: playerIdRef.current,  // Use UUID not nickname
+          playerId: playerIdRef.current,
           questionId: currentQuestion.id,
-          selectedAnswer: answer,
+          selectedAnswer: isTimeout ? null : answer,
           clientTimestamp: Date.now(),
           roomCode,
           quizId: roomState?.quizId,
@@ -201,18 +311,17 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       });
 
       if (!res.ok) {
-        // Non-200 = server error, show as wrong silently
         setResult({ correct: false, points: 0 });
+        scheduleWaygroundAdvance(false, 0);
         return;
       }
 
       const data = await res.json();
-      const isCorrect = data.correct === true;
+      const isCorrect = data.correct === true && !isTimeout;
 
       let finalScore = data.sessionScore || 0;
       if (activePowerup === "2x") finalScore *= 2;
 
-      // Show meme based on result
       if (memeMode) {
         const pool = isCorrect ? CORRECT_MEMES : WRONG_MEMES;
         setCurrentMeme(pool[Math.floor(Math.random() * pool.length)]);
@@ -226,26 +335,62 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
           if (next >= 3) { setStreakAnimation(true); setTimeout(() => setStreakAnimation(false), 1200); }
           return next;
         });
+        setScore((p) => p + finalScore);
       } else {
         setCorrectStreak(0);
+        if (gameMode !== 'wayground_classic') {
+          setScore((p) => p + finalScore);
+        }
       }
 
       if (gameMode === "survival") {
         setScore(isCorrect ? (p) => p + finalScore : () => 0);
-      } else {
-        setScore((p) => p + finalScore);
-      }
-
-      if (gameMode === "battle_royale" && !isCorrect && activePowerup !== "shield") {
+      } else if (gameMode === "battle_royale" && !isCorrect && activePowerup !== "shield") {
         setLives((p) => Math.max(0, p - 1));
       } else if (gameMode === "gold_quest" && isCorrect) {
         setShowChests(true);
       }
 
       setActivePowerup(null);
+
+      // Wayground Classic: auto-advance after 0.8s feedback
+      if (gameModeRef.current === 'wayground_classic') {
+        scheduleWaygroundAdvance(isCorrect, finalScore);
+      }
     } catch {
       setResult({ correct: false, points: 0 });
+      if (gameModeRef.current === 'wayground_classic') {
+        scheduleWaygroundAdvance(false, 0);
+      }
     }
+  };
+
+  const scheduleWaygroundAdvance = (isCorrect: boolean, pts: number) => {
+    setTimeout(() => {
+      const nextIndex = playerQuestionIndexRef.current + 1;
+      const total = totalQuestionsRef.current;
+
+      // 0.4s micro-feedback then advance
+      setTimeout(() => {
+        setResult(null);
+        setCurrentMeme(null);
+
+        if (total > 0 && nextIndex >= total) {
+          // Player finished all questions
+          setWaygroundDone(true);
+          setWaygroundStats({
+            score: score + (isCorrect ? pts : 0),
+            correct: 0,
+            total,
+          });
+          setTimeout(() => router.push(`/results/${roomCode}`), 1500);
+        } else {
+          playerQuestionIndexRef.current = nextIndex;
+          setPlayerQuestionIndex(nextIndex);
+          fetchWaygroundQuestion(nextIndex);
+        }
+      }, 400);
+    }, 800);
   };
 
   const handleChestSelect = (index: number) => {
@@ -273,7 +418,9 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
 
   const avatarInfo = getAvatar(myAvatar);
   const timerPct = timerTotalRef.current > 0 ? (timeLeft / timerTotalRef.current) * 100 : 100;
+  const isWayground = gameMode === 'wayground_classic';
 
+  // ── Kicked ──────────────────────────────────────────────────────
   if (isKicked) {
     return (
       <div className="min-h-screen bg-[#0f0f1a] flex flex-col items-center justify-center p-8 text-center text-white">
@@ -285,6 +432,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
     );
   }
 
+  // ── Battle Royale eliminated ─────────────────────────────────────
   if (gameMode === "battle_royale" && lives === 0) {
     return (
       <div className="min-h-screen bg-[#0f0f1a] flex flex-col items-center justify-center p-8 text-center text-white">
@@ -299,12 +447,40 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
     );
   }
 
+  // ── Wayground Classic: player finished all questions ─────────────
+  if (isWayground && waygroundDone) {
+    return (
+      <div className="min-h-screen bg-[#0f0f1a] flex flex-col items-center justify-center p-8 text-center text-white">
+        <div className="text-6xl mb-4">🏁</div>
+        <div className="text-xs font-black text-blue-400 uppercase tracking-widest mb-2">WAYGROUND CLASSIC</div>
+        <h2 className="text-3xl font-black mb-2">Finished!</h2>
+        <p className="text-white/50 mb-6 text-sm">Loading your results...</p>
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 w-full max-w-xs">
+          <div className="text-4xl font-black text-blue-400 mb-1">{score.toLocaleString()}</div>
+          <div className="text-xs text-white/40 uppercase tracking-widest">Total Score</div>
+        </div>
+        <div className="mt-6 w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // ── Waiting for game to start ────────────────────────────────────
   if (!currentQuestion && !showCountdown) {
     return (
       <div className="min-h-screen bg-[#0f0f1a] flex flex-col items-center justify-center text-white">
+        {isWayground && (
+          <div className="mb-6 px-4 py-2 bg-blue-600/20 border border-blue-500/30 rounded-full text-xs font-black text-blue-400 uppercase tracking-widest">
+            🌊 WAYGROUND CLASSIC MODE
+          </div>
+        )}
         <div className="w-14 h-14 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-5" />
         <h2 className="text-xl font-bold">Get Ready!</h2>
         <p className="text-white/50 text-sm mt-1">Waiting for host to start the game...</p>
+        {isWayground && (
+          <p className="text-white/30 text-xs mt-3 max-w-xs text-center">
+            Answer instantly. Advance instantly. No timer waiting.
+          </p>
+        )}
       </div>
     );
   }
@@ -315,6 +491,11 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       {/* Countdown Overlay */}
       {showCountdown && (
         <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-[#0f0f1a]/95">
+          {isWayground && (
+            <div className="mb-4 px-4 py-1.5 bg-blue-600/20 border border-blue-500/30 rounded-full text-xs font-black text-blue-400 uppercase tracking-widest">
+              🌊 WAYGROUND CLASSIC
+            </div>
+          )}
           <div key={String(countdownValue)} className="text-9xl font-black animate-ping-once"
             style={{ textShadow: "0 0 60px rgba(79,142,255,0.6)" }}>
             {countdownValue}
@@ -322,6 +503,9 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
           <p className="mt-8 text-white/50 font-bold text-lg tracking-widest uppercase">
             {countdownValue === "GO!" ? "Game On!" : "Get Ready..."}
           </p>
+          {isWayground && countdownValue !== "GO!" && (
+            <p className="mt-3 text-white/30 text-sm">Answer instantly — no waiting!</p>
+          )}
         </div>
       )}
 
@@ -342,6 +526,11 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
             {avatarInfo.emoji}
           </div>
           <span className="font-bold text-sm text-white/80 hidden sm:block max-w-[100px] truncate">{nickname}</span>
+          {isWayground && totalQuestions > 0 && (
+            <span className="text-[10px] text-white/30 font-bold">
+              {playerQuestionIndex + 1}/{totalQuestions}
+            </span>
+          )}
           {gameMode === "battle_royale" && (
             <div className="flex gap-0.5">
               {[0, 1, 2].map((i) => (
@@ -360,6 +549,9 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
           }`}>
             {timeLeft}
           </div>
+          {isWayground && (
+            <span className="text-[8px] text-white/20 mt-0.5">cosmetic</span>
+          )}
         </div>
 
         {/* Right: Score */}
@@ -374,14 +566,21 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       </div>
 
       {/* Timer bar */}
-      <div className="h-1.5 bg-white/5">
+      <div className={`h-1.5 ${isWayground ? "bg-blue-900/30" : "bg-white/5"}`}>
         <div
-          className={`h-full transition-all duration-500 ${timerPct > 60 ? "bg-green-500" : timerPct > 30 ? "bg-amber-500" : "bg-red-500"}`}
+          className={`h-full transition-all duration-500 ${isWayground ? "bg-blue-500" : timerPct > 60 ? "bg-green-500" : timerPct > 30 ? "bg-amber-500" : "bg-red-500"}`}
           style={{ width: `${timerPct}%` }}
         />
       </div>
 
-      {/* Class accuracy pill (visible after first answer) */}
+      {/* Wayground mode badge */}
+      {isWayground && !showCountdown && (
+        <div className="flex items-center justify-center gap-2 py-1 bg-blue-600/10 border-b border-blue-500/10">
+          <span className="text-[9px] font-black text-blue-400/60 uppercase tracking-widest">🌊 WAYGROUND CLASSIC · Answer instantly · advance instantly</span>
+        </div>
+      )}
+
+      {/* Class accuracy pill */}
       {classAccuracy !== null && (
         <div className="flex justify-center py-1.5">
           <div className="text-xs text-white/40 bg-white/5 px-3 py-1 rounded-full border border-white/10">
@@ -396,14 +595,16 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
           {/* Question number */}
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-bold text-white/30 bg-white/5 px-2.5 py-1 rounded-full uppercase tracking-widest">
-              Q{(currentQuestion.index ?? 0) + 1}
+              {isWayground && totalQuestions > 0
+                ? `Q${playerQuestionIndex + 1} / ${totalQuestions}`
+                : `Q${(currentQuestion.index ?? 0) + 1}`}
             </span>
             {correctStreak >= 3 && (
               <span className="text-[11px] font-black text-orange-400">🔥 {correctStreak} streak</span>
             )}
           </div>
 
-          {/* Question text — compact on mobile */}
+          {/* Question text */}
           <div className="bg-[#16162a] border border-white/10 rounded-2xl p-4 mb-3 text-center shadow-xl">
             {currentQuestion.image && (
               <img src={currentQuestion.image} alt="" className="max-h-36 mx-auto rounded-xl mb-3 object-contain" />
@@ -439,8 +640,8 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
             })}
           </div>
 
-          {/* Powerups — inline below options, not floating */}
-          {!isSubmitted && powerups.length > 0 && (
+          {/* Powerups (not shown in wayground) */}
+          {!isSubmitted && !isWayground && powerups.length > 0 && (
             <div className="flex gap-2 justify-center mt-3">
               {powerups.map((p, i) => (
                 <button
@@ -462,7 +663,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
         </div>
       )}
 
-      {/* Result Overlay */}
+      {/* Result Overlay — Wayground: compact 0.8s flash */}
       {result && !showChests && (
         <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-6 ${
           result.correct ? "bg-green-600/92" : "bg-red-600/92"
@@ -484,7 +685,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
             <div className="bg-white/20 px-5 py-2 rounded-full mt-3 font-bold text-lg text-white">
               +{result.points} pts
               {result.speedBonus && result.speedBonus > 0 && (
-                <span className="ml-2 text-sm opacity-80">(+{result.speedBonus} speed)</span>
+                <span className="ml-2 text-sm opacity-80">(+{result.speedBonus} streak)</span>
               )}
             </div>
           )}
@@ -499,7 +700,15 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
             <div className="mt-4 text-2xl">💔 -1 Life</div>
           )}
 
-          <div className="mt-8 text-white/70 font-medium text-sm">Waiting for next question...</div>
+          {/* Wayground: next arrow indicator */}
+          {isWayground ? (
+            <div className="mt-6 flex items-center gap-2 text-white/60 text-sm font-bold">
+              <div className="w-4 h-4 border-2 border-white/40 border-t-transparent rounded-full animate-spin" />
+              Next question loading...
+            </div>
+          ) : (
+            <div className="mt-8 text-white/70 font-medium text-sm">Waiting for next question...</div>
+          )}
         </div>
       )}
 

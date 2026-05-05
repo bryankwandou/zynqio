@@ -22,37 +22,44 @@ export function Navbar() {
 
         <nav className="hidden md:flex items-center gap-6">
           <Link href="/explore" className="text-sm font-black uppercase tracking-widest text-muted-foreground hover:text-blue-500 transition-colors">Explore</Link>
-          <Link href="/dashboard" className="text-sm font-black uppercase tracking-widest text-muted-foreground hover:text-blue-500 transition-colors">
-            Dashboard
-          </Link>
+          {session && (
+            <>
+              <Link href="/create" className="text-sm font-black uppercase tracking-widest text-muted-foreground hover:text-blue-500 transition-colors">Create</Link>
+              <Link href="/dashboard" className="text-sm font-black uppercase tracking-widest text-muted-foreground hover:text-blue-500 transition-colors">Dashboard</Link>
+            </>
+          )}
         </nav>
 
         <nav className="flex items-center gap-4">
           {session ? (
             <div className="flex items-center gap-4">
               <div className="hidden lg:flex flex-col items-end">
-                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Authenticated</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Signed in as</span>
                 <span className="text-sm font-bold text-foreground truncate max-w-[150px]">
                   {session.user?.name || session.user?.email}
                 </span>
               </div>
-              <Link href="/dashboard">
-                <Button variant="ghost" className="text-muted-foreground hover:text-foreground">Dashboard</Button>
-              </Link>
               <Button
                 variant="outline"
-                className="border-border text-muted-foreground hover:bg-accent"
+                className="border-border text-muted-foreground hover:bg-accent font-black text-xs uppercase tracking-widest"
                 onClick={() => signOut({ callbackUrl: "/" })}
               >
                 Sign Out
               </Button>
             </div>
           ) : (
-            <Link href="/auth/signin">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white font-medium">
-                Host Login
-              </Button>
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link href="/auth/signin">
+                <Button variant="ghost" className="text-muted-foreground hover:text-foreground font-black text-xs uppercase tracking-widest">
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/auth/signup">
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-widest">
+                  Get Started
+                </Button>
+              </Link>
+            </div>
           )}
           <div className="pl-2 border-l border-border">
             <ThemeToggle />
