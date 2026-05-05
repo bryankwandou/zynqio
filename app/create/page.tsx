@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings, Save, ArrowLeft, Trash2, GripVertical, FileUp, X, CheckCircle2, Globe, Lock, Image } from "lucide-react";
+import { Plus, Settings, Save, ArrowLeft, Trash2, GripVertical, FileUp, X, CheckCircle2, Globe, Lock, Image, Eye, EyeOff } from "lucide-react";
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import Link from "next/link";
@@ -57,6 +57,7 @@ export default function CreateQuiz() {
   const [quizCategory, setQuizCategory] = useState('General');
   const [quizDescription, setQuizDescription] = useState('');
   const [coverImage, setCoverImage] = useState('');
+  const [hideAnswer, setHideAnswer] = useState(false);
 
   const CATEGORIES = ['General', 'Math', 'Science', 'History', 'Tech', 'Language', 'Gaming'];
 
@@ -129,6 +130,7 @@ export default function CreateQuiz() {
         setQuizCategory(quiz?.category || 'General');
         setQuizDescription(quiz?.description || '');
         setCoverImage(quiz?.coverImage || '');
+        setHideAnswer(!!quiz?.hideAnswer);
 
         if (Array.isArray(quiz?.questions)) {
           const restored = quiz.questions.map((q: any, index: number): Question => {
@@ -457,6 +459,7 @@ export default function CreateQuiz() {
           category: quizCategory,
           description: quizDescription,
           coverImage,
+          hideAnswer,
         })
       });
       if (res.ok) {
@@ -729,7 +732,7 @@ export default function CreateQuiz() {
             </div>
 
             <div className="p-6 space-y-6">
-              {/* Privacy */}
+              {/* Privacy / Visibility */}
               <div>
                 <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Visibility</p>
                 <div className="flex gap-3">
@@ -749,11 +752,35 @@ export default function CreateQuiz() {
                   >
                     <Lock size={20} />
                     <div className="text-left">
-                      <div className="font-black text-sm">Private</div>
-                      <div className="text-xs opacity-70">Only via direct link</div>
+                      <div className="font-black text-sm">Private from Public</div>
+                      <div className="text-xs opacity-70">Hidden from Explore, room-only</div>
                     </div>
                   </button>
                 </div>
+              </div>
+
+              {/* Hide Answer */}
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Answer Visibility</p>
+                <button
+                  onClick={() => setHideAnswer((v) => !v)}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${hideAnswer ? 'border-purple-500 bg-purple-500/10 text-purple-400' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}
+                >
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${hideAnswer ? 'bg-purple-500/20' : 'bg-accent'}`}>
+                    {hideAnswer ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </div>
+                  <div>
+                    <div className="font-black text-sm">{hideAnswer ? 'Hide Answer Enabled' : 'Show Answer (Default)'}</div>
+                    <div className="text-xs opacity-60">
+                      {hideAnswer
+                        ? 'Players see "Answered" — correct/wrong hidden until host reveals'
+                        : 'Players see green ✓ or red ✗ immediately after answering'}
+                    </div>
+                  </div>
+                  <div className={`ml-auto w-10 h-6 rounded-full transition-all shrink-0 relative ${hideAnswer ? 'bg-purple-500' : 'bg-border'}`}>
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${hideAnswer ? 'right-1' : 'left-1'}`} />
+                  </div>
+                </button>
               </div>
 
               {/* Category */}
