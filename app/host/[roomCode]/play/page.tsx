@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef, use, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { getAvatar } from "@/lib/avatars";
-import { Users, SkipForward, Trophy, LayoutList, Eye } from "lucide-react";
+import { Users, SkipForward, Trophy, LayoutList, Eye, Flame } from "lucide-react";
+import { getPusherClient } from "@/lib/pusher-client";
 
 const COLORS = [
-  { bg: "bg-red-500",   bar: "bg-red-400",   ring: "ring-red-400",   shape: "▲", label: "bg-red-600" },
-  { bg: "bg-blue-500",  bar: "bg-blue-400",  ring: "ring-blue-400",  shape: "◆", label: "bg-blue-600" },
-  { bg: "bg-amber-500", bar: "bg-amber-400", ring: "ring-amber-400", shape: "●", label: "bg-amber-600" },
-  { bg: "bg-green-500", bar: "bg-green-400", ring: "ring-green-400", shape: "■", label: "bg-green-600" },
+  { bg: "bg-red-500",   bar: "bg-red-400",   shape: "▲" },
+  { bg: "bg-blue-500",  bar: "bg-blue-400",  shape: "◆" },
+  { bg: "bg-amber-500", bar: "bg-amber-400", shape: "●" },
+  { bg: "bg-green-500", bar: "bg-green-400", shape: "■" },
 ];
 
 export default function HostGame({ params }: { params: Promise<{ roomCode: string }> }) {
@@ -25,10 +26,9 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   const [totalTime, setTotalTime] = useState(30);
   const [roomState, setRoomState] = useState<any>(null);
 
-  // PERSISTENT toggle — state never resets on question change
   const [viewMode, setViewMode] = useState<"question" | "leaderboard">("question");
   const autoAdvanceRef = useRef(false);
-
+  const autoAdvanceScheduledRef = useRef(false);
   const prevIndexRef = useRef<number | null>(null);
   const lastUpdatedAtRef = useRef(0);
 
@@ -43,6 +43,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         const q = await res.json();
         setCurrentQuestion(q);
         setIsRevealed(false);
+        autoAdvanceScheduledRef.current = false;
         const t = state.settings?.timer || 30;
         setTotalTime(t);
         setTimeLeft(t);
@@ -57,57 +58,83 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
     if (status === "unauthenticated") router.push("/auth/signin");
   }, [status, router]);
 
+  // Poll room state every 2s
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
-
     const poll = async () => {
       try {
         const since = lastUpdatedAtRef.current;
         const url = since
           ? `/api/room/state?code=${roomCode}&since=${since}`
           : `/api/room/state?code=${roomCode}`;
-
         const res = await fetch(url);
         if (res.status === 304) return;
         if (!res.ok) return;
-
         const state = await res.json();
         if (state.updatedAt) lastUpdatedAtRef.current = state.updatedAt;
-
         setRoomState(state);
-
         if (state.currentQuestionIndex !== prevIndexRef.current) {
           await fetchQuestion(state);
         }
-
         if (state.status === "ended") {
           clearInterval(interval);
           router.push(`/results/${roomCode}`);
         }
       } catch {}
     };
-
     poll();
     interval = setInterval(poll, 2000);
     return () => clearInterval(interval);
   }, [roomCode, router, fetchQuestion]);
 
-  // Timer countdown + auto-advance
+  // Pusher: real-time per-player score updates without waiting for poll
+  useEffect(() => {
+    const pusher = getPusherClient();
+    const channel = pusher.subscribe(`room-${roomCode}`);
+
+    channel.bind("answer_submitted", (data: any) => {
+      setRoomState((prev: any) => {
+        if (!prev?.players) return prev;
+        const players = prev.players.map((p: any) => {
+          if (p.id !== data.playerId && p.name !== data.playerId) return p;
+          const newAnswered = (p.totalAnswered || 0) + 1;
+          const newCorrect = (p.totalCorrect || 0) + (data.isCorrect ? 1 : 0);
+          return {
+            ...p,
+            score: data.totalScore,
+            totalAnswered: newAnswered,
+            totalCorrect: newCorrect,
+            accuracy: Math.round((newCorrect / newAnswered) * 100),
+          };
+        });
+        return { ...prev, players };
+      });
+    });
+
+    return () => {
+      channel.unbind_all();
+      pusher.unsubscribe(`room-${roomCode}`);
+    };
+  }, [roomCode]);
+
+  // Timer countdown (separate from auto-advance to avoid cleanup race)
   useEffect(() => {
     if (isRevealed || timeLeft <= 0) {
-      if (timeLeft <= 0 && !isRevealed) {
-        setIsRevealed(true);
-        if (autoAdvanceRef.current) {
-          const t = setTimeout(() => handleNextQuestion(), 3000);
-          return () => clearTimeout(t);
-        }
-      }
+      if (timeLeft <= 0 && !isRevealed) setIsRevealed(true);
       return;
     }
     const t = setTimeout(() => setTimeLeft((p) => p - 1), 1000);
     return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft, isRevealed]);
+
+  // Auto-advance: fires once when isRevealed flips to true
+  useEffect(() => {
+    if (!isRevealed || !autoAdvanceRef.current || autoAdvanceScheduledRef.current) return;
+    autoAdvanceScheduledRef.current = true;
+    const t = setTimeout(() => handleNextQuestion(), 3000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRevealed]);
 
   const handleNextQuestion = async () => {
     try {
@@ -123,14 +150,18 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   const questionId = currentQuestion?.id;
   const answerStats = roomState?.answerStats?.[questionId] || { total: 0, correct: 0, byAnswer: {} };
   const totalAnswered = answerStats.total || 0;
-  const classAccuracyPct = totalAnswered > 0
-    ? Math.round(((answerStats.correct || 0) / totalAnswered) * 100)
-    : null;
-  const leaderboard = [...(roomState?.players || [])].sort((a, b) => (b.score || 0) - (a.score || 0));
+  const classAccuracyPct =
+    totalAnswered > 0 ? Math.round(((answerStats.correct || 0) / totalAnswered) * 100) : null;
+
+  const leaderboard = [...(roomState?.players || [])].sort(
+    (a, b) => (b.score || 0) - (a.score || 0)
+  );
   const totalPlayers = leaderboard.length;
+  const qIndex = roomState?.currentQuestionIndex ?? 0;
 
   const timerPct = totalTime > 0 ? (timeLeft / totalTime) * 100 : 0;
-  const timerColor = timerPct > 60 ? "bg-green-400" : timerPct > 30 ? "bg-amber-400" : "bg-red-500";
+  const timerColor =
+    timerPct > 60 ? "bg-green-400" : timerPct > 30 ? "bg-amber-400" : "bg-red-500";
 
   if (status === "loading" || !currentQuestion) {
     return (
@@ -143,40 +174,39 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0f0f1a] text-white overflow-hidden">
-      {/* ── Header ──────────────────────────────────────────── */}
-      <header className="flex items-center gap-4 px-4 py-3 bg-[#16162a] border-b border-white/10 shadow-lg">
-        {/* Room + count */}
+      {/* ── Header ───────────────────────────────────────────── */}
+      <header className="flex items-center gap-3 px-4 py-3 bg-[#16162a] border-b border-white/10 shadow-lg">
         <div className="flex items-center gap-3 mr-auto">
-          <div className="bg-blue-600 px-3 py-1.5 rounded-lg font-black tracking-widest text-sm">{roomCode}</div>
+          <div className="bg-blue-600 px-3 py-1.5 rounded-lg font-black tracking-widest text-sm">
+            {roomCode}
+          </div>
           <div className="text-sm text-white/50 flex items-center gap-1.5">
             <Users size={14} className="text-blue-400" />
             <span className="font-bold text-white">{totalAnswered}</span>
             <span>/ {totalPlayers}</span>
           </div>
-          {/* Class accuracy */}
-          {isRevealed && classAccuracyPct !== null && (
-            <div className={`px-3 py-1 rounded-full text-xs font-black border ${
-              classAccuracyPct >= 70 ? "bg-green-500/15 border-green-500/30 text-green-400" :
-              classAccuracyPct >= 40 ? "bg-amber-500/15 border-amber-500/30 text-amber-400" :
-              "bg-red-500/15 border-red-500/30 text-red-400"
-            }`}>
-              {classAccuracyPct}% Class Accuracy
-            </div>
-          )}
           {/* Timer circle */}
-          <div className={`w-10 h-10 rounded-full border-[3px] flex items-center justify-center font-black text-sm ${
-            isRevealed ? "border-white/20 text-white/40" : timerPct > 30 ? "border-blue-500 text-white" : "border-red-500 text-red-400 animate-pulse"
-          }`}>
+          <div
+            className={`w-10 h-10 rounded-full border-[3px] flex items-center justify-center font-black text-sm ${
+              isRevealed
+                ? "border-white/20 text-white/40"
+                : timerPct > 30
+                ? "border-blue-500 text-white"
+                : "border-red-500 text-red-400 animate-pulse"
+            }`}
+          >
             {isRevealed ? "✓" : timeLeft}
           </div>
         </div>
 
-        {/* ── View toggle — PERSISTENT ────────────────────────── */}
+        {/* View toggle */}
         <div className="flex items-center bg-white/5 rounded-xl p-1 border border-white/10">
           <button
             onClick={() => setViewMode("question")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              viewMode === "question" ? "bg-blue-600 text-white shadow" : "text-white/40 hover:text-white"
+              viewMode === "question"
+                ? "bg-blue-600 text-white shadow"
+                : "text-white/40 hover:text-white"
             }`}
           >
             <LayoutList size={13} /> Per Question
@@ -184,7 +214,9 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
           <button
             onClick={() => setViewMode("leaderboard")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              viewMode === "leaderboard" ? "bg-blue-600 text-white shadow" : "text-white/40 hover:text-white"
+              viewMode === "leaderboard"
+                ? "bg-blue-600 text-white shadow"
+                : "text-white/40 hover:text-white"
             }`}
           >
             <Trophy size={13} /> Leaderboard
@@ -194,19 +226,25 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         {/* Action buttons */}
         {!isRevealed ? (
           <Button
-            onClick={() => { setIsRevealed(true); setTimeLeft(0); }}
+            onClick={() => {
+              setIsRevealed(true);
+              setTimeLeft(0);
+            }}
             className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm"
           >
             <Eye size={15} className="mr-1" /> Reveal
           </Button>
         ) : (
-          <Button onClick={handleNextQuestion} className="bg-blue-600 hover:bg-blue-500 font-bold text-sm">
+          <Button
+            onClick={handleNextQuestion}
+            className="bg-blue-600 hover:bg-blue-500 font-bold text-sm"
+          >
             Next <SkipForward size={15} className="ml-1" />
           </Button>
         )}
       </header>
 
-      {/* ── Timer bar ───────────────────────────────────────── */}
+      {/* ── Timer bar ─────────────────────────────────────────── */}
       <div className="h-1.5 w-full bg-white/5">
         <div
           className={`h-full ${timerColor} transition-all ease-linear duration-1000`}
@@ -214,29 +252,30 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         />
       </div>
 
-      {/* ── Main content ────────────────────────────────────── */}
+      {/* ── Main content ──────────────────────────────────────── */}
       <main className="flex-1 flex overflow-hidden">
 
-        {/* === Per-Question View (Blooket-style) === */}
+        {/* === Per-Question View === */}
         {viewMode === "question" && (
           <div className="flex-1 flex flex-col p-5 gap-5 overflow-y-auto">
-            {/* Question */}
             <div className="bg-[#16162a] border border-white/10 rounded-2xl p-6 text-center shadow-xl">
               <div className="text-xs font-black text-white/30 uppercase tracking-widest mb-3">
-                Q{(roomState?.currentQuestionIndex ?? 0) + 1} · {currentQuestion.type}
+                Q{qIndex + 1} · {currentQuestion.type}
               </div>
-              <h1 className="text-2xl md:text-3xl font-black leading-tight">{currentQuestion.text}</h1>
+              <h1 className="text-2xl md:text-3xl font-black leading-tight">
+                {currentQuestion.text}
+              </h1>
             </div>
 
-            {/* Answer tiles */}
             {(currentQuestion.type === "MCQ" || currentQuestion.type === "TF") && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
                 {(currentQuestion.options || []).map((opt: string, i: number) => {
                   const col = COLORS[i % COLORS.length];
                   const count = Number(answerStats.byAnswer?.[String(i)] || 0);
-                  const pct = totalAnswered > 0 ? Math.round((count / totalAnswered) * 100) : 0;
-                  const isCorrect = String(currentQuestion.correctAnswer) === String(i);
-
+                  const pct =
+                    totalAnswered > 0 ? Math.round((count / totalAnswered) * 100) : 0;
+                  const isCorrect =
+                    String(currentQuestion.correctAnswer) === String(i);
                   return (
                     <div
                       key={i}
@@ -248,16 +287,19 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                           : "border-white/20"
                       }`}
                     >
-                      {/* Color header */}
                       <div className={`${col.bg} px-4 py-3 flex items-center gap-3`}>
-                        <span className="text-white font-black text-lg w-7 text-center">{col.shape}</span>
-                        <span className="font-bold text-white text-base flex-1 leading-snug">{opt}</span>
+                        <span className="text-white font-black text-lg w-7 text-center">
+                          {col.shape}
+                        </span>
+                        <span className="font-bold text-white text-base flex-1 leading-snug">
+                          {opt}
+                        </span>
                         {isRevealed && isCorrect && (
-                          <span className="bg-white/25 rounded-full w-7 h-7 flex items-center justify-center text-white font-black">✓</span>
+                          <span className="bg-white/25 rounded-full w-7 h-7 flex items-center justify-center text-white font-black">
+                            ✓
+                          </span>
                         )}
                       </div>
-
-                      {/* Distribution bar (always visible, fills after reveal) */}
                       <div className="bg-black/40 px-4 py-3">
                         <div className="flex justify-between text-xs font-bold mb-1.5 text-white/60">
                           <span>{count} players</span>
@@ -276,21 +318,36 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
               </div>
             )}
 
-            {/* FIB / OPEN type — show accepted answers on reveal */}
-            {(currentQuestion.type === "FIB" || currentQuestion.type === "OPEN") && isRevealed && (
-              <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-5">
-                <div className="text-xs font-black text-green-400 uppercase tracking-widest mb-2">Accepted Answers</div>
-                <div className="font-bold text-white text-lg">{currentQuestion.correctAnswer || "Open ended — no fixed answer"}</div>
-              </div>
-            )}
+            {(currentQuestion.type === "FIB" || currentQuestion.type === "OPEN") &&
+              isRevealed && (
+                <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-5">
+                  <div className="text-xs font-black text-green-400 uppercase tracking-widest mb-2">
+                    Accepted Answers
+                  </div>
+                  <div className="font-bold text-white text-lg">
+                    {currentQuestion.correctAnswer || "Open ended — no fixed answer"}
+                  </div>
+                </div>
+              )}
 
-            {/* Summary row */}
             {isRevealed && (
-              <div className="flex gap-4 justify-center py-2">
+              <div className="flex gap-6 justify-center py-2">
                 {[
-                  { label: "Correct", val: answerStats.correct || 0, color: "text-green-400" },
-                  { label: "Wrong",   val: totalAnswered - (answerStats.correct || 0), color: "text-red-400" },
-                  { label: "No answer", val: totalPlayers - totalAnswered, color: "text-white/40" },
+                  {
+                    label: "Correct",
+                    val: answerStats.correct || 0,
+                    color: "text-green-400",
+                  },
+                  {
+                    label: "Wrong",
+                    val: totalAnswered - (answerStats.correct || 0),
+                    color: "text-red-400",
+                  },
+                  {
+                    label: "No answer",
+                    val: totalPlayers - totalAnswered,
+                    color: "text-white/40",
+                  },
                 ].map((s) => (
                   <div key={s.label} className="text-center">
                     <div className={`text-3xl font-black ${s.color}`}>{s.val}</div>
@@ -302,63 +359,152 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
           </div>
         )}
 
-        {/* === Cumulative Leaderboard View (Wayground-style) === */}
+        {/* === Leaderboard View (Quizizz/Wayground style) === */}
         {viewMode === "leaderboard" && (
-          <div className="flex-1 flex flex-col p-5 overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden">
+
+            {/* Class accuracy bar + circle */}
+            <div className="flex items-center px-5 pt-4 pb-2 gap-3 flex-shrink-0">
+              {/* Green bar (correct %) */}
+              <div className="flex-1 h-5 bg-green-900/30 rounded-l-full overflow-hidden">
+                <div
+                  className="h-full bg-green-500 rounded-l-full transition-all duration-700"
+                  style={{ width: `${classAccuracyPct ?? 0}%` }}
+                />
+              </div>
+
+              {/* Circle badge */}
+              <div className="w-20 h-20 rounded-full border-4 border-white/20 bg-[#16162a] flex flex-col items-center justify-center shrink-0 shadow-xl">
+                <span className="text-xl font-black text-white leading-none">
+                  {classAccuracyPct !== null ? `${classAccuracyPct}%` : "—"}
+                </span>
+                <span className="text-[9px] font-black text-white/40 uppercase tracking-wide mt-0.5">
+                  Class Acc
+                </span>
+              </div>
+
+              {/* Red bar (wrong %) */}
+              <div className="flex-1 h-5 bg-red-900/30 rounded-r-full overflow-hidden">
+                <div
+                  className="h-full bg-red-500 rounded-r-full transition-all duration-700"
+                  style={{
+                    width: `${classAccuracyPct !== null ? 100 - classAccuracyPct : 0}%`,
+                  }}
+                />
+              </div>
+            </div>
+
             {/* Mini question pill */}
-            <div className="mb-4 px-4 py-2 bg-[#16162a] border border-white/10 rounded-xl text-sm text-white/50 line-clamp-1 flex-shrink-0">
-              <span className="text-white/30 mr-2">Q{(roomState?.currentQuestionIndex ?? 0) + 1}:</span>
+            <div className="mx-5 mb-2 px-4 py-2 bg-[#16162a] border border-white/10 rounded-xl text-sm text-white/50 line-clamp-1 flex-shrink-0">
+              <span className="text-white/30 mr-2">Q{qIndex + 1}:</span>
               {currentQuestion.text}
             </div>
 
-            <h2 className="text-xs font-black text-white/30 uppercase tracking-widest mb-3 flex items-center gap-1.5 flex-shrink-0">
-              <Trophy size={12} className="text-yellow-400" /> Live Rankings
-            </h2>
+            {/* Legend */}
+            <div className="flex items-center justify-between px-5 mb-2 flex-shrink-0">
+              <h2 className="text-xs font-black text-white/30 uppercase tracking-widest flex items-center gap-1.5">
+                <Trophy size={12} className="text-yellow-400" /> Live Rankings ·{" "}
+                {totalPlayers} players
+              </h2>
+              <div className="flex gap-3 text-[10px] font-black text-white/20 uppercase">
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 bg-green-500 rounded-full" /> Correct
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 bg-red-500 rounded-full" /> Wrong
+                </span>
+              </div>
+            </div>
 
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+            {/* Player rows */}
+            <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-2">
               {leaderboard.map((p: any, i: number) => {
                 const av = getAvatar(p.avatarId);
-                const accPct = p.totalAnswered > 0 ? Math.round(((p.totalCorrect || 0) / p.totalAnswered) * 100) : 0;
-                const rankStyle =
-                  i === 0 ? "bg-yellow-500/20 border-yellow-500/30" :
-                  i === 1 ? "bg-slate-400/10 border-slate-400/20" :
-                  i === 2 ? "bg-amber-700/10 border-amber-600/20" :
-                  "bg-white/[0.03] border-white/5";
-                const rankNum =
-                  i === 0 ? "bg-yellow-500 text-yellow-950" :
-                  i === 1 ? "bg-slate-400 text-white" :
-                  i === 2 ? "bg-amber-700 text-white" :
-                  "bg-white/10 text-white/50";
+                const totalAns = p.totalAnswered || 0;
+                const correct = p.totalCorrect || 0;
+                const wrong = totalAns - correct;
+                const questionsAsked = qIndex + 1;
+                const correctPct =
+                  questionsAsked > 0 ? (correct / questionsAsked) * 100 : 0;
+                const wrongPct =
+                  questionsAsked > 0 ? (wrong / questionsAsked) * 100 : 0;
+
+                const rankBg =
+                  i === 0
+                    ? "bg-yellow-500/15 border-yellow-500/40"
+                    : i === 1
+                    ? "bg-slate-400/10 border-slate-400/20"
+                    : i === 2
+                    ? "bg-amber-700/10 border-amber-600/20"
+                    : "bg-white/[0.03] border-white/5";
+                const rankBadge =
+                  i === 0
+                    ? "bg-yellow-500 text-yellow-950"
+                    : i === 1
+                    ? "bg-slate-400 text-white"
+                    : i === 2
+                    ? "bg-amber-700 text-white"
+                    : "bg-white/10 text-white/50";
 
                 return (
-                  <div key={p.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all ${rankStyle}`}>
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-xs shrink-0 ${rankNum}`}>
+                  <div
+                    key={p.id || p.name}
+                    className={`flex items-center gap-3 px-3 py-3 rounded-2xl border transition-all ${rankBg}`}
+                  >
+                    {/* Rank */}
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs shrink-0 ${rankBadge}`}
+                    >
                       {i + 1}
                     </div>
-                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${av.bg} flex items-center justify-center text-xl shrink-0`}>
+
+                    {/* Avatar */}
+                    <div
+                      className={`w-10 h-10 rounded-xl bg-gradient-to-br ${av.bg} flex items-center justify-center text-xl shrink-0`}
+                    >
                       {av.emoji}
                     </div>
+
+                    {/* Name + bar */}
                     <div className="flex-1 min-w-0">
-                      <div className="font-bold text-sm text-white truncate">{p.name}</div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <div className="h-1 flex-1 bg-white/10 rounded-full overflow-hidden">
-                          <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${accPct}%` }} />
-                        </div>
-                        <span className="text-[10px] text-white/40 shrink-0">
-                          {p.totalCorrect || 0}/{p.totalAnswered || 0} correct
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="font-bold text-sm text-white truncate">
+                          {p.name}
                         </span>
+                        <div className="flex items-center gap-1 text-xs text-white/50 shrink-0 ml-2">
+                          <Flame size={12} className="text-orange-400" />
+                          <span className="font-bold text-white">{correct}</span>
+                          <span className="text-white/30">/{totalAns}</span>
+                        </div>
+                      </div>
+                      {/* Correct / Wrong / Unanswered bar */}
+                      <div className="h-2.5 flex rounded-full overflow-hidden bg-white/5">
+                        <div
+                          className="bg-green-500 transition-all duration-500"
+                          style={{ width: `${correctPct}%` }}
+                        />
+                        <div
+                          className="bg-red-500 transition-all duration-500"
+                          style={{ width: `${wrongPct}%` }}
+                        />
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <div className="font-black text-blue-400 text-sm">{(p.score || 0).toLocaleString()}</div>
-                      <div className="text-[10px] text-white/30">{accPct}% acc</div>
+
+                    {/* Score */}
+                    <div className="text-right shrink-0 ml-2">
+                      <div className="font-black text-xl text-blue-400 leading-none">
+                        {(p.score || 0).toLocaleString()}
+                      </div>
+                      <div className="text-[10px] text-white/30 mt-0.5">pts</div>
                     </div>
                   </div>
                 );
               })}
 
               {leaderboard.length === 0 && (
-                <div className="text-center py-12 text-white/30 text-sm">No players have answered yet</div>
+                <div className="text-center py-12 text-white/30 text-sm">
+                  No players have answered yet
+                </div>
               )}
             </div>
           </div>
