@@ -71,9 +71,20 @@ export function validateAnswer(question: any, selectedAnswer: any): boolean {
 
   const type = question.type;
 
-  if (type === "MCQ" || type === "TF") {
-    return question.correctAnswer === selectedAnswer;
-  } 
+  if (type === "MCQ") {
+    return String(question.correctAnswer) === String(selectedAnswer);
+  }
+
+  if (type === "TF") {
+    const ca = String(question.correctAnswer ?? "");
+    const sa = String(selectedAnswer ?? "");
+    // Stored as "True"/"False" text but player may send index "0"/"1"
+    if (sa === "0" || sa === "1") {
+      const options = question.options?.length ? question.options : ["True", "False"];
+      return ca === String(options[parseInt(sa)]);
+    }
+    return ca.toLowerCase() === sa.toLowerCase();
+  }
   
   if (type === "FIB") {
     const validAnswers = (question.correctAnswer as string)

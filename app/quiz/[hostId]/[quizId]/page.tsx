@@ -120,11 +120,15 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
               </div>
             </div>
 
-            {/* Questions Preview */}
+            {/* Questions Preview — answers hidden for integrity */}
             <div className="space-y-4">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-2 px-2">
                 Questions <span className="text-muted-foreground text-lg font-medium">({quiz.questions?.length || 0})</span>
               </h2>
+              <div className="text-xs text-muted-foreground px-2 flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full bg-amber-500" />
+                Correct answers are hidden — join a live session to play.
+              </div>
               {quiz.questions?.map((q: any, i: number) => (
                 <div key={i} className="bg-card border border-border rounded-2xl p-6 hover:border-blue-500/30 transition-colors shadow-lg">
                   <div className="flex justify-between items-start mb-4">
@@ -134,7 +138,7 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
                   <p className="text-lg text-foreground font-medium mb-4">{q.text}</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {q.options?.map((opt: string, oi: number) => (
-                      <div key={oi} className={`text-sm p-3 rounded-xl border ${q.correctAnswer === oi.toString() ? 'bg-green-500/10 border-green-500/30 text-green-500' : 'bg-background border-border text-muted-foreground'}`}>
+                      <div key={oi} className="text-sm p-3 rounded-xl border bg-background border-border text-muted-foreground">
                         {opt}
                       </div>
                     ))}

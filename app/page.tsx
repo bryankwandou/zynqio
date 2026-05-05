@@ -50,11 +50,13 @@ export default function Home() {
                     <label className="text-muted-foreground font-black text-center block uppercase tracking-[0.4em] text-[10px] mb-4 opacity-70">Enter Game Code</label>
                     <input
                       type="text"
-                      placeholder="000000"
+                      placeholder="· · · · · ·"
                       value={roomCode}
-                      onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                      onChange={(e) => setRoomCode(e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase())}
                       maxLength={6}
-                      className="w-full text-center text-6xl md:text-7xl font-black tracking-[0.25em] bg-transparent text-foreground border-none focus:ring-0 outline-none transition-all placeholder:text-muted-foreground/10 selection:bg-blue-500/20"
+                      inputMode="text"
+                      autoCapitalize="characters"
+                      className="w-full text-center text-4xl md:text-6xl font-black tracking-[0.3em] bg-transparent text-foreground border-none focus:ring-0 outline-none transition-all placeholder:text-muted-foreground/20 placeholder:text-3xl selection:bg-blue-500/20"
                       autoFocus
                     />
                   </div>

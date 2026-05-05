@@ -51,6 +51,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
   const [showAnswerAfter, setShowAnswerAfter] = useState(true);
   const [oneAttemptOnly, setOneAttemptOnly] = useState(true);
   const [memeMode, setMemeMode] = useState(false);
+  const [autoAdvance, setAutoAdvance] = useState(false);
 
   // Team auto-assign (team mode only)
   const [teams, setTeams] = useState<Record<string, any[]>>({});
@@ -112,6 +113,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
             shuffleQuestions,
             memeMode,
             oneAttemptOnly,
+            autoAdvance,
             maxPlayers: 300,
           },
         }),
@@ -155,9 +157,8 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
             <span className="font-bold text-white">{players.length}</span> players
           </div>
           <Button
-            disabled={players.length === 0}
             onClick={() => setShowLaunchModal(true)}
-            className="bg-green-500 hover:bg-green-400 text-black font-black px-6 rounded-xl shadow-lg shadow-green-900/30 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="bg-green-500 hover:bg-green-400 text-black font-black px-6 rounded-xl shadow-lg shadow-green-900/30"
           >
             <Rocket size={16} className="mr-2" /> Start Game
           </Button>
@@ -400,7 +401,8 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                     { icon: <Eye size={15} />, label: "Show answer after reveal", sub: "Players see correct answer when timer ends", val: showAnswerAfter, set: () => setShowAnswerAfter((v) => !v) },
                     { icon: <Lock size={15} />, label: "One attempt per question", sub: "Prevent changing answers", val: oneAttemptOnly, set: () => setOneAttemptOnly((v) => !v) },
                     { icon: <Shuffle size={15} />, label: "Shuffle questions", sub: "Randomize question order", val: shuffleQuestions, set: () => setShuffleQuestions((v) => !v) },
-                    { icon: <span className="text-base">🎭</span>, label: "Meme mode", sub: "Show fun GIFs between questions", val: memeMode, set: () => setMemeMode((v) => !v) },
+                    { icon: <span className="text-base">⏭️</span>, label: "Auto-advance questions", sub: "Next question starts automatically after timer", val: autoAdvance, set: () => setAutoAdvance((v) => !v) },
+                    { icon: <span className="text-base">🎭</span>, label: "Meme mode", sub: "Different GIFs for correct vs wrong answers", val: memeMode, set: () => setMemeMode((v) => !v) },
                   ].map((opt, i) => (
                     <div key={i} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
                       <div className="flex items-center gap-3">
