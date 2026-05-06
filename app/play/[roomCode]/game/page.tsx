@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getAvatar } from "@/lib/avatars";
-import { useBackgroundMusic } from "@/lib/use-background-music";
 
 const CORRECT_MEMES = [
   { gif: "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif", caption: "MIND = BLOWN 🤯" },
@@ -65,10 +64,6 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
   const [waygroundStats, setWaygroundStats] = useState<{
     score: number; correct: number; total: number; rank?: string;
   } | null>(null);
-
-  // --- Music ---
-  const [musicMuted, setMusicMuted] = useState(false);
-  useBackgroundMusic(musicMuted ? null : "game", 0.26);
 
   const nicknameRef = useRef("");
   const playerIdRef = useRef("");
@@ -306,6 +301,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
         body: JSON.stringify({
           playerId: playerIdRef.current,
           questionId: currentQuestion.id,
+          questionIndex: currentQuestion.index,
           selectedAnswer: isTimeout ? null : answer,
           clientTimestamp: Date.now(),
           roomCode,
@@ -566,13 +562,6 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
           <div className="bg-blue-500/15 px-3 py-1 rounded-full font-black text-blue-400 text-sm border border-blue-500/20">
             {score.toLocaleString()} pts
           </div>
-          <button
-            onClick={() => setMusicMuted((m) => !m)}
-            className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-xs hover:bg-white/10 transition-all"
-            title={musicMuted ? "Unmute" : "Mute"}
-          >
-            {musicMuted ? "🔇" : "🎵"}
-          </button>
         </div>
       </div>
 
