@@ -127,13 +127,12 @@ export default function Dashboard() {
               <div className="mt-auto grid grid-cols-2 gap-3">
                 <Button
                   className="w-full bg-blue-600 text-white hover:bg-blue-700 font-black rounded-xl py-6 shadow-md"
-                  disabled={quiz.status === 'private'}
                   onClick={() => handleHost(quiz.id)}
                 >
                   <Play size={18} className="mr-2 fill-white" /> HOST
                 </Button>
                 <Link href={`/create?quizId=${encodeURIComponent(quiz.id)}`} className="w-full">
-                  <Button variant="outline" className="w-full border-border text-muted-foreground hover:bg-accent font-black rounded-xl py-6">
+                  <Button variant="outline" className="w-full font-black rounded-xl py-6 border-border dark:border-white/20 dark:text-white/80 dark:bg-white/5 hover:bg-accent dark:hover:bg-white/10">
                     <Edit size={18} className="mr-2" /> EDIT
                   </Button>
                 </Link>

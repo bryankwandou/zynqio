@@ -41,7 +41,7 @@ export function Navbar() {
               </div>
               <Button
                 variant="outline"
-                className="border-border text-muted-foreground hover:bg-accent font-black text-xs uppercase tracking-widest"
+                className="font-black text-xs uppercase tracking-widest border-border dark:border-white/25 dark:text-white/80"
                 onClick={() => signOut({ callbackUrl: "/" })}
               >
                 Sign Out
@@ -50,7 +50,7 @@ export function Navbar() {
           ) : (
             <div className="flex items-center gap-3">
               <Link href="/auth/signin">
-                <Button variant="ghost" className="text-muted-foreground hover:text-foreground font-black text-xs uppercase tracking-widest">
+                <Button variant="outline" className="font-black text-xs uppercase tracking-widest border-border dark:border-white/25 dark:text-white/80">
                   Sign In
                 </Button>
               </Link>

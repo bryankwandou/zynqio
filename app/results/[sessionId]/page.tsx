@@ -238,14 +238,14 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
 
           {/* Buttons */}
           <div className="flex justify-center mt-8 gap-3 flex-wrap">
-            <Button onClick={handleShare} variant="outline" className="border-border gap-2">
+            <Button onClick={handleShare} variant="outline" className="gap-2 border-border dark:border-white/20 dark:text-white/80 dark:bg-white/5 dark:hover:bg-white/10">
               <Share2 size={15} /> Share Results
             </Button>
             {isHost && (
               <Button
                 onClick={() => navigator.clipboard.writeText(`${window.location.origin}/join/${results.roomCode}`)}
                 variant="outline"
-                className="border-border gap-2"
+                className="gap-2 border-border dark:border-white/20 dark:text-white/80 dark:bg-white/5 dark:hover:bg-white/10"
               >
                 <Copy size={15} /> Copy Join Link
               </Button>
@@ -282,7 +282,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
                 onChange={(e) => setReviewText(e.target.value)}
               />
               <div className="flex gap-3">
-                <Button onClick={() => setShowRating(false)} variant="ghost" className="flex-1 text-muted-foreground">Skip</Button>
+                <Button onClick={() => setShowRating(false)} variant="outline" className="flex-1 border-border dark:border-white/20 dark:text-white/70">Skip</Button>
                 <Button onClick={submitRating} disabled={rating === 0} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white">Submit</Button>
               </div>
             </div>
@@ -341,7 +341,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
             <div className="flex justify-between items-center mb-3">
               <h2 className="font-bold text-lg">Individual Rankings</h2>
               {isHost && (
-                <Button onClick={exportCSV} variant="outline" size="sm" className="border-border text-muted-foreground gap-2">
+                <Button onClick={exportCSV} variant="outline" size="sm" className="gap-2 border-border dark:border-white/20 dark:text-white/80 dark:bg-white/5">
                   <Download size={14} /> Export CSV
                 </Button>
               )}
