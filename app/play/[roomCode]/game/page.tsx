@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getAvatar } from "@/lib/avatars";
+import { useBackgroundMusic } from "@/lib/use-background-music";
 
 const CORRECT_MEMES = [
   { gif: "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif", caption: "MIND = BLOWN 🤯" },
@@ -64,6 +65,10 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
   const [waygroundStats, setWaygroundStats] = useState<{
     score: number; correct: number; total: number; rank?: string;
   } | null>(null);
+
+  // --- Music ---
+  const [musicMuted, setMusicMuted] = useState(false);
+  useBackgroundMusic(musicMuted ? null : "game", 0.26);
 
   const nicknameRef = useRef("");
   const playerIdRef = useRef("");
@@ -342,9 +347,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
         setScore((p) => p + finalScore);
       } else {
         setCorrectStreak(0);
-        if (gameMode !== 'wayground_classic') {
-          setScore((p) => p + finalScore);
-        }
+        setScore((p) => p + finalScore); // finalScore is 0 for wrong answers — keeps display in sync
       }
 
       if (gameMode === "survival") {
@@ -374,18 +377,15 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       const nextIndex = playerQuestionIndexRef.current + 1;
       const total = totalQuestionsRef.current;
 
-      // 0.4s micro-feedback then advance
       setTimeout(() => {
         setResult(null);
         setCurrentMeme(null);
 
         if (total > 0 && nextIndex >= total) {
-          // Player finished all questions
           setWaygroundDone(true);
-          setWaygroundStats({
-            score: score + (isCorrect ? pts : 0),
-            correct: 0,
-            total,
+          setScore((prev) => {
+            setWaygroundStats({ score: prev, correct: 0, total });
+            return prev;
           });
           setTimeout(() => router.push(`/results/${roomCode}`), 1500);
         } else {
@@ -558,7 +558,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
           )}
         </div>
 
-        {/* Right: Score */}
+        {/* Right: Score + mute */}
         <div className="flex items-center gap-2">
           {gameMode === "gold_quest" && (
             <div className="text-yellow-400 text-sm font-bold">🪙 {gold}</div>
@@ -566,6 +566,13 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
           <div className="bg-blue-500/15 px-3 py-1 rounded-full font-black text-blue-400 text-sm border border-blue-500/20">
             {score.toLocaleString()} pts
           </div>
+          <button
+            onClick={() => setMusicMuted((m) => !m)}
+            className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-xs hover:bg-white/10 transition-all"
+            title={musicMuted ? "Unmute" : "Mute"}
+          >
+            {musicMuted ? "🔇" : "🎵"}
+          </button>
         </div>
       </div>
 

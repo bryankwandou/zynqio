@@ -3,6 +3,7 @@
 import { useEffect, useState, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getAvatar } from "@/lib/avatars";
+import { useBackgroundMusic } from "@/lib/use-background-music";
 
 type Player = {
   id: string;
@@ -25,6 +26,9 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number>(0);
   const [connectionError, setConnectionError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [muted, setMuted] = useState(false);
+
+  const { setVolume } = useBackgroundMusic(muted ? null : "lobby", 0.28);
 
   useEffect(() => {
     const savedName = localStorage.getItem("zynqio_nickname");
@@ -139,6 +143,15 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
           Connection lost — retrying...
         </div>
       )}
+
+      {/* Mute button */}
+      <button
+        onClick={() => setMuted((m) => !m)}
+        className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full bg-black/30 border border-white/10 flex items-center justify-center text-lg hover:bg-black/50 transition-all backdrop-blur-sm"
+        title={muted ? "Unmute music" : "Mute music"}
+      >
+        {muted ? "🔇" : "🎵"}
+      </button>
 
       <div className="relative z-10 flex flex-col items-center flex-1 p-4 pt-8">
         {/* Room code pill */}

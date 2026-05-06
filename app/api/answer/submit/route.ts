@@ -152,6 +152,7 @@ export async function POST(req: Request) {
         room.answerStats[questionId].byAnswer[ansKey] =
           (room.answerStats[questionId].byAnswer[ansKey] || 0) + 1;
 
+        room.updatedAt = Date.now();
         try {
           await setRoomState(roomCode, room);
         } catch (error) {
