@@ -114,7 +114,7 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
                   {status !== "authenticated" ? "SIGN IN TO HOST" : "HOST NOW"}
                   {!hosting && <Play size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />}
                 </Button>
-                <Button variant="outline" className="px-6 border-border text-muted-foreground hover:bg-accent rounded-2xl">
+                <Button variant="outline" className="px-6 rounded-2xl border-border dark:border-white/20 dark:text-white/80 dark:bg-white/5 hover:bg-accent dark:hover:bg-white/10">
                   <Share2 size={20} />
                 </Button>
               </div>
@@ -161,7 +161,7 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
                   <div className="text-xs text-muted-foreground">Creator</div>
                 </div>
               </div>
-              <Button variant="outline" className="w-full border-border text-muted-foreground hover:text-foreground rounded-xl py-5 group">
+              <Button variant="outline" className="w-full rounded-xl py-5 group border-border dark:border-white/20 dark:text-white/80 dark:bg-white/5 hover:bg-accent dark:hover:bg-white/10">
                 <Copy size={18} className="mr-2" /> Copy to My Library
               </Button>
             </div>

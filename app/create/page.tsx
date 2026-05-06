@@ -496,9 +496,9 @@ export default function CreateQuiz() {
           <div className="flex items-center gap-4">
             <ThemeToggle />
             <div className="h-6 w-[1px] bg-border mx-2" />
-            <Button 
-              variant="outline" 
-              className="border-border text-muted-foreground hover:bg-accent"
+            <Button
+              variant="outline"
+              className="border-border hover:bg-accent dark:border-white/20 dark:text-white/80 dark:bg-white/5"
               onClick={downloadTemplate}
             >
               Download Template
@@ -536,14 +536,14 @@ export default function CreateQuiz() {
               accept=".csv,.xlsx,.xls"
               onChange={handleFileUpload}
             />
-            <Button 
-              variant="outline" 
-              className="border-border text-muted-foreground hover:bg-accent"
+            <Button
+              variant="outline"
+              className="border-border hover:bg-accent dark:border-white/20 dark:text-white/80 dark:bg-white/5"
               onClick={() => document.getElementById('csv-import')?.click()}
             >
               <FileUp size={18} className="mr-2" /> Import CSV/Excel
             </Button>
-            <Button variant="outline" className="border-border text-muted-foreground hover:bg-accent" onClick={() => setShowSettings(true)}>
+            <Button variant="outline" className="border-border hover:bg-accent dark:border-white/20 dark:text-white/80 dark:bg-white/5" onClick={() => setShowSettings(true)}>
               <Settings size={18} className="mr-2" /> Settings
             </Button>
             <Button 
@@ -839,7 +839,7 @@ export default function CreateQuiz() {
             </div>
 
             <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
-              <Button variant="ghost" className="text-muted-foreground" onClick={() => setShowSettings(false)}>Cancel</Button>
+              <Button variant="outline" className="border-border dark:border-white/20 dark:text-white/70" onClick={() => setShowSettings(false)}>Cancel</Button>
               <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6" onClick={() => setShowSettings(false)}>
                 Apply Settings
               </Button>
@@ -904,7 +904,7 @@ export default function CreateQuiz() {
                   </div>
                 </div>
                 <div className="flex gap-4">
-                  <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => setIsImporting(false)}>Cancel</Button>
+                  <Button variant="outline" className="border-border dark:border-white/20 dark:text-white/70" onClick={() => setIsImporting(false)}>Cancel</Button>
                   <Button className="bg-blue-600 hover:bg-blue-700 px-8 py-6 rounded-xl font-bold text-white shadow-lg" onClick={confirmImport}>
                     <CheckCircle2 size={18} className="mr-2" /> Add All Questions
                   </Button>
