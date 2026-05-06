@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef, use, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { getAvatar } from "@/lib/avatars";
-import { Users, SkipForward, Trophy, LayoutList, Eye, Flame, Waves, Square } from "lucide-react";
+import { Users, SkipForward, Trophy, Eye, Flame, Square, Waves } from "lucide-react";
 import { getPusherClient } from "@/lib/pusher-client";
 
 const COLORS = [
@@ -26,22 +26,15 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   const [totalTime, setTotalTime] = useState(30);
   const [roomState, setRoomState] = useState<any>(null);
   const [totalQuestions, setTotalQuestions] = useState<number>(0);
-  const autoEndScheduledRef = useRef(false);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
 
-  const [viewMode, setViewMode] = useState<"question" | "leaderboard" | "wayground">("question");
+  const autoEndScheduledRef = useRef(false);
   const autoAdvanceRef = useRef(false);
   const autoAdvanceScheduledRef = useRef(false);
   const prevIndexRef = useRef<number | null>(null);
   const lastUpdatedAtRef = useRef(0);
 
-  const isWaygroundClassic = roomState?.gameMode === 'wayground_classic';
-
-  // Auto-switch to wayground view when mode is detected
-  useEffect(() => {
-    if (isWaygroundClassic && viewMode === "question") {
-      setViewMode("wayground");
-    }
-  }, [isWaygroundClassic, viewMode]);
+  const isWaygroundClassic = roomState?.gameMode === "wayground_classic";
 
   const fetchQuestion = useCallback(
     async (state: any) => {
@@ -71,7 +64,6 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
     if (status === "unauthenticated") router.push("/auth/signin");
   }, [status, router]);
 
-  // Poll room state every 2s
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     const poll = async () => {
@@ -86,6 +78,10 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         const state = await res.json();
         if (state.updatedAt) lastUpdatedAtRef.current = state.updatedAt;
         setRoomState(state);
+        // HIGH-007: read totalQuestions from room state (set by /api/room/start for all modes)
+        if (state.totalQuestions && state.totalQuestions > 0) {
+          setTotalQuestions(state.totalQuestions);
+        }
         if (state.currentQuestionIndex !== prevIndexRef.current) {
           await fetchQuestion(state);
         }
@@ -100,11 +96,10 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
     return () => clearInterval(interval);
   }, [roomCode, router, fetchQuestion]);
 
-  // Pusher: real-time per-player score updates without waiting for poll
+  // Pusher: real-time per-player score updates
   useEffect(() => {
     const pusher = getPusherClient();
     const channel = pusher.subscribe(`room-${roomCode}`);
-
     channel.bind("answer_submitted", (data: any) => {
       setRoomState((prev: any) => {
         if (!prev?.players) return prev;
@@ -123,14 +118,13 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         return { ...prev, players };
       });
     });
-
     return () => {
       channel.unbind_all();
       pusher.unsubscribe(`room-${roomCode}`);
     };
   }, [roomCode]);
 
-  // Timer countdown (separate from auto-advance to avoid cleanup race)
+  // Timer countdown
   useEffect(() => {
     if (isRevealed || timeLeft <= 0) {
       if (timeLeft <= 0 && !isRevealed) setIsRevealed(true);
@@ -140,7 +134,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
     return () => clearTimeout(t);
   }, [timeLeft, isRevealed]);
 
-  // Auto-advance: fires once when isRevealed flips to true
+  // Auto-advance after reveal
   useEffect(() => {
     if (!isRevealed || !autoAdvanceRef.current || autoAdvanceScheduledRef.current) return;
     autoAdvanceScheduledRef.current = true;
@@ -149,7 +143,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRevealed]);
 
-  // Auto-recap: when revealed + all players answered + this is the last question
+  // Auto-recap: last question + all players answered → end game after 4s
   useEffect(() => {
     if (!isRevealed || autoEndScheduledRef.current) return;
     if (totalQuestions === 0) return;
@@ -184,7 +178,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
     } catch {}
   };
 
-  // ── Derived data ─────────────────────────────────────────
+  // ── Derived data ─────────────────────────────────────────────────
   const questionId = currentQuestion?.id;
   const answerStats = roomState?.answerStats?.[questionId] || { total: 0, correct: 0, byAnswer: {} };
   const totalAnswered = answerStats.total || 0;
@@ -196,33 +190,84 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   );
   const totalPlayers = leaderboard.length;
   const qIndex = roomState?.currentQuestionIndex ?? 0;
-
   const timerPct = totalTime > 0 ? (timeLeft / totalTime) * 100 : 0;
   const timerColor =
     timerPct > 60 ? "bg-green-400" : timerPct > 30 ? "bg-amber-400" : "bg-red-500";
+
+  // For Wayground Classic header: count players who finished all questions
+  const playersFinished = isWaygroundClassic
+    ? leaderboard.filter((p: any) => (p.totalAnswered || 0) >= (totalQuestions || 1)).length
+    : totalAnswered;
 
   if (status === "loading" || !currentQuestion) {
     return (
       <div className="min-h-screen bg-[#0f0f1a] flex flex-col items-center justify-center gap-4">
         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-white/60 font-bold animate-pulse">Loading Question...</p>
+        <p className="text-white/60 font-bold animate-pulse">Loading game...</p>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0f0f1a] text-white overflow-hidden">
-      {/* ── Header ───────────────────────────────────────────── */}
-      <header className="flex items-center gap-3 px-4 py-3 bg-[#16162a] border-b border-white/10 shadow-lg">
+
+      {/* ── End Game Confirm Modal ───────────────────────────────── */}
+      {showEndConfirm && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-[#16162a] border border-red-500/30 rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl">
+            <div className="text-4xl mb-4 text-center">⚠️</div>
+            <h3 className="text-xl font-black text-white text-center mb-2">End Game Now?</h3>
+            <p className="text-white/50 text-sm text-center mb-6">
+              All players will be redirected to results immediately. This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setShowEndConfirm(false)}
+                variant="outline"
+                className="flex-1 border-white/20 text-white/60"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => { setShowEndConfirm(false); handleEndGame(); }}
+                className="flex-1 bg-red-600 hover:bg-red-500 font-bold"
+              >
+                Yes, End Game
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Header ───────────────────────────────────────────────── */}
+      <header className="flex items-center gap-3 px-4 py-3 bg-[#16162a] border-b border-white/10 shadow-lg shrink-0">
         <div className="flex items-center gap-3 mr-auto">
           <div className="bg-blue-600 px-3 py-1.5 rounded-lg font-black tracking-widest text-sm">
             {roomCode}
           </div>
-          <div className="text-sm text-white/50 flex items-center gap-1.5">
-            <Users size={14} className="text-blue-400" />
-            <span className="font-bold text-white">{totalAnswered}</span>
-            <span>/ {totalPlayers}</span>
-          </div>
+          {isWaygroundClassic ? (
+            <>
+              <div className="flex items-center gap-1.5 text-sm text-white/50">
+                <Waves size={13} className="text-blue-400" />
+                <span className="font-bold text-white">{playersFinished}</span>
+                <span>/ {totalPlayers} done</span>
+              </div>
+              <div className="text-[10px] px-2 py-0.5 bg-blue-600/20 rounded-full text-blue-400 font-black uppercase tracking-widest">
+                🌊 Wayground Classic
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-1.5 text-sm text-white/50">
+                <Users size={14} className="text-blue-400" />
+                <span className="font-bold text-white">{totalAnswered}</span>
+                <span>/ {totalPlayers} answered</span>
+              </div>
+              <div className="text-xs text-white/30 font-bold">
+                Q{qIndex + 1}{totalQuestions > 0 ? `/${totalQuestions}` : ""}
+              </div>
+            </>
+          )}
           {/* Timer circle */}
           <div
             className={`w-10 h-10 rounded-full border-[3px] flex items-center justify-center font-black text-sm ${
@@ -237,52 +282,11 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
           </div>
         </div>
 
-        {/* View toggle */}
-        <div className="flex items-center bg-white/5 rounded-xl p-1 border border-white/10">
-          {!isWaygroundClassic && (
-            <button
-              onClick={() => setViewMode("question")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                viewMode === "question"
-                  ? "bg-blue-600 text-white shadow"
-                  : "text-white/40 hover:text-white"
-              }`}
-            >
-              <LayoutList size={13} /> Per Question
-            </button>
-          )}
-          <button
-            onClick={() => setViewMode("leaderboard")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              viewMode === "leaderboard"
-                ? "bg-blue-600 text-white shadow"
-                : "text-white/40 hover:text-white"
-            }`}
-          >
-            <Trophy size={13} /> Leaderboard
-          </button>
-          {isWaygroundClassic && (
-            <button
-              onClick={() => setViewMode("wayground")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                viewMode === "wayground"
-                  ? "bg-blue-600 text-white shadow"
-                  : "text-white/40 hover:text-white"
-              }`}
-            >
-              <Waves size={13} /> Progress
-            </button>
-          )}
-        </div>
-
         {/* Action buttons */}
         <div className="flex items-center gap-2">
           {!isRevealed ? (
             <Button
-              onClick={() => {
-                setIsRevealed(true);
-                setTimeLeft(0);
-              }}
+              onClick={() => { setIsRevealed(true); setTimeLeft(0); }}
               className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm"
             >
               <Eye size={15} className="mr-1" /> Reveal
@@ -292,7 +296,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
               onClick={handleEndGame}
               className="bg-green-600 hover:bg-green-500 font-bold text-sm"
             >
-              <Square size={13} className="mr-1" /> End Game
+              <Trophy size={13} className="mr-1" /> View Results
             </Button>
           ) : (
             <Button
@@ -302,10 +306,9 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
               Next <SkipForward size={15} className="ml-1" />
             </Button>
           )}
+          {/* End Now button — always visible, requires confirm modal */}
           <Button
-            onClick={() => {
-              if (confirm("End game now and go to results?")) handleEndGame();
-            }}
+            onClick={() => setShowEndConfirm(true)}
             variant="outline"
             className="border-red-500/40 text-red-400 hover:bg-red-500/10 font-bold text-xs px-2"
             title="End game now"
@@ -315,82 +318,188 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         </div>
       </header>
 
-      {/* ── Timer bar ─────────────────────────────────────────── */}
-      <div className="h-1.5 w-full bg-white/5">
+      {/* ── Timer bar ─────────────────────────────────────────────── */}
+      <div className="h-1.5 w-full bg-white/5 shrink-0">
         <div
           className={`h-full ${timerColor} transition-all ease-linear duration-1000`}
           style={{ width: `${timerPct}%` }}
         />
       </div>
 
-      {/* ── Main content ──────────────────────────────────────── */}
+      {/* ── Split-Screen Main ─────────────────────────────────────── */}
       <main className="flex-1 flex overflow-hidden">
 
-        {/* === Per-Question View === */}
-        {viewMode === "question" && (
-          <div className="flex-1 flex flex-col p-5 gap-5 overflow-y-auto">
-            <div className="bg-[#16162a] border border-white/10 rounded-2xl p-6 text-center shadow-xl">
-              <div className="text-xs font-black text-white/30 uppercase tracking-widest mb-3">
-                Q{qIndex + 1} · {currentQuestion.type}
-              </div>
-              <h1 className="text-2xl md:text-3xl font-black leading-tight">
-                {currentQuestion.text}
-              </h1>
-            </div>
+        {/* ═══ LEFT PANEL: Live Leaderboard ═══════════════════════ */}
+        <div className="w-[280px] lg:w-[320px] flex flex-col border-r border-white/10 overflow-hidden shrink-0">
 
-            {(currentQuestion.type === "MCQ" || currentQuestion.type === "TF") && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
-                {(currentQuestion.options || []).map((opt: string, i: number) => {
-                  const col = COLORS[i % COLORS.length];
-                  const count = Number(answerStats.byAnswer?.[String(i)] || 0);
-                  const pct =
-                    totalAnswered > 0 ? Math.round((count / totalAnswered) * 100) : 0;
-                  const isCorrect =
-                    String(currentQuestion.correctAnswer) === String(i);
-                  return (
-                    <div
-                      key={i}
-                      className={`rounded-2xl overflow-hidden border-2 transition-all duration-500 ${
-                        isRevealed
-                          ? isCorrect
-                            ? "border-green-400 shadow-[0_0_24px_rgba(74,222,128,0.25)]"
-                            : "border-white/10 opacity-40"
-                          : "border-white/20"
-                      }`}
-                    >
-                      <div className={`${col.bg} px-4 py-3 flex items-center gap-3`}>
-                        <span className="text-white font-black text-lg w-7 text-center">
-                          {col.shape}
-                        </span>
-                        <span className="font-bold text-white text-base flex-1 leading-snug">
-                          {opt}
-                        </span>
-                        {isRevealed && isCorrect && (
-                          <span className="bg-white/25 rounded-full w-7 h-7 flex items-center justify-center text-white font-black">
-                            ✓
-                          </span>
-                        )}
-                      </div>
-                      <div className="bg-black/40 px-4 py-3">
-                        <div className="flex justify-between text-xs font-bold mb-1.5 text-white/60">
-                          <span>{count} players</span>
-                          <span>{pct}%</span>
-                        </div>
-                        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full ${col.bar} rounded-full transition-all duration-700`}
-                            style={{ width: isRevealed ? `${pct}%` : "0%" }}
-                          />
-                        </div>
-                      </div>
+          {/* Class accuracy bar + circle */}
+          <div className="flex items-center px-4 pt-4 pb-3 gap-2 shrink-0">
+            <div className="flex-1 h-4 bg-green-900/30 rounded-l-full overflow-hidden">
+              <div
+                className="h-full bg-green-500 rounded-l-full transition-all duration-700"
+                style={{ width: `${classAccuracyPct ?? 0}%` }}
+              />
+            </div>
+            <div className="w-16 h-16 rounded-full border-4 border-white/20 bg-[#0f0f1a] flex flex-col items-center justify-center shrink-0 shadow-xl">
+              <span className="text-base font-black text-white leading-none">
+                {classAccuracyPct !== null ? `${classAccuracyPct}%` : "—"}
+              </span>
+              <span className="text-[8px] font-black text-white/40 uppercase tracking-wide mt-0.5">
+                Class Acc
+              </span>
+            </div>
+            <div className="flex-1 h-4 bg-red-900/30 rounded-r-full overflow-hidden">
+              <div
+                className="h-full bg-red-500 rounded-r-full transition-all duration-700"
+                style={{ width: `${classAccuracyPct !== null ? 100 - classAccuracyPct : 0}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Leaderboard legend */}
+          <div className="px-4 pb-2 flex items-center justify-between shrink-0">
+            <h2 className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-1">
+              <Trophy size={10} className="text-yellow-400" /> Live Rankings
+            </h2>
+            <span className="text-[10px] font-black text-white/20">{totalPlayers} players</span>
+          </div>
+
+          {/* Player rows */}
+          <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-1.5">
+            {leaderboard.slice(0, 15).map((p: any, i: number) => {
+              const av = getAvatar(p.avatarId);
+              const totalAns = p.totalAnswered || 0;
+              const correct = p.totalCorrect || 0;
+              const wrong = totalAns - correct;
+              const questionsAsked = qIndex + 1;
+              const correctPct = questionsAsked > 0 ? (correct / questionsAsked) * 100 : 0;
+              const wrongPct = questionsAsked > 0 ? (wrong / questionsAsked) * 100 : 0;
+
+              const rankBg =
+                i === 0 ? "bg-yellow-500/15 border-yellow-500/40" :
+                i === 1 ? "bg-slate-400/10 border-slate-400/20" :
+                i === 2 ? "bg-amber-700/10 border-amber-600/20" :
+                "bg-white/[0.03] border-white/5";
+              const rankBadge =
+                i === 0 ? "bg-yellow-500 text-yellow-950" :
+                i === 1 ? "bg-slate-400 text-white" :
+                i === 2 ? "bg-amber-700 text-white" :
+                "bg-white/10 text-white/50";
+
+              return (
+                <div
+                  key={p.id || p.name}
+                  className={`flex items-center gap-2 px-2.5 py-2.5 rounded-xl border transition-all ${rankBg}`}
+                >
+                  {/* Rank badge */}
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-xs shrink-0 ${rankBadge}`}>
+                    {i + 1}
+                  </div>
+
+                  {/* Avatar */}
+                  <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${av.bg} flex items-center justify-center text-base shrink-0`}>
+                    {av.emoji}
+                  </div>
+
+                  {/* Name + bar + score */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-xs text-white truncate">{p.name}</span>
+                      <span className="text-xs font-black text-blue-400 ml-1 shrink-0">
+                        {(p.score || 0).toLocaleString()}
+                      </span>
                     </div>
-                  );
-                })}
+                    {/* Correct/Wrong bar */}
+                    <div className="h-2 flex rounded-full overflow-hidden bg-white/5">
+                      <div className="bg-green-500 transition-all duration-500" style={{ width: `${correctPct}%` }} />
+                      <div className="bg-red-500 transition-all duration-500" style={{ width: `${wrongPct}%` }} />
+                    </div>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <span className="text-[9px] text-white/20">
+                        <span className="text-green-400">{correct}✓</span>
+                        {wrong > 0 && <span className="text-red-400 ml-1">{wrong}✗</span>}
+                        <span className="ml-1 text-white/20">{p.accuracy ?? 0}%</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {leaderboard.length > 15 && (
+              <div className="text-center text-[10px] text-white/20 py-2">
+                +{leaderboard.length - 15} more players
               </div>
             )}
+            {leaderboard.length === 0 && (
+              <div className="text-center py-10 text-white/20 text-xs">No players yet</div>
+            )}
+          </div>
+        </div>
 
-            {(currentQuestion.type === "FIB" || currentQuestion.type === "OPEN") &&
-              isRevealed && (
+        {/* ═══ RIGHT PANEL ════════════════════════════════════════ */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+
+          {/* --- Classic / non-Wayground: Question + answer distribution --- */}
+          {!isWaygroundClassic && (
+            <div className="flex-1 flex flex-col p-4 gap-4 overflow-y-auto">
+
+              {/* Question card */}
+              <div className="bg-[#16162a] border border-white/10 rounded-2xl p-5 text-center shrink-0 shadow-xl">
+                <div className="text-xs font-black text-white/30 uppercase tracking-widest mb-2">
+                  Q{qIndex + 1}{totalQuestions > 0 ? ` of ${totalQuestions}` : ""} · {currentQuestion.type}
+                </div>
+                <h1 className="text-xl md:text-2xl font-black leading-tight">
+                  {currentQuestion.text}
+                </h1>
+              </div>
+
+              {/* MCQ / TF answer distribution */}
+              {(currentQuestion.type === "MCQ" || currentQuestion.type === "TF") && (
+                <div className="grid grid-cols-1 gap-3 flex-1">
+                  {(currentQuestion.options || []).map((opt: string, i: number) => {
+                    const col = COLORS[i % COLORS.length];
+                    const count = Number(answerStats.byAnswer?.[String(i)] || 0);
+                    const pct = totalAnswered > 0 ? Math.round((count / totalAnswered) * 100) : 0;
+                    const isCorrect = String(currentQuestion.correctAnswer) === String(i);
+                    return (
+                      <div
+                        key={i}
+                        className={`rounded-2xl overflow-hidden border-2 transition-all duration-500 ${
+                          isRevealed
+                            ? isCorrect
+                              ? "border-green-400 shadow-[0_0_24px_rgba(74,222,128,0.25)]"
+                              : "border-white/10 opacity-50"
+                            : "border-white/20"
+                        }`}
+                      >
+                        <div className={`${col.bg} px-4 py-3 flex items-center gap-3`}>
+                          <span className="text-white font-black text-lg w-7 text-center">{col.shape}</span>
+                          <span className="font-bold text-white text-base flex-1 leading-snug">{opt}</span>
+                          {isRevealed && isCorrect && (
+                            <span className="bg-white/25 rounded-full w-7 h-7 flex items-center justify-center text-white font-black">✓</span>
+                          )}
+                          <span className="text-white/80 font-black text-base shrink-0">{pct}%</span>
+                        </div>
+                        <div className="bg-black/40 px-4 py-2.5">
+                          <div className="flex justify-between text-xs font-bold mb-1.5 text-white/50">
+                            <span>{count} players</span>
+                          </div>
+                          <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${col.bar} rounded-full transition-all duration-700`}
+                              style={{ width: isRevealed ? `${pct}%` : "0%" }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* FIB / Open: show accepted answers after reveal */}
+              {(currentQuestion.type === "FIB" || currentQuestion.type === "OPEN") && isRevealed && (
                 <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-5">
                   <div className="text-xs font-black text-green-400 uppercase tracking-widest mb-2">
                     Accepted Answers
@@ -401,311 +510,180 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                 </div>
               )}
 
-            {isRevealed && (
-              <div className="flex gap-6 justify-center py-2">
-                {[
-                  {
-                    label: "Correct",
-                    val: answerStats.correct || 0,
-                    color: "text-green-400",
-                  },
-                  {
-                    label: "Wrong",
-                    val: totalAnswered - (answerStats.correct || 0),
-                    color: "text-red-400",
-                  },
-                  {
-                    label: "No answer",
-                    val: totalPlayers - totalAnswered,
-                    color: "text-white/40",
-                  },
-                ].map((s) => (
-                  <div key={s.label} className="text-center">
-                    <div className={`text-3xl font-black ${s.color}`}>{s.val}</div>
-                    <div className="text-xs text-white/40 mt-0.5">{s.label}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* === Leaderboard View (Quizizz/Wayground style) === */}
-        {viewMode === "leaderboard" && (
-          <div className="flex-1 flex flex-col overflow-hidden">
-
-            {/* Class accuracy bar + circle */}
-            <div className="flex items-center px-5 pt-4 pb-2 gap-3 flex-shrink-0">
-              {/* Green bar (correct %) */}
-              <div className="flex-1 h-5 bg-green-900/30 rounded-l-full overflow-hidden">
-                <div
-                  className="h-full bg-green-500 rounded-l-full transition-all duration-700"
-                  style={{ width: `${classAccuracyPct ?? 0}%` }}
-                />
-              </div>
-
-              {/* Circle badge */}
-              <div className="w-20 h-20 rounded-full border-4 border-white/20 bg-[#16162a] flex flex-col items-center justify-center shrink-0 shadow-xl">
-                <span className="text-xl font-black text-white leading-none">
-                  {classAccuracyPct !== null ? `${classAccuracyPct}%` : "—"}
-                </span>
-                <span className="text-[9px] font-black text-white/40 uppercase tracking-wide mt-0.5">
-                  Class Acc
-                </span>
-              </div>
-
-              {/* Red bar (wrong %) */}
-              <div className="flex-1 h-5 bg-red-900/30 rounded-r-full overflow-hidden">
-                <div
-                  className="h-full bg-red-500 rounded-r-full transition-all duration-700"
-                  style={{
-                    width: `${classAccuracyPct !== null ? 100 - classAccuracyPct : 0}%`,
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Mini question pill */}
-            <div className="mx-5 mb-2 px-4 py-2 bg-[#16162a] border border-white/10 rounded-xl text-sm text-white/50 line-clamp-1 flex-shrink-0">
-              <span className="text-white/30 mr-2">Q{qIndex + 1}:</span>
-              {currentQuestion.text}
-            </div>
-
-            {/* Legend */}
-            <div className="flex items-center justify-between px-5 mb-2 flex-shrink-0">
-              <h2 className="text-xs font-black text-white/30 uppercase tracking-widest flex items-center gap-1.5">
-                <Trophy size={12} className="text-yellow-400" /> Live Rankings ·{" "}
-                {totalPlayers} players
-              </h2>
-              <div className="flex gap-3 text-[10px] font-black text-white/20 uppercase">
-                <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 bg-green-500 rounded-full" /> Correct
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 bg-red-500 rounded-full" /> Wrong
-                </span>
-              </div>
-            </div>
-
-            {/* Player rows */}
-            <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-2">
-              {leaderboard.map((p: any, i: number) => {
-                const av = getAvatar(p.avatarId);
-                const totalAns = p.totalAnswered || 0;
-                const correct = p.totalCorrect || 0;
-                const wrong = totalAns - correct;
-                const questionsAsked = qIndex + 1;
-                const correctPct =
-                  questionsAsked > 0 ? (correct / questionsAsked) * 100 : 0;
-                const wrongPct =
-                  questionsAsked > 0 ? (wrong / questionsAsked) * 100 : 0;
-
-                const rankBg =
-                  i === 0
-                    ? "bg-yellow-500/15 border-yellow-500/40"
-                    : i === 1
-                    ? "bg-slate-400/10 border-slate-400/20"
-                    : i === 2
-                    ? "bg-amber-700/10 border-amber-600/20"
-                    : "bg-white/[0.03] border-white/5";
-                const rankBadge =
-                  i === 0
-                    ? "bg-yellow-500 text-yellow-950"
-                    : i === 1
-                    ? "bg-slate-400 text-white"
-                    : i === 2
-                    ? "bg-amber-700 text-white"
-                    : "bg-white/10 text-white/50";
-
-                return (
-                  <div
-                    key={p.id || p.name}
-                    className={`flex items-center gap-3 px-3 py-3 rounded-2xl border transition-all ${rankBg}`}
-                  >
-                    {/* Rank */}
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs shrink-0 ${rankBadge}`}
-                    >
-                      {i + 1}
+              {/* Correct / Wrong / No-answer summary (after reveal) */}
+              {isRevealed && (
+                <div className="flex gap-6 justify-center py-2 shrink-0">
+                  {[
+                    { label: "Correct", val: answerStats.correct || 0, color: "text-green-400" },
+                    { label: "Wrong", val: totalAnswered - (answerStats.correct || 0), color: "text-red-400" },
+                    { label: "No answer", val: totalPlayers - totalAnswered, color: "text-white/40" },
+                  ].map((s) => (
+                    <div key={s.label} className="text-center">
+                      <div className={`text-3xl font-black ${s.color}`}>{s.val}</div>
+                      <div className="text-xs text-white/40 mt-0.5">{s.label}</div>
                     </div>
-
-                    {/* Avatar */}
-                    <div
-                      className={`w-10 h-10 rounded-xl bg-gradient-to-br ${av.bg} flex items-center justify-center text-xl shrink-0`}
-                    >
-                      {av.emoji}
-                    </div>
-
-                    {/* Name + bar */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="font-bold text-sm text-white truncate">
-                          {p.name}
-                        </span>
-                        <div className="flex items-center gap-1 text-xs text-white/50 shrink-0 ml-2">
-                          <Flame size={12} className="text-orange-400" />
-                          <span className="font-bold text-white">{correct}</span>
-                          <span className="text-white/30">/{totalAns}</span>
-                        </div>
-                      </div>
-                      {/* Correct / Wrong / Unanswered bar */}
-                      <div className="h-2.5 flex rounded-full overflow-hidden bg-white/5">
-                        <div
-                          className="bg-green-500 transition-all duration-500"
-                          style={{ width: `${correctPct}%` }}
-                        />
-                        <div
-                          className="bg-red-500 transition-all duration-500"
-                          style={{ width: `${wrongPct}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Score */}
-                    <div className="text-right shrink-0 ml-2">
-                      <div className="font-black text-xl text-blue-400 leading-none">
-                        {(p.score || 0).toLocaleString()}
-                      </div>
-                      <div className="text-[10px] text-white/30 mt-0.5">pts</div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {leaderboard.length === 0 && (
-                <div className="text-center py-12 text-white/30 text-sm">
-                  No players have answered yet
+                  ))}
                 </div>
               )}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* === Wayground Classic: Per-Player Progress View === */}
-        {viewMode === "wayground" && isWaygroundClassic && (
-          <div className="flex-1 flex flex-col overflow-hidden">
+          {/* --- Wayground Classic: per-player progress tracker --- */}
+          {isWaygroundClassic && (
+            <div className="flex-1 flex flex-col overflow-hidden">
 
-            {/* Class Accuracy bar */}
-            <div className="flex items-center px-5 pt-4 pb-2 gap-3 flex-shrink-0">
-              <div className="flex-1 h-5 bg-green-900/30 rounded-l-full overflow-hidden">
-                <div
-                  className="h-full bg-green-500 rounded-l-full transition-all duration-700"
-                  style={{ width: `${classAccuracyPct ?? 0}%` }}
-                />
-              </div>
-              <div className="w-20 h-20 rounded-full border-4 border-white/20 bg-[#16162a] flex flex-col items-center justify-center shrink-0 shadow-xl">
-                <span className="text-xl font-black text-white leading-none">
-                  {classAccuracyPct !== null ? `${classAccuracyPct}%` : "—"}
-                </span>
-                <span className="text-[9px] font-black text-white/40 uppercase tracking-wide mt-0.5">
-                  Accuracy
+              {/* Mode badge */}
+              <div className="mx-4 mt-4 mb-3 px-4 py-2 bg-blue-600/10 border border-blue-500/20 rounded-xl flex items-center gap-2 shrink-0">
+                <Waves size={14} className="text-blue-400" />
+                <span className="text-xs font-black text-blue-400 uppercase tracking-widest">
+                  WAYGROUND CLASSIC — Player-paced · each player advances at their own speed
                 </span>
               </div>
-              <div className="flex-1 h-5 bg-red-900/30 rounded-r-full overflow-hidden">
-                <div
-                  className="h-full bg-red-500 rounded-r-full transition-all duration-700"
-                  style={{ width: `${classAccuracyPct !== null ? 100 - classAccuracyPct : 0}%` }}
-                />
+
+              {/* Column headers */}
+              <div className="flex items-center justify-between px-5 mb-2 shrink-0">
+                <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">
+                  Player Progress · {totalPlayers} players
+                </span>
+                <span className="text-[10px] font-black text-white/20 uppercase">
+                  {totalQuestions > 0 ? `${playersFinished}/${totalPlayers} finished` : "loading..."}
+                </span>
               </div>
-            </div>
 
-            {/* Mode badge */}
-            <div className="mx-5 mb-2 px-4 py-2 bg-blue-600/10 border border-blue-500/20 rounded-xl flex items-center gap-2 flex-shrink-0">
-              <Waves size={14} className="text-blue-400" />
-              <span className="text-xs font-black text-blue-400 uppercase tracking-widest">WAYGROUND CLASSIC — Player-paced mode</span>
-            </div>
+              {/* Player progress rows */}
+              <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
+                {[...leaderboard]
+                  .sort((a, b) => (b.totalAnswered || 0) - (a.totalAnswered || 0))
+                  .map((p: any, i: number) => {
+                    const av = getAvatar(p.avatarId);
+                    const answered = p.totalAnswered || 0;
+                    const correct = p.totalCorrect || 0;
+                    const accuracy = answered > 0 ? Math.round((correct / answered) * 100) : 0;
+                    const totalQs = totalQuestions || roomState?.totalQuestions || 1;
+                    const progressPct = Math.min(100, (answered / totalQs) * 100);
+                    const isDone = totalQs > 0 && answered >= totalQs;
 
-            {/* Legend */}
-            <div className="flex items-center justify-between px-5 mb-2 flex-shrink-0">
-              <h2 className="text-xs font-black text-white/30 uppercase tracking-widest">
-                Player Progress · {totalPlayers} players
-              </h2>
-              <div className="text-[10px] font-black text-white/20 uppercase">
-                Questions completed / total
-              </div>
-            </div>
-
-            {/* Player progress rows */}
-            <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-2">
-              {[...leaderboard]
-                .sort((a, b) => (b.totalAnswered || 0) - (a.totalAnswered || 0))
-                .map((p: any, i: number) => {
-                  const av = getAvatar(p.avatarId);
-                  const answered = p.totalAnswered || 0;
-                  const correct = p.totalCorrect || 0;
-                  const accuracy = answered > 0 ? Math.round((correct / answered) * 100) : 0;
-                  const totalQs = roomState?.totalQuestions || answered || 1;
-                  const progressPct = Math.min(100, (answered / totalQs) * 100);
-                  const isDone = answered >= totalQs && totalQs > 0;
-
-                  return (
-                    <div
-                      key={p.id || p.name}
-                      className={`flex items-center gap-3 px-3 py-3 rounded-2xl border transition-all ${
-                        isDone
-                          ? "bg-green-500/10 border-green-500/30"
-                          : "bg-white/[0.03] border-white/5"
-                      }`}
-                    >
-                      {/* Rank by progress */}
-                      <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center font-black text-xs shrink-0 text-white/50">
-                        {i + 1}
-                      </div>
-
-                      {/* Avatar */}
+                    return (
                       <div
-                        className={`w-9 h-9 rounded-xl bg-gradient-to-br ${av.bg} flex items-center justify-center text-lg shrink-0`}
+                        key={p.id || p.name}
+                        className={`flex items-center gap-3 px-3 py-3 rounded-2xl border transition-all ${
+                          isDone
+                            ? "bg-green-500/10 border-green-500/30"
+                            : "bg-white/[0.03] border-white/5"
+                        }`}
                       >
-                        {av.emoji}
-                      </div>
+                        {/* Rank */}
+                        <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center font-black text-[10px] shrink-0 text-white/50">
+                          {i + 1}
+                        </div>
 
-                      {/* Name + progress bar */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="font-bold text-sm text-white truncate">{p.name}</span>
-                          <div className="flex items-center gap-1.5 text-xs shrink-0 ml-2">
-                            {isDone ? (
-                              <span className="text-green-400 font-black text-[10px] uppercase">✓ Done</span>
-                            ) : (
-                              <span className="text-white/40 font-bold">{answered}/{totalQs}</span>
-                            )}
+                        {/* Avatar */}
+                        <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${av.bg} flex items-center justify-center text-lg shrink-0`}>
+                          {av.emoji}
+                        </div>
+
+                        {/* Name + progress */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="font-bold text-sm text-white truncate">{p.name}</span>
+                            <div className="flex items-center gap-2 text-xs shrink-0 ml-2">
+                              {isDone ? (
+                                <span className="text-green-400 font-black text-[10px] uppercase">✓ Done</span>
+                              ) : (
+                                <span className="text-white/40 font-bold">{answered}/{totalQs}</span>
+                              )}
+                            </div>
+                          </div>
+                          {/* Progress bar */}
+                          <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${isDone ? "bg-green-500" : "bg-blue-500"}`}
+                              style={{ width: `${progressPct}%` }}
+                            />
+                          </div>
+                          {/* Mini stats */}
+                          <div className="flex items-center gap-3 mt-1 text-[9px]">
+                            <span className="text-white/20">
+                              Acc: <span className={accuracy >= 70 ? "text-green-400" : accuracy >= 40 ? "text-amber-400" : "text-red-400"}>{accuracy}%</span>
+                            </span>
+                            <span className="flex items-center gap-0.5 text-orange-400">
+                              <Flame size={9} />
+                              <span className="font-bold">{p.streak || 0}</span>
+                            </span>
                           </div>
                         </div>
-                        {/* Progress bar */}
-                        <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${isDone ? "bg-green-500" : "bg-blue-500"}`}
-                            style={{ width: `${progressPct}%` }}
-                          />
-                        </div>
-                        {/* Accuracy mini */}
-                        <div className="flex items-center gap-1 mt-1">
-                          <div className="text-[9px] text-white/20 font-bold">
-                            Acc: <span className={accuracy >= 70 ? "text-green-400" : accuracy >= 40 ? "text-amber-400" : "text-red-400"}>{accuracy}%</span>
+
+                        {/* Score */}
+                        <div className="text-right shrink-0 ml-1">
+                          <div className="font-black text-lg text-blue-400 leading-none">
+                            {(p.score || 0).toLocaleString()}
                           </div>
+                          <div className="text-[10px] text-white/30 mt-0.5">pts</div>
                         </div>
                       </div>
+                    );
+                  })}
 
-                      {/* Score */}
-                      <div className="text-right shrink-0 ml-1">
-                        <div className="font-black text-lg text-blue-400 leading-none">
-                          {(p.score || 0).toLocaleString()}
-                        </div>
-                        <div className="text-[10px] text-white/30 mt-0.5">pts</div>
-                      </div>
-                    </div>
-                  );
-                })}
-
-              {leaderboard.length === 0 && (
-                <div className="text-center py-12 text-white/30 text-sm">
-                  No players have answered yet
-                </div>
-              )}
+                {leaderboard.length === 0 && (
+                  <div className="text-center py-12 text-white/30 text-sm">
+                    No players have answered yet
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </main>
+
+      {/* ── Bottom Stats Bar ─────────────────────────────────────── */}
+      <div className="shrink-0 bg-[#16162a] border-t border-white/10 px-4 py-2.5 flex items-center gap-6 text-xs">
+        {/* Class accuracy */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-white/30 font-black uppercase tracking-widest">Class Acc</span>
+          <span className={`font-black ${
+            classAccuracyPct === null ? "text-white/40" :
+            classAccuracyPct >= 70 ? "text-green-400" :
+            classAccuracyPct >= 40 ? "text-amber-400" : "text-red-400"
+          }`}>
+            {classAccuracyPct !== null ? `${classAccuracyPct}%` : "—"}
+          </span>
+        </div>
+
+        <div className="w-px h-4 bg-white/10" />
+
+        {/* Players answered */}
+        <div className="flex items-center gap-1.5">
+          <Users size={11} className="text-blue-400" />
+          <span className="text-white/30 font-black uppercase tracking-widest">
+            {isWaygroundClassic ? "Finished" : "Answered"}
+          </span>
+          <span className="font-black text-white">
+            {isWaygroundClassic ? playersFinished : totalAnswered}
+          </span>
+          <span className="text-white/30">/{totalPlayers}</span>
+        </div>
+
+        <div className="w-px h-4 bg-white/10" />
+
+        {/* Correct count */}
+        <div className="flex items-center gap-1.5">
+          <Flame size={11} className="text-orange-400" />
+          <span className="text-white/30 font-black uppercase tracking-widest">Correct</span>
+          <span className="font-black text-green-400">{answerStats.correct || 0}</span>
+        </div>
+
+        {/* Game mode badge — right side */}
+        <div className="ml-auto flex items-center gap-2">
+          {isWaygroundClassic && (
+            <span className="px-2 py-0.5 bg-blue-600/20 rounded-full text-blue-400 font-black text-[10px] uppercase tracking-widest">
+              🌊 Wayground Classic
+            </span>
+          )}
+          <span className="text-white/20 font-bold capitalize">
+            {roomState?.gameMode?.replace("_", " ") || "classic"}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

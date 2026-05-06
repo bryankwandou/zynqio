@@ -120,18 +120,19 @@ export function validateAnswer(question: any, selectedAnswer: any): boolean {
   } 
   
   if (type === "MSQ") {
+    const normalize = (s: string) => s.trim().toLowerCase();
     const correctSet = new Set(
       (question.correctAnswer as string)
         ?.split(";")
-        .map((a: string) => a.trim()) || []
+        .map(normalize) || []
     );
     const selectedSet = new Set(
       Array.isArray(selectedAnswer)
-        ? selectedAnswer
-        : (selectedAnswer as string)?.split(";").map((a: string) => a.trim()) || []
+        ? (selectedAnswer as string[]).map(normalize)
+        : (selectedAnswer as string)?.split(";").map(normalize) || []
     );
     return (
-      correctSet.size === selectedSet.size && 
+      correctSet.size === selectedSet.size &&
       [...correctSet].every((value) => selectedSet.has(value))
     );
   }
