@@ -57,7 +57,10 @@ export async function POST(req: Request) {
       // Non-fatal
     }
 
-    const quiz = await getQuizData(hostId || "admin", quizId);
+    if (!hostId) {
+      return NextResponse.json({ error: "HOST_ID_MISSING", message: "Room configuration invalid — missing host ID" }, { status: 500 });
+    }
+    const quiz = await getQuizData(hostId, quizId);
     if (!quiz) {
       return NextResponse.json({ error: "Quiz not found" }, { status: 404 });
     }

@@ -24,8 +24,8 @@ export async function POST(req: Request) {
     state.questionStartTimestamp = Date.now();
     state.updatedAt = Date.now();
 
-    // For Wayground Classic: store totalQuestions so players know when they're done
-    if ((gameMode || 'classic') === 'wayground_classic' && state.quizId && state.hostId) {
+    // Store totalQuestions for all modes so host can track last question and auto-recap works
+    if (state.quizId && state.hostId) {
       try {
         const quiz = await getQuizData(state.hostId, state.quizId);
         if (quiz?.questions?.length) {
