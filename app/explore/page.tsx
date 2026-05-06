@@ -35,7 +35,7 @@ export default function ExplorePage() {
     return () => clearTimeout(debounce);
   }, [search, category]);
 
-  const CATEGORIES = ["General", "Math", "Science", "History", "Tech", "Language", "Gaming"];
+  const CATEGORIES = ["General", "Math", "Science", "History", "Tech", "Language", "Gaming", "Geography", "Entertainment", "Sports", "Indonesia"];
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -109,7 +109,7 @@ export default function ExplorePage() {
                   </div>
                   {/* Image Placeholder */}
                   <div className="w-full h-full bg-gradient-to-br from-blue-600/10 to-purple-600/10 flex items-center justify-center text-5xl">
-                    {quiz.category === 'Math' ? '📐' : quiz.category === 'Science' ? '🧪' : '📚'}
+                    {({ General: '🌍', Math: '📐', Science: '🧪', History: '🏛️', Tech: '💻', Language: '🗣️', Gaming: '🎮', Geography: '🗺️', Entertainment: '🎬', Sports: '⚽', Indonesia: '🇮🇩' } as Record<string,string>)[quiz.category] ?? '📚'}
                   </div>
                 </div>
                 
