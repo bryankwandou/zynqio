@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef, use, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { getAvatar } from "@/lib/avatars";
-import { Users, SkipForward, Trophy, LayoutList, Eye, Flame, Waves } from "lucide-react";
+import { Users, SkipForward, Trophy, LayoutList, Eye, Flame, Waves, Square } from "lucide-react";
 import { getPusherClient } from "@/lib/pusher-client";
 
 const COLORS = [
@@ -25,6 +25,8 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   const [timeLeft, setTimeLeft] = useState(30);
   const [totalTime, setTotalTime] = useState(30);
   const [roomState, setRoomState] = useState<any>(null);
+  const [totalQuestions, setTotalQuestions] = useState<number>(0);
+  const autoEndScheduledRef = useRef(false);
 
   const [viewMode, setViewMode] = useState<"question" | "leaderboard" | "wayground">("question");
   const autoAdvanceRef = useRef(false);
@@ -53,11 +55,13 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         setCurrentQuestion(q);
         setIsRevealed(false);
         autoAdvanceScheduledRef.current = false;
+        autoEndScheduledRef.current = false;
         const t = state.settings?.timer || 30;
         setTotalTime(t);
         setTimeLeft(t);
         autoAdvanceRef.current = state.settings?.autoAdvance || false;
         prevIndexRef.current = state.currentQuestionIndex;
+        if (q.totalQuestions) setTotalQuestions(q.totalQuestions);
       } catch {}
     },
     [roomCode]
@@ -145,6 +149,20 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRevealed]);
 
+  // Auto-recap: when revealed + all players answered + this is the last question
+  useEffect(() => {
+    if (!isRevealed || autoEndScheduledRef.current) return;
+    if (totalQuestions === 0) return;
+    const isLastQuestion = qIndex >= totalQuestions - 1;
+    if (!isLastQuestion) return;
+    const allAnswered = totalPlayers > 0 && totalAnswered >= totalPlayers;
+    if (!allAnswered) return;
+    autoEndScheduledRef.current = true;
+    const t = setTimeout(() => handleEndGame(), 4000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRevealed, totalAnswered, totalPlayers, qIndex, totalQuestions]);
+
   const handleNextQuestion = async () => {
     try {
       await fetch("/api/room/next-question", {
@@ -152,6 +170,17 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roomCode }),
       });
+    } catch {}
+  };
+
+  const handleEndGame = async () => {
+    try {
+      await fetch("/api/room/end", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomCode }),
+      });
+      router.push(`/results/${roomCode}`);
     } catch {}
   };
 
@@ -247,24 +276,43 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         </div>
 
         {/* Action buttons */}
-        {!isRevealed ? (
+        <div className="flex items-center gap-2">
+          {!isRevealed ? (
+            <Button
+              onClick={() => {
+                setIsRevealed(true);
+                setTimeLeft(0);
+              }}
+              className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm"
+            >
+              <Eye size={15} className="mr-1" /> Reveal
+            </Button>
+          ) : totalQuestions > 0 && qIndex >= totalQuestions - 1 ? (
+            <Button
+              onClick={handleEndGame}
+              className="bg-green-600 hover:bg-green-500 font-bold text-sm"
+            >
+              <Square size={13} className="mr-1" /> End Game
+            </Button>
+          ) : (
+            <Button
+              onClick={handleNextQuestion}
+              className="bg-blue-600 hover:bg-blue-500 font-bold text-sm"
+            >
+              Next <SkipForward size={15} className="ml-1" />
+            </Button>
+          )}
           <Button
             onClick={() => {
-              setIsRevealed(true);
-              setTimeLeft(0);
+              if (confirm("End game now and go to results?")) handleEndGame();
             }}
-            className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm"
+            variant="outline"
+            className="border-red-500/40 text-red-400 hover:bg-red-500/10 font-bold text-xs px-2"
+            title="End game now"
           >
-            <Eye size={15} className="mr-1" /> Reveal
+            <Square size={12} />
           </Button>
-        ) : (
-          <Button
-            onClick={handleNextQuestion}
-            className="bg-blue-600 hover:bg-blue-500 font-bold text-sm"
-          >
-            Next <SkipForward size={15} className="ml-1" />
-          </Button>
-        )}
+        </div>
       </header>
 
       {/* ── Timer bar ─────────────────────────────────────────── */}

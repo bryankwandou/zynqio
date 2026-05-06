@@ -17,6 +17,7 @@ export async function POST(req: Request) {
     const {
       playerId,
       questionId,
+      questionIndex,
       selectedAnswer,
       roomCode,
       sessionId,
@@ -61,10 +62,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Quiz not found" }, { status: 404 });
     }
 
-    // Find by id first; fall back to current room question index
+    // Find by id first; fall back to player's own index, then host's index
     let question = quiz.questions?.find((q: any) => q.id === questionId);
-    if (!question && room?.currentQuestionIndex != null) {
-      question = quiz.questions?.[room.currentQuestionIndex];
+    if (!question) {
+      // Prefer player-sent index (correct for Wayground Classic where each player is at different Q)
+      const fallbackIndex = questionIndex ?? room?.currentQuestionIndex;
+      if (fallbackIndex != null) question = quiz.questions?.[Number(fallbackIndex)];
     }
     if (!question) {
       return NextResponse.json({ error: "Question not found" }, { status: 404 });
