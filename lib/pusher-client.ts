@@ -16,14 +16,12 @@ export const getPusherClient = () => {
     } else {
       // Mock client for zero-config fallback
       pusherClientInstance = {
-        subscribe: (channelName: string) => ({
-          bind: (eventName: string, callback: Function) => {
-            console.log(`[PusherClient Mock] Bound to event '${eventName}' on channel '${channelName}'`);
-            // In a real local mock, we might use setInterval here to poll the server
-          },
-          unbind: () => {},
+        subscribe: (_channelName: string) => ({
+          bind: (_eventName: string, _callback: Function) => {},
+          unbind: (_eventName?: string, _callback?: Function) => {},
+          unbind_all: () => {},
         }),
-        unsubscribe: () => {},
+        unsubscribe: (_channelName: string) => {},
       };
     }
   }
