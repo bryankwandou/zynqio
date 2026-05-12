@@ -563,7 +563,7 @@ export default function CreateQuiz() {
       <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
         
         {/* GLOBAL QUESTION TYPE TOGGLE (ZYNQIO UNIQUE FEATURE) */}
-        <div className="bg-card border border-border rounded-2xl p-4 mb-8 md:sticky md:top-[128px] md:z-30 shadow-xl">
+        <div className="bg-card border border-border rounded-2xl p-4 mb-8 md:sticky md:top-[120px] md:z-40 shadow-xl">
           <div className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Global Question Type Toggle</div>
           <div className="flex flex-wrap gap-2">
             {QUESTION_TYPES.map(type => (

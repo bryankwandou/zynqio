@@ -120,7 +120,7 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
     if (!nickname) return;
     const pusher = getPusherClient();
     const channel = pusher.subscribe(`room-${roomCode}`);
-    channel.bind("player_kicked", (data: any) => {
+    const onKicked = (data: any) => {
       const savedName = localStorage.getItem("zynqio_nickname") || "";
       const nameLower = savedName.toLowerCase();
       if (data?.playerId?.toLowerCase() === nameLower || data?.playerId === savedName) {
@@ -128,10 +128,10 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
         ["zynqio_nickname", "zynqio_session_token", "zynqio_player_id", "zynqio_room_code"].forEach(k => localStorage.removeItem(k));
         setTimeout(() => router.replace("/?kicked=1"), 2000);
       }
-    });
+    };
+    channel.bind("player_kicked", onKicked);
     return () => {
-      channel.unbind_all();
-      pusher.unsubscribe(`room-${roomCode}`);
+      channel.unbind("player_kicked", onKicked);
     };
   }, [nickname, roomCode, router]);
 
