@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getRoomState, setRoomState } from "@/lib/kv";
+import { pusherServer } from "@/lib/pusher";
 
 export async function POST(req: Request) {
   try {
@@ -26,8 +27,17 @@ export async function POST(req: Request) {
     room.players = (room.players || []).filter(
       (p: any) => p.id !== playerId && p.name !== playerId
     );
-    room.kickedPlayers = [...(room.kickedPlayers || []), playerId];
+    // Store lowercase for consistent comparison with join/state checks
+    const kickedName = typeof playerId === "string" ? playerId.toLowerCase() : playerId;
+    room.kickedPlayers = [...(room.kickedPlayers || []), kickedName];
+    // CRITICAL: update updatedAt so polling clients get fresh state (not 304)
+    room.updatedAt = Date.now();
     await setRoomState(roomCode, room);
+
+    // Notify via Pusher for instant kick detection (no polling delay)
+    try {
+      await pusherServer.trigger(`room-${roomCode}`, "player_kicked", { playerId });
+    } catch {}
 
     return NextResponse.json({ success: true });
   } catch {

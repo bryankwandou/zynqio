@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getAvatar } from "@/lib/avatars";
+import { getPusherClient } from "@/lib/pusher-client";
 
 const CORRECT_MEMES = [
   { gif: "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif", caption: "MIND = BLOWN 🤯" },
@@ -204,8 +205,9 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
 
         // Kicked detection
         const savedTok = localStorage.getItem("zynqio_session_token") || "";
+        const nameLower = savedName.toLowerCase();
         const kicked = (state.kickedPlayers || []).some(
-          (k: string) => k === savedName || k === savedName.toLowerCase() || k === savedTok
+          (k: string) => k.toLowerCase() === nameLower || k === savedTok
         );
         if (kicked) {
           setIsKicked(true);
@@ -274,6 +276,25 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
     pollRoom();
     return () => clearInterval(roomInterval);
   }, [roomCode, router, runCountdown]);
+
+  // Pusher: instant kick detection
+  useEffect(() => {
+    const pusher = getPusherClient();
+    const channel = pusher.subscribe(`room-${roomCode}`);
+    channel.bind("player_kicked", (data: any) => {
+      const savedName = localStorage.getItem("zynqio_nickname") || "";
+      const nameLower = savedName.toLowerCase();
+      if (data?.playerId?.toLowerCase() === nameLower || data?.playerId === savedName) {
+        setIsKicked(true);
+        ["zynqio_nickname", "zynqio_session_token", "zynqio_player_id", "zynqio_room_code"].forEach(k => localStorage.removeItem(k));
+        setTimeout(() => router.replace("/?kicked=1"), 2000);
+      }
+    });
+    return () => {
+      channel.unbind_all();
+      pusher.unsubscribe(`room-${roomCode}`);
+    };
+  }, [roomCode, router]);
 
   // Timer countdown
   useEffect(() => {
@@ -467,7 +488,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
   // ── Waiting for game to start ────────────────────────────────────
   if (!currentQuestion && !showCountdown) {
     return (
-      <div className="min-h-screen bg-[#0f0f1a] flex flex-col items-center justify-center text-white">
+      <div className="h-[100dvh] bg-[#0f0f1a] flex flex-col items-center justify-center text-white">
         {isWayground && (
           <div className="mb-6 px-4 py-2 bg-blue-600/20 border border-blue-500/30 rounded-full text-xs font-black text-blue-400 uppercase tracking-widest">
             🌊 WAYGROUND CLASSIC MODE
@@ -486,7 +507,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a] text-white flex flex-col relative overflow-hidden">
+    <div className="h-[100dvh] bg-[#0f0f1a] text-white flex flex-col relative overflow-x-hidden">
 
       {/* Countdown Overlay */}
       {showCountdown && (
@@ -566,7 +587,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       </div>
 
       {/* Timer bar */}
-      <div className={`h-1.5 ${isWayground ? "bg-blue-900/30" : "bg-white/5"}`}>
+      <div className={`h-1.5 shrink-0 ${isWayground ? "bg-blue-900/30" : "bg-white/5"}`}>
         <div
           className={`h-full transition-all duration-500 ${isWayground ? "bg-blue-500" : timerPct > 60 ? "bg-green-500" : timerPct > 30 ? "bg-amber-500" : "bg-red-500"}`}
           style={{ width: `${timerPct}%` }}
@@ -575,14 +596,14 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
 
       {/* Wayground mode badge */}
       {isWayground && !showCountdown && (
-        <div className="flex items-center justify-center gap-2 py-1 bg-blue-600/10 border-b border-blue-500/10">
+        <div className="flex items-center justify-center gap-2 py-1 bg-blue-600/10 border-b border-blue-500/10 shrink-0">
           <span className="text-[9px] font-black text-blue-400/60 uppercase tracking-widest">🌊 WAYGROUND CLASSIC · Answer instantly · advance instantly</span>
         </div>
       )}
 
       {/* Class accuracy pill */}
       {classAccuracy !== null && (
-        <div className="flex justify-center py-1.5">
+        <div className="flex justify-center py-1.5 shrink-0">
           <div className="text-xs text-white/40 bg-white/5 px-3 py-1 rounded-full border border-white/10">
             Class accuracy: <span className={`font-bold ${classAccuracy >= 70 ? "text-green-400" : classAccuracy >= 40 ? "text-amber-400" : "text-red-400"}`}>{classAccuracy}%</span>
           </div>
@@ -591,7 +612,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
 
       {/* Main Content */}
       {currentQuestion && (
-        <div className="flex-1 flex flex-col px-3 py-3 sm:px-5 sm:py-4 max-w-2xl mx-auto w-full">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain flex flex-col px-3 py-3 sm:px-5 sm:py-4 max-w-2xl mx-auto w-full">
           {/* Question number */}
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-bold text-white/30 bg-white/5 px-2.5 py-1 rounded-full uppercase tracking-widest">

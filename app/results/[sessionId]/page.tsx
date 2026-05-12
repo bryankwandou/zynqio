@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useRef } from "react";
 import { Navbar } from "@/components/navbar";
 import { Button } from "@/components/ui/button";
 import { Download, BarChart2, Users, Share2, Copy, Trophy } from "lucide-react";
@@ -115,17 +115,33 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
   const [ratingDone, setRatingDone] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const historySavedRef = useRef(false);
 
   useEffect(() => {
     const nick = localStorage.getItem("zynqio_nickname") || "";
     setMyNickname(nick);
 
-    async function load() {
+    let cancelled = false;
+
+    async function load(attempt = 0) {
+      if (cancelled) return;
       try {
         const res = await fetch(`/api/room/results?code=${unwrappedParams.sessionId}`);
-        if (!res.ok) return;
+        if (!res.ok) {
+          if (attempt < 8) {
+            // exponential backoff: 1.5s, 3s, 4.5s … capped at 8s
+            const delay = Math.min(1500 * (attempt + 1), 8000);
+            setTimeout(() => load(attempt + 1), delay);
+          } else {
+            if (!cancelled) setLoadError(true);
+          }
+          return;
+        }
         const data = await res.json();
+        if (cancelled) return;
         setResults(data);
+        setLoadError(false);
 
         const amHost =
           (session?.user as any)?.id === data.hostId ||
@@ -133,10 +149,11 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
         setIsHost(amHost);
         if (!amHost) setShowRating(true);
 
-        // Save player history
-        if ((session?.user as any)?.id && !amHost) {
+        // Save player history once
+        if ((session?.user as any)?.id && !amHost && !historySavedRef.current) {
           const me = data.leaderboard?.find((p: any) => p.name === nick);
           if (me) {
+            historySavedRef.current = true;
             fetch("/api/player/history", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -155,9 +172,18 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
         setTimeout(() => setPodiumVisible(true), 200);
         setTimeout(() => setShowConfetti(true), 500);
         setTimeout(() => setShowConfetti(false), 7000);
-      } catch {}
+      } catch {
+        if (attempt < 8) {
+          const delay = Math.min(1500 * (attempt + 1), 8000);
+          setTimeout(() => load(attempt + 1), delay);
+        } else {
+          if (!cancelled) setLoadError(true);
+        }
+      }
     }
     load();
+
+    return () => { cancelled = true; };
   }, [unwrappedParams.sessionId, session]);
 
   const submitRating = async () => {
@@ -195,10 +221,28 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
   };
 
   if (!results) {
+    if (loadError) {
+      return (
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-5 px-6 text-center">
+          <div className="text-5xl">😕</div>
+          <h2 className="text-xl font-black text-foreground">Results Not Found</h2>
+          <p className="text-muted-foreground text-sm max-w-xs">
+            The session may have expired or is not ready yet.
+          </p>
+          <button
+            onClick={() => { setLoadError(false); window.location.reload(); }}
+            className="px-6 py-3 bg-primary text-white font-bold rounded-xl hover:opacity-90 transition-opacity"
+          >
+            Try Again
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
         <p className="text-foreground font-bold animate-pulse">Calculating Results...</p>
+        <p className="text-muted-foreground text-xs">Loading session data…</p>
       </div>
     );
   }

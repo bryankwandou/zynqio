@@ -3,6 +3,7 @@
 import { useEffect, useState, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getAvatar } from "@/lib/avatars";
+import { getPusherClient } from "@/lib/pusher-client";
 
 type Player = {
   id: string;
@@ -66,8 +67,9 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
       // Kicked detection
       const savedName = localStorage.getItem("zynqio_nickname") || "";
       const savedToken = localStorage.getItem("zynqio_session_token") || "";
+      const nameLower = savedName.toLowerCase();
       const kicked = (state.kickedPlayers || []).some(
-        (k: string) => k === savedName || k === savedName.toLowerCase() || k === savedToken
+        (k: string) => k.toLowerCase() === nameLower || k === savedToken
       );
 
       if (kicked) {
@@ -112,6 +114,26 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
     const interval = setInterval(poll, 2500);
     return () => clearInterval(interval);
   }, [nickname, poll]);
+
+  // Pusher: instant kick detection without waiting for next poll
+  useEffect(() => {
+    if (!nickname) return;
+    const pusher = getPusherClient();
+    const channel = pusher.subscribe(`room-${roomCode}`);
+    channel.bind("player_kicked", (data: any) => {
+      const savedName = localStorage.getItem("zynqio_nickname") || "";
+      const nameLower = savedName.toLowerCase();
+      if (data?.playerId?.toLowerCase() === nameLower || data?.playerId === savedName) {
+        setIsKicked(true);
+        ["zynqio_nickname", "zynqio_session_token", "zynqio_player_id", "zynqio_room_code"].forEach(k => localStorage.removeItem(k));
+        setTimeout(() => router.replace("/?kicked=1"), 2000);
+      }
+    });
+    return () => {
+      channel.unbind_all();
+      pusher.unsubscribe(`room-${roomCode}`);
+    };
+  }, [nickname, roomCode, router]);
 
   const avatarInfo = getAvatar(myAvatar);
 

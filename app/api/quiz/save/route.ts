@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       id: quizId,
       title,
       questions: questions || [],
-      visibility: visibility || 'private',
+      visibility: visibility || 'public',
       category: category || 'General',
       description: description || existingQuiz?.description || '',
       coverImage: coverImage || existingQuiz?.coverImage || '',

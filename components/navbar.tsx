@@ -42,6 +42,7 @@ export function Navbar() {
         {session ? (
           <>
             <Link href="/dashboard" style={{ fontSize: 13, fontWeight: 500, color: "var(--t2)", textDecoration: "none", padding: "6px 12px", borderRadius: 8 }}>Dashboard</Link>
+            <Link href="/history" style={{ fontSize: 13, fontWeight: 500, color: "var(--t2)", textDecoration: "none", padding: "6px 12px", borderRadius: 8 }}>Analytics</Link>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
               className="zy-btn-ghost"

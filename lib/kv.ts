@@ -37,12 +37,28 @@ export {
 export async function saveQuizData(userId: string, quizId: string, data: any) {
   await redisSaveQuiz(userId, quizId, data);
 
-  // Index public quizzes in a set
+  // Index public quizzes (set + lightweight metadata cache)
   try {
     if (data.visibility === 'public') {
-      await (redis as any).sadd('public_quizzes', `${userId}:${quizId}`);
+      await Promise.all([
+        (redis as any).sadd('public_quizzes', `${userId}:${quizId}`),
+        redis.set(`public_quiz_data:${quizId}`, {
+          id: quizId,
+          title: data.title,
+          author: data.author || 'Anonymous',
+          plays: data.plays || 0,
+          rating: data.rating || 0,
+          category: data.category || 'General',
+          questionCount: data.questions?.length || 0,
+          hostId: userId,
+          createdAt: data.createdAt,
+        }),
+      ]);
     } else {
-      await (redis as any).srem('public_quizzes', `${userId}:${quizId}`);
+      await Promise.all([
+        (redis as any).srem('public_quizzes', `${userId}:${quizId}`),
+        (redis as any).del(`public_quiz_data:${quizId}`),
+      ]);
     }
   } catch (e) {
     console.error('Failed to update public quiz index:', e);
@@ -55,28 +71,49 @@ export async function getQuizData(userId: string, quizId: string) {
 
 export async function listPublicQuizzes() {
   try {
-    const quizIds: string[] = await (redis as any).smembers('public_quizzes');
-    const quizzes = [];
-    for (const id of quizIds) {
-      const [userId, qId] = id.split(':');
-      if (!userId || !qId) continue;
-      const data = await redisGetQuiz(userId, qId);
-      if (data) {
-        quizzes.push({
-          id: data.id,
-          title: data.title,
-          author: data.author || 'Anonymous',
-          plays: data.plays || 0,
-          rating: data.rating || 0,
-          category: data.category || 'General',
-          questions: data.questions?.length || 0,
-          questionCount: data.questions?.length || 0,
-          hostId: userId,
-          createdAt: data.createdAt,
-        });
-      }
-    }
-    return quizzes;
+    // Fast path: use pre-indexed metadata from public_quiz_data:* (no decompression needed)
+    // Collect IDs from both indexes: public_quizzes (set, userId:quizId) + public_quizzes_sorted (sorted set, quizId only)
+    const [legacyIds, sortedIds]: [string[], string[]] = await Promise.all([
+      (redis as any).smembers('public_quizzes').catch(() => [] as string[]),
+      (redis as any).zrange('public_quizzes_sorted', 0, -1).catch(() => [] as string[]),
+    ]);
+
+    // Parse legacy set entries (format: "userId:quizId")
+    const legacyEntries = (legacyIds as string[]).map((id: string) => {
+      const parts = id.split(':');
+      return parts.length >= 2 ? { userId: parts[0], quizId: parts.slice(1).join(':') } : null;
+    }).filter(Boolean) as Array<{ userId: string; quizId: string }>;
+
+    // Fetch quiz data in parallel — try fast-path first (pre-indexed metadata)
+    const results = await Promise.all(
+      legacyEntries.map(async ({ userId, quizId }) => {
+        try {
+          // Fast-path: pre-indexed lightweight metadata
+          const cached = await redis.get<any>(`public_quiz_data:${quizId}`);
+          if (cached) {
+            return { ...cached, hostId: userId, id: quizId };
+          }
+          // Fallback: decompress full quiz (slower, but complete)
+          const data = await redisGetQuiz(userId, quizId);
+          if (!data) return null;
+          return {
+            id: data.id || quizId,
+            title: data.title,
+            author: data.author || 'Anonymous',
+            plays: data.plays || 0,
+            rating: data.rating || 0,
+            category: data.category || 'General',
+            questionCount: data.questions?.length || 0,
+            hostId: userId,
+            createdAt: data.createdAt,
+          };
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    return results.filter(Boolean).sort((a: any, b: any) => (b.plays || 0) - (a.plays || 0));
   } catch (e) {
     console.error('Failed to list public quizzes:', e);
     return [];

@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, category, tags, visibility = "private", allowCopy = false } = body;
+    const { title, description, category, tags, visibility = "public", allowCopy = false } = body;
 
     if (!title || title.trim().length === 0) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
