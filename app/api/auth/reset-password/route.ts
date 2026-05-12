@@ -22,12 +22,13 @@ export async function POST(req: Request) {
     const resetTokenHash = crypto.createHash("sha256").update(token).digest("hex");
     const resetKey = `password-reset:${resetTokenHash}`;
 
-    const resetDataStr = await redis.get(resetKey);
-    if (!resetDataStr) {
+    const resetDataRaw = await redis.get<string | { userId: string; email: string; expiry: number }>(resetKey);
+    if (!resetDataRaw) {
       return NextResponse.json({ error: "Reset token not found or has expired" }, { status: 400 });
     }
 
-    const resetData = JSON.parse(resetDataStr);
+    const resetData: { userId: string; email: string; expiry: number } =
+      typeof resetDataRaw === "string" ? JSON.parse(resetDataRaw) : resetDataRaw;
 
     if (Date.now() > resetData.expiry) {
       await redis.del(resetKey);

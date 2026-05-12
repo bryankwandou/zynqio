@@ -143,19 +143,18 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRevealed]);
 
-  // Auto-recap: last question + all players answered → end game after 4s
-  useEffect(() => {
-    if (!isRevealed || autoEndScheduledRef.current) return;
-    if (totalQuestions === 0) return;
-    const isLastQuestion = qIndex >= totalQuestions - 1;
-    if (!isLastQuestion) return;
-    const allAnswered = totalPlayers > 0 && totalAnswered >= totalPlayers;
-    if (!allAnswered) return;
-    autoEndScheduledRef.current = true;
-    const t = setTimeout(() => handleEndGame(), 4000);
-    return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRevealed, totalAnswered, totalPlayers, qIndex, totalQuestions]);
+  // ── Derived data ─────────────────────────────────────────────────
+  const questionId = currentQuestion?.id;
+  const answerStats = roomState?.answerStats?.[questionId] || { total: 0, correct: 0, byAnswer: {} };
+  const totalAnswered = answerStats.total || 0;
+  const classAccuracyPct =
+    totalAnswered > 0 ? Math.round(((answerStats.correct || 0) / totalAnswered) * 100) : null;
+
+  const leaderboard = [...(roomState?.players || [])].sort(
+    (a, b) => (b.score || 0) - (a.score || 0)
+  );
+  const totalPlayers = leaderboard.length;
+  const qIndex = roomState?.currentQuestionIndex ?? 0;
 
   const handleNextQuestion = async () => {
     try {
@@ -178,18 +177,19 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
     } catch {}
   };
 
-  // ── Derived data ─────────────────────────────────────────────────
-  const questionId = currentQuestion?.id;
-  const answerStats = roomState?.answerStats?.[questionId] || { total: 0, correct: 0, byAnswer: {} };
-  const totalAnswered = answerStats.total || 0;
-  const classAccuracyPct =
-    totalAnswered > 0 ? Math.round(((answerStats.correct || 0) / totalAnswered) * 100) : null;
-
-  const leaderboard = [...(roomState?.players || [])].sort(
-    (a, b) => (b.score || 0) - (a.score || 0)
-  );
-  const totalPlayers = leaderboard.length;
-  const qIndex = roomState?.currentQuestionIndex ?? 0;
+  // Auto-recap: last question + all players answered → end game after 4s
+  useEffect(() => {
+    if (!isRevealed || autoEndScheduledRef.current) return;
+    if (totalQuestions === 0) return;
+    const isLastQuestion = qIndex >= totalQuestions - 1;
+    if (!isLastQuestion) return;
+    const allAnswered = totalPlayers > 0 && totalAnswered >= totalPlayers;
+    if (!allAnswered) return;
+    autoEndScheduledRef.current = true;
+    const t = setTimeout(() => handleEndGame(), 4000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRevealed, totalAnswered, totalPlayers, qIndex, totalQuestions]);
   const timerPct = totalTime > 0 ? (timeLeft / totalTime) * 100 : 0;
   const timerColor =
     timerPct > 60 ? "bg-green-400" : timerPct > 30 ? "bg-amber-400" : "bg-red-500";
