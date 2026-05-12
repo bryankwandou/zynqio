@@ -2,18 +2,54 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Navbar } from "@/components/navbar";
-import { Search, Rocket, Zap, Globe, Shield } from "lucide-react";
 import Link from "next/link";
+import { useTheme } from "next-themes";
+import { ArrowRight, Zap, Shield, Compass, Sun, Moon } from "lucide-react";
 
-import { ThemeToggle } from "@/components/ThemeToggle";
+function LogoMark() {
+  return (
+    <div
+      style={{
+        width: 32,
+        height: 32,
+        borderRadius: 9,
+        background: "conic-gradient(from 0deg, var(--p), var(--p2), var(--acc), var(--p))",
+        boxShadow: "0 4px 16px rgba(124,111,253,0.35)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#fff",
+        fontWeight: 800,
+        fontSize: 18,
+        flexShrink: 0,
+      }}
+    >
+      Z
+    </div>
+  );
+}
+
+const MODES = [
+  { icon: "⚡", label: "Classic",    desc: "Points for speed & accuracy" },
+  { icon: "🚀", label: "Speed",      desc: "Fastest answer wins all" },
+  { icon: "💰", label: "Gold Hunt",  desc: "Grab treasure chests" },
+  { icon: "⚔️", label: "Battle",     desc: "Last player standing" },
+  { icon: "🤝", label: "Team Play",  desc: "Collaborate to win" },
+  { icon: "💀", label: "Survival",   desc: "One wrong = eliminated" },
+];
+
+const FEATURES = [
+  { icon: <Zap size={20} />,    title: "Real-time Play",       desc: "Sub-second answer sync across hundreds of players." },
+  { icon: <Shield size={20} />, title: "Scored Insights",      desc: "Accuracy, speed, and class-level breakdowns live." },
+  { icon: <Compass size={20} />,title: "6 Game Modes",         desc: "From casual fun to competitive elimination rounds." },
+];
 
 export default function Home() {
   const [roomCode, setRoomCode] = useState("");
   const [joinError, setJoinError] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,139 +61,295 @@ export default function Home() {
 
     try {
       const res = await fetch(`/api/room/state?code=${code}`);
-
-      if (res.status === 404) {
-        setJoinError("Game not found. Check your code.");
-        setIsJoining(false);
-        return;
-      }
-
-      if (!res.ok) {
-        setJoinError("Failed to check game status. Try again.");
-        setIsJoining(false);
-        return;
-      }
-
+      if (res.status === 404) { setJoinError("Game not found. Check your code."); setIsJoining(false); return; }
+      if (!res.ok)             { setJoinError("Failed to check game status."); setIsJoining(false); return; }
       const data = await res.json();
-
-      if (data.status === "ended") {
-        setJoinError("This game has ended.");
-        setIsJoining(false);
-        return;
-      }
-
-      if (data.status === "playing") {
-        setJoinError("Game already in progress.");
-        setIsJoining(false);
-        return;
-      }
-
-      if (data.status === "waiting") {
-        router.push(`/join/${code}`);
-        return;
-      }
-
-      // Fallback: unknown status, still try to join
+      if (data.status === "ended")   { setJoinError("This game has ended."); setIsJoining(false); return; }
+      if (data.status === "playing") { setJoinError("Game already in progress."); setIsJoining(false); return; }
       router.push(`/join/${code}`);
-    } catch (err) {
+    } catch {
       setJoinError("Network error. Please try again.");
       setIsJoining(false);
     }
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background selection:bg-blue-500/30 selection:text-blue-200 overflow-x-hidden relative">
-      <div className="fixed top-6 right-6 z-[100] animate-in fade-in slide-in-from-right-8 duration-1000">
-        <ThemeToggle />
-      </div>
-      <Navbar />
-      
-      {/* Hero Section */}
-      <main className="flex-1 flex flex-col items-center justify-center p-6 relative">
-        {/* Advanced Background Effects */}
-        <div className="absolute top-1/4 -left-1/4 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] animate-pulse pointer-events-none" />
-        <div className="absolute bottom-1/4 -right-1/4 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[120px] animate-pulse pointer-events-none" style={{ animationDelay: '2s' }} />
-        
-        <div className="w-full max-w-xl relative z-10">
-          <div className="text-center mb-12 space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-            <h1 className="text-5xl md:text-7xl font-black text-foreground tracking-tighter leading-none uppercase">
-              THINK <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">FAST.</span><br />
-              PLAY <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">SMART.</span>
-            </h1>
+    <div style={{ position: "relative", minHeight: "100vh", overflowX: "hidden" }}>
+      {/* Ambient background */}
+      <div className="ambient" />
+
+      {/* Top nav */}
+      <header
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
+          padding: "14px 24px",
+          background: "var(--nav-bg)",
+          WebkitBackdropFilter: "blur(20px)",
+          backdropFilter: "blur(20px)",
+          borderBottom: "1px solid var(--border-raw)",
+        }}
+      >
+        <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <LogoMark />
+            <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.02em", color: "var(--t1)" }}>zynqio</span>
           </div>
-
-          <div className="relative group animate-in zoom-in duration-700">
-            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-[2.5rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
-            <div className="relative bg-card/80 backdrop-blur-2xl rounded-[2.3rem] p-8 md:p-12 border border-border shadow-[0_30px_100px_rgba(0,0,0,0.1)] dark:shadow-[0_30px_100px_rgba(0,0,0,0.5)]">
-              <form onSubmit={handleJoin} className="space-y-10">
-                <div className="space-y-6">
-                  <div className="flex flex-col items-center">
-                    <label className="text-muted-foreground font-black text-center block uppercase tracking-[0.4em] text-[10px] mb-4 opacity-70">Enter Game Code</label>
-                    <input
-                      type="text"
-                      placeholder="· · · · · ·"
-                      value={roomCode}
-                      onChange={(e) => { setRoomCode(e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase()); setJoinError(""); }}
-                      maxLength={6}
-                      inputMode="text"
-                      autoCapitalize="characters"
-                      className="w-full text-center text-4xl md:text-6xl font-black tracking-[0.3em] bg-transparent text-foreground border-none focus:ring-0 outline-none transition-all placeholder:text-muted-foreground/20 placeholder:text-3xl selection:bg-blue-500/20"
-                      autoFocus
-                    />
-                  </div>
-                  <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-border to-transparent" />
-                  {joinError && (
-                    <p className="text-center text-sm font-black uppercase tracking-widest text-red-500">{joinError}</p>
-                  )}
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={roomCode.length !== 6 || isJoining}
-                  className="w-full py-10 text-2xl font-black bg-blue-600 hover:bg-blue-500 text-white rounded-2xl disabled:bg-muted disabled:text-muted-foreground transition-all shadow-2xl shadow-blue-900/20 group overflow-hidden relative border-none"
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-4 tracking-widest">
-                    {isJoining ? (
-                      <>
-                        <span className="w-7 h-7 border-4 border-white border-t-transparent rounded-full animate-spin" />
-                        CHECKING...
-                      </>
-                    ) : (
-                      <>
-                        JOIN BATTLE <Rocket size={28} className="group-hover:translate-x-2 group-hover:-translate-y-2 transition-transform duration-500" />
-                      </>
-                    )}
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite]" />
-                </Button>
-              </form>
-            </div>
-          </div>
-
-          <div className="mt-12 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-500">
-            <Link href="/auth/signup" className="flex items-center gap-3 px-8 py-4 rounded-2xl bg-blue-600 text-white hover:bg-blue-500 transition-all text-sm font-black uppercase tracking-widest shadow-lg">
-              <Zap size={16} className="fill-white" /> Get Started for Free
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button
+              className="zy-btn-ghost"
+              style={{ padding: "8px 10px" }}
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            >
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+            <Link href="/auth/signin" className="zy-btn-ghost" style={{ textDecoration: "none", fontSize: 14 }}>
+              Sign in
             </Link>
-
-            <div className="flex justify-center gap-4 w-full">
-              {[
-                { icon: Globe, label: "EXPLORE", href: "/explore" },
-                { icon: Zap, label: "CREATE", href: "/create" },
-                { icon: Shield, label: "HOST LOGIN", href: "/auth/signin" }
-              ].map((f, i) => (
-                <Link key={i} href={f.href} className="flex-1 flex flex-col items-center gap-2 p-5 rounded-[2rem] bg-card border border-border hover:bg-accent/50 transition-all transform hover:scale-105 shadow-sm">
-                  <f.icon className="text-blue-500" size={24} />
-                  <span className="text-[10px] font-black tracking-widest text-muted-foreground uppercase">{f.label}</span>
-                </Link>
-              ))}
-            </div>
+            <Link href="/auth/signup" className="zy-btn-primary" style={{ textDecoration: "none", fontSize: 14 }}>
+              Get started
+            </Link>
           </div>
         </div>
-      </main>
+      </header>
 
-      {/* Subtle Footer */}
-      <footer className="p-8 text-center text-muted-foreground/50 text-[10px] font-black uppercase tracking-[0.4em]">
-        &copy; 2026 ZYNQIO &bull; ADVANCED QUIZ PLATFORM
+      {/* Hero */}
+      <section style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px 60px", textAlign: "center", position: "relative", zIndex: 2 }}>
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "6px 14px",
+            borderRadius: 99,
+            border: "1px solid var(--border-a)",
+            background: "var(--card-raw)",
+            fontSize: 12,
+            fontWeight: 600,
+            color: "var(--t2)",
+            marginBottom: 32,
+            animation: "fadeUp 0.5s ease both",
+          }}
+        >
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green)", display: "inline-block", animation: "pulse 1.5s infinite" }} />
+          Live multiplayer quiz platform
+        </div>
+
+        <h1
+          style={{
+            fontSize: "clamp(48px, 8vw, 90px)",
+            fontWeight: 800,
+            lineHeight: 1.02,
+            letterSpacing: "-0.04em",
+            animation: "fadeUp 0.6s ease both",
+            color: "var(--t1)",
+          }}
+        >
+          Think Fast.{" "}
+          <br />
+          Play Smart.{" "}
+          <br />
+          <span
+            className="gradient-text"
+            style={{
+              fontStyle: "italic",
+              fontFamily: "Georgia, serif",
+              fontWeight: 400,
+              fontSize: "1.1em",
+            }}
+          >
+            Quiz Harder.
+          </span>
+        </h1>
+
+        <p
+          style={{
+            fontSize: 18,
+            color: "var(--t2)",
+            marginTop: 28,
+            maxWidth: 600,
+            marginInline: "auto",
+            lineHeight: 1.55,
+            animation: "fadeUp 0.7s ease both",
+          }}
+        >
+          Host live quiz battles for your class, team, or audience — with
+          real-time leaderboards, 6 game modes, and zero setup.
+        </p>
+
+        {/* Join code input */}
+        <form
+          onSubmit={handleJoin}
+          style={{
+            marginTop: 48,
+            display: "flex",
+            gap: 8,
+            maxWidth: 460,
+            marginInline: "auto",
+            padding: 8,
+            background: "var(--card-raw)",
+            WebkitBackdropFilter: "blur(20px)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid var(--border-raw)",
+            borderRadius: 16,
+            boxShadow: "var(--shadow)",
+            animation: "fadeUp 0.8s ease both",
+          }}
+        >
+          <input
+            value={roomCode}
+            onChange={(e) => { setRoomCode(e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase()); setJoinError(""); }}
+            placeholder="GAME CODE"
+            maxLength={6}
+            autoCapitalize="characters"
+            style={{
+              flex: 1,
+              padding: "14px 18px",
+              fontSize: 20,
+              fontWeight: 700,
+              letterSpacing: "0.2em",
+              background: "transparent",
+              border: "none",
+              color: "var(--t1)",
+              fontFamily: "var(--font-space-mono)",
+              outline: "none",
+            }}
+          />
+          <button
+            type="submit"
+            disabled={roomCode.length !== 6 || isJoining}
+            className="zy-btn-primary"
+            style={{ padding: "0 22px", fontSize: 15, borderRadius: 10, opacity: roomCode.length !== 6 ? 0.5 : 1 }}
+          >
+            {isJoining ? "…" : <>Join <ArrowRight size={16} /></>}
+          </button>
+        </form>
+
+        {joinError && (
+          <p style={{ color: "var(--red)", fontSize: 13, fontWeight: 600, marginTop: 12, animation: "fadeUp 0.2s ease both" }}>
+            {joinError}
+          </p>
+        )}
+
+        <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 14, animation: "fadeUp 0.9s ease both" }}>
+          No account needed to join ·{" "}
+          <Link href="/auth/signup" style={{ color: "var(--p2)", fontWeight: 600, textDecoration: "underline" }}>
+            Host a quiz for free
+          </Link>
+        </div>
+      </section>
+
+      {/* Game modes */}
+      <section style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 24px", position: "relative", zIndex: 2 }}>
+        <div style={{ fontSize: 11, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.15em", fontWeight: 700, textAlign: "center", marginBottom: 24 }}>
+          6 GAME MODES
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
+          {MODES.map((m, i) => (
+            <div
+              key={m.label}
+              className="zy-card"
+              style={{
+                padding: 18,
+                textAlign: "center",
+                animation: `fadeUp 0.4s ease ${0.3 + i * 0.05}s both`,
+              }}
+            >
+              <div style={{ fontSize: 30, marginBottom: 10 }}>{m.icon}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)" }}>{m.label}</div>
+              <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 4 }}>{m.desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Features */}
+      <section style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px", position: "relative", zIndex: 2 }}>
+        <h2 style={{ fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 800, letterSpacing: "-0.03em", maxWidth: 600, lineHeight: 1.1, color: "var(--t1)" }}>
+          Everything you need to{" "}
+          <span className="gradient-text">run better quizzes</span>
+        </h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, marginTop: 40 }}>
+          {FEATURES.map((f) => (
+            <div key={f.title} className="zy-card" style={{ padding: 24 }}>
+              <div
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 11,
+                  background: "var(--bg2-raw)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--p2)",
+                  marginBottom: 16,
+                }}
+              >
+                {f.icon}
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--t1)", marginBottom: 6 }}>{f.title}</div>
+              <div style={{ fontSize: 13, color: "var(--t3)", lineHeight: 1.6 }}>{f.desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA banner */}
+      <section
+        style={{
+          maxWidth: 880,
+          margin: "0 auto 80px",
+          padding: "48px 32px",
+          borderRadius: 24,
+          background: "linear-gradient(135deg, var(--bg2-raw), var(--bg3-raw))",
+          border: "1px solid var(--border-a)",
+          textAlign: "center",
+          position: "relative",
+          zIndex: 2,
+        }}
+      >
+        <h3 style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 800, letterSpacing: "-0.025em", color: "var(--t1)" }}>
+          Ready to host your first quiz?
+        </h3>
+        <p style={{ color: "var(--t3)", marginTop: 14, fontSize: 15, maxWidth: 480, marginInline: "auto" }}>
+          Free forever for educators. No credit card required.
+        </p>
+        <Link
+          href="/auth/signup"
+          className="zy-btn-primary"
+          style={{ display: "inline-flex", marginTop: 28, padding: "14px 26px", fontSize: 15, textDecoration: "none" }}
+        >
+          Create free account <ArrowRight size={16} />
+        </Link>
+      </section>
+
+      {/* Footer */}
+      <footer
+        style={{
+          padding: "30px 24px",
+          borderTop: "1px solid var(--border-raw)",
+          textAlign: "center",
+          color: "var(--t3)",
+          fontSize: 12,
+          position: "relative",
+          zIndex: 2,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <LogoMark />
+          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--t2)" }}>zynqio</span>
+        </div>
+        <div>© 2026 Zynqio · Think Fast. Play Smart. Quiz Harder.</div>
+        <div style={{ display: "flex", gap: 16 }}>
+          <Link href="/explore" style={{ color: "var(--t3)", textDecoration: "none" }}>Explore</Link>
+          <Link href="/auth/signin" style={{ color: "var(--t3)", textDecoration: "none" }}>Sign in</Link>
+          <Link href="/auth/signup" style={{ color: "var(--t3)", textDecoration: "none" }}>Sign up</Link>
+        </div>
       </footer>
     </div>
   );

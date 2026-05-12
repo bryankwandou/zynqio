@@ -25,7 +25,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
   return (
     <button
       onClick={onChange}
-      className={`relative w-12 h-6 rounded-full transition-colors duration-200 flex-shrink-0 ${on ? "bg-blue-600" : "bg-white/10"}`}
+      className={`relative w-12 h-6 rounded-full transition-colors duration-200 flex-shrink-0 ${on ? "bg-primary" : "bg-white/10"}`}
     >
       <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${on ? "translate-x-6" : "translate-x-0.5"}`} />
     </button>
@@ -149,7 +149,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
       {/* Header */}
       <header className="px-6 py-4 border-b border-white/10 bg-[#16162a] flex justify-between items-center shadow-lg">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center font-black text-lg">Z</div>
+          <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center font-black text-lg">Z</div>
           <span className="font-bold text-white/80">Host Control</span>
         </div>
         <div className="flex items-center gap-3">
@@ -189,7 +189,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
             <div className="flex gap-2 mt-4 w-full">
               <button
                 onClick={() => copyText(joinUrl, "Link copied!")}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-500 rounded-xl transition-all"
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold bg-primary hover:bg-primary/90 rounded-xl transition-all"
               >
                 <Copy size={12} /> Copy Link
               </button>
@@ -226,7 +226,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
             <span className="font-bold text-white flex items-center gap-2">
               <Users size={16} className="text-blue-400" /> Players in Lobby
             </span>
-            <span className="bg-blue-600 text-white text-xs font-black px-3 py-1 rounded-full">{players.length}</span>
+            <span className="bg-primary text-white text-xs font-black px-3 py-1 rounded-full">{players.length}</span>
           </div>
 
           <div className="flex-1 p-5 overflow-y-auto">
@@ -310,7 +310,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                       onClick={() => setGameMode(mode.id)}
                       className={`p-3 rounded-xl border text-left transition-all ${
                         gameMode === mode.id
-                          ? "border-blue-500 bg-blue-500/15 shadow-lg shadow-blue-900/20"
+                          ? "border-primary bg-primary/90/15 shadow-lg shadow-primary/30"
                           : "border-white/10 bg-white/5 hover:bg-white/10"
                       }`}
                     >
@@ -354,7 +354,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                       key={t}
                       onClick={() => setGlobalTimer(t)}
                       className={`px-4 py-2 rounded-xl font-bold text-sm border transition-all ${
-                        globalTimer === t ? "bg-blue-600 border-blue-500 text-white" : "bg-white/5 border-white/10 text-white/50 hover:text-white"
+                        globalTimer === t ? "bg-primary border-primary text-white" : "bg-white/5 border-white/10 text-white/50 hover:text-white"
                       }`}
                     >
                       {t}s
@@ -380,7 +380,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                         <div
                           className={`w-10 rounded-t-lg flex items-end justify-center pb-1 text-xs font-black transition-all ${
                             winnerCount >= n
-                              ? n === 1 ? "bg-yellow-400 text-yellow-900" : n === 2 ? "bg-slate-400 text-white" : n === 3 ? "bg-amber-700 text-white" : "bg-blue-600 text-white"
+                              ? n === 1 ? "bg-yellow-400 text-yellow-900" : n === 2 ? "bg-slate-400 text-white" : n === 3 ? "bg-amber-700 text-white" : "bg-primary text-white"
                               : "bg-white/10 text-white/30"
                           }`}
                           style={{ height: heights[n - 1] }}

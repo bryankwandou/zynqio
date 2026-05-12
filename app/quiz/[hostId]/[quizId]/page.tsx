@@ -65,7 +65,7 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
   if (!quiz) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground font-bold uppercase tracking-widest">Quiz not found.</div>;
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-blue-500/30">
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary/90/30">
       <Navbar />
       
       <main className="container mx-auto px-4 py-8 max-w-5xl">
@@ -74,7 +74,7 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
           <div className="md:col-span-2 space-y-6">
             <div className="bg-card border border-border rounded-3xl p-8 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 p-4">
-                <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 uppercase tracking-widest">
+                <span className="text-xs font-bold text-blue-400 bg-primary/90/10 px-3 py-1 rounded-full border border-primary/20 uppercase tracking-widest">
                   {quiz.category}
                 </span>
               </div>
@@ -84,7 +84,7 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
               
               <div className="flex flex-wrap gap-6 text-sm text-muted-foreground mb-8 pt-6 border-t border-border">
                 <div className="flex items-center gap-2">
-                  <Users size={18} className="text-blue-500" />
+                  <Users size={18} className="text-primary" />
                   <span className="font-bold text-foreground">{(quiz.plays || 0).toLocaleString()}</span> plays
                 </div>
                 <div className="flex items-center gap-2">
@@ -106,7 +106,7 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
                 <Button
                   onClick={handleHost}
                   disabled={hosting}
-                  className="flex-1 py-6 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white font-black text-lg rounded-2xl group transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                  className="flex-1 py-6 bg-primary hover:bg-primary disabled:opacity-70 text-white font-black text-lg rounded-2xl group transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)]"
                 >
                   {hosting ? (
                     <Loader2 size={20} className="animate-spin mr-2" />
@@ -130,10 +130,10 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
                 Correct answers are hidden — join a live session to play.
               </div>
               {quiz.questions?.map((q: any, i: number) => (
-                <div key={i} className="bg-card border border-border rounded-2xl p-6 hover:border-blue-500/30 transition-colors shadow-lg">
+                <div key={i} className="bg-card border border-border rounded-2xl p-6 hover:border-primary/30 transition-colors shadow-lg">
                   <div className="flex justify-between items-start mb-4">
                     <span className="text-xs font-black text-muted-foreground uppercase tracking-widest">Question {i + 1} • {q.type}</span>
-                    <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded">{q.points} pt</span>
+                    <span className="text-xs font-bold text-blue-400 bg-primary/90/10 px-2 py-1 rounded">{q.points} pt</span>
                   </div>
                   <p className="text-lg text-foreground font-medium mb-4">{q.text}</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

@@ -411,7 +411,7 @@ export default function ImportQuiz() {
 
         {!preview.length ? (
           <div
-            className={`bg-card border-2 rounded-3xl p-16 text-center transition-all ${dragging ? "border-blue-500 bg-blue-500/5" : "border-border border-dashed"}`}
+            className={`bg-card border-2 rounded-3xl p-16 text-center transition-all ${dragging ? "border-primary bg-primary/90/5" : "border-border border-dashed"}`}
             onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
@@ -424,7 +424,7 @@ export default function ImportQuiz() {
               onChange={handleFileChange}
             />
             <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
-              <div className="w-24 h-24 bg-blue-600/10 text-blue-500 rounded-full flex items-center justify-center mb-8 shadow-inner">
+              <div className="w-24 h-24 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-8 shadow-inner">
                 <Upload size={40} className={dragging ? "scale-110 transition-transform" : "animate-bounce"} />
               </div>
               <h2 className="text-2xl font-black text-foreground mb-4 uppercase">
@@ -441,7 +441,7 @@ export default function ImportQuiz() {
                   </span>
                 ))}
               </div>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 px-10 rounded-2xl shadow-lg shadow-blue-900/20 pointer-events-none">
+              <Button className="bg-primary hover:bg-primary text-white font-bold py-6 px-10 rounded-2xl shadow-lg shadow-primary/30 pointer-events-none">
                 Select File
               </Button>
             </label>
@@ -471,7 +471,7 @@ export default function ImportQuiz() {
                   <CheckCircle2 size={24} /> {preview.length} Questions Ready
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground font-bold uppercase tracking-wider">
-                  <Zap size={12} className="text-blue-500" />
+                  <Zap size={12} className="text-primary" />
                   Detected format: <span className="text-blue-400 ml-1">{PLATFORM_LABELS[platform]}</span>
                 </div>
                 {errors.length > 0 && (
@@ -515,7 +515,7 @@ export default function ImportQuiz() {
                       <td className="p-4 text-muted-foreground font-bold text-xs">{i + 1}</td>
                       <td className="p-4">
                         <span className={`px-2 py-1 rounded text-[10px] font-black uppercase ${
-                          q.type === "MCQ" ? "bg-blue-500/10 text-blue-400" :
+                          q.type === "MCQ" ? "bg-primary/90/10 text-blue-400" :
                           q.type === "TF" ? "bg-green-500/10 text-green-400" :
                           q.type === "FIB" ? "bg-purple-500/10 text-purple-400" :
                           q.type === "MSQ" ? "bg-orange-500/10 text-orange-400" :

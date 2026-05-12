@@ -197,7 +197,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
   if (!results) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
         <p className="text-foreground font-bold animate-pulse">Calculating Results...</p>
       </div>
     );
@@ -283,7 +283,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
               />
               <div className="flex gap-3">
                 <Button onClick={() => setShowRating(false)} variant="outline" className="flex-1 border-border dark:border-white/20 dark:text-white/70">Skip</Button>
-                <Button onClick={submitRating} disabled={rating === 0} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white">Submit</Button>
+                <Button onClick={submitRating} disabled={rating === 0} className="flex-1 bg-primary hover:bg-primary/90 text-white">Submit</Button>
               </div>
             </div>
           </div>
@@ -306,7 +306,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
               key={t}
               onClick={() => setTab(t as any)}
               className={`px-5 py-3 font-bold whitespace-nowrap capitalize transition-colors text-sm ${
-                tab === t ? "text-blue-500 border-b-2 border-blue-500" : "text-muted-foreground hover:text-foreground"
+                tab === t ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {t === "analytics" ? "📊 Analytics" : t === "review" ? "📝 Review" : "🏅 Leaderboard"}
@@ -320,14 +320,14 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
             {results.gameMode === "team" && results.teamLeaderboard?.length > 0 && (
               <div className="bg-card border border-border rounded-2xl p-5 shadow-lg mb-4">
                 <h2 className="font-bold mb-3 flex items-center gap-2 text-sm text-muted-foreground uppercase tracking-widest">
-                  <Users size={14} className="text-blue-500" /> Team Rankings
+                  <Users size={14} className="text-primary" /> Team Rankings
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {results.teamLeaderboard.map((t: any, i: number) => (
                     <div key={i} className="bg-accent/30 px-4 py-3 rounded-xl flex justify-between items-center border border-border">
                       <div className="flex items-center gap-2">
                         <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-white ${
-                          t.name.includes("Red") ? "bg-red-500" : t.name.includes("Blue") ? "bg-blue-500" : "bg-green-500"
+                          t.name.includes("Red") ? "bg-red-500" : t.name.includes("Blue") ? "bg-primary/90" : "bg-green-500"
                         }`}>{i + 1}</div>
                         <span className="font-bold text-sm">{t.name}</span>
                       </div>
@@ -356,7 +356,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
                   <div
                     key={i}
                     className={`flex items-center gap-3 p-4 border-b border-border last:border-0 transition-colors ${
-                      isMe ? "bg-blue-500/5 border-l-4 border-l-blue-500" : i === 0 ? "bg-yellow-500/5" : "hover:bg-accent/30"
+                      isMe ? "bg-primary/90/5 border-l-4 border-l-blue-500" : i === 0 ? "bg-yellow-500/5" : "hover:bg-accent/30"
                     }`}
                   >
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs shrink-0 ${medalColors[i] || "bg-muted text-muted-foreground"}`}>
@@ -373,7 +373,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
                       <div className="text-xs text-muted-foreground">{p.totalCorrect || 0}/{p.totalAnswered || 0} correct</div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="font-black text-blue-500 text-sm">{(p.score || 0).toLocaleString()} pts</div>
+                      <div className="font-black text-primary text-sm">{(p.score || 0).toLocaleString()} pts</div>
                       <div className="text-xs text-muted-foreground">{p.accuracy}% acc</div>
                     </div>
                   </div>
@@ -389,7 +389,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[
                 { label: "Class Accuracy", val: `${results.stats?.avgAccuracy || 0}%`, color: "text-green-500" },
-                { label: "Participants",   val: results.stats?.totalPlayers || 0,     color: "text-blue-500" },
+                { label: "Participants",   val: results.stats?.totalPlayers || 0,     color: "text-primary" },
                 { label: "Top Score",      val: `${(results.leaderboard?.[0]?.score || 0).toLocaleString()} pts`, color: "text-yellow-500" },
               ].map((stat) => (
                 <div key={stat.label} className="bg-card border border-border p-5 rounded-2xl shadow-lg">
@@ -401,7 +401,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
 
             <div className="bg-card border border-border rounded-2xl p-6 shadow-lg">
               <h3 className="font-black mb-5 flex items-center gap-2">
-                <BarChart2 size={16} className="text-blue-500" /> Question Difficulty
+                <BarChart2 size={16} className="text-primary" /> Question Difficulty
               </h3>
               <div className="space-y-4">
                 {results.questions?.map((q: any, i: number) => (
@@ -449,7 +449,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
                           <span className="font-medium text-foreground">{p.name}</span>
                         </div>
                       </td>
-                      <td className="py-2.5 text-right font-bold text-blue-500">{p.score.toLocaleString()}</td>
+                      <td className="py-2.5 text-right font-bold text-primary">{p.score.toLocaleString()}</td>
                       <td className="py-2.5 text-right text-muted-foreground">{p.totalCorrect || 0}/{p.totalAnswered || 0}</td>
                       <td className="py-2.5 text-right">
                         <span className={`font-bold ${p.accuracy >= 80 ? "text-green-500" : p.accuracy >= 50 ? "text-amber-500" : "text-red-500"}`}>

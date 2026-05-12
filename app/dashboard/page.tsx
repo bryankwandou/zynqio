@@ -3,165 +3,156 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Navbar } from "@/components/navbar";
-import { Button } from "@/components/ui/button";
+import { AppShell } from "@/components/AppShell";
 import Link from "next/link";
-import { Plus, Play, Edit, Copy, Trash2, BarChart2 } from "lucide-react";
+import { Plus, Play, Edit, Trash2, Book, Zap, Users, Target, Loader2 } from "lucide-react";
+
+function StatCard({ label, value, icon: Icon, color }: { label: string; value: string | number; icon: any; color: string }) {
+  return (
+    <div className="zy-card" style={{ padding: 18 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
+        <div style={{ fontSize: 11, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>{label}</div>
+        <div style={{ width: 32, height: 32, borderRadius: 9, background: "var(--bg2-raw)", display: "flex", alignItems: "center", justifyContent: "center", color }}>
+          <Icon size={16} />
+        </div>
+      </div>
+      <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.02em", color: "var(--t1)" }}>{value}</div>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [quizzes, setQuizzes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/auth/signin");
-    }
+    if (status === "unauthenticated") router.push("/auth/signin");
+  }, [status, router]);
 
-    async function fetchMyQuizzes() {
-      try {
-        const res = await fetch('/api/quiz/list');
-        if (res.ok) {
-          const data = await res.json();
-          setQuizzes(data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch quizzes", err);
-      }
-    }
-
-    if (session) fetchMyQuizzes();
-  }, [status, router, session]);
+  useEffect(() => {
+    if (!session) return;
+    fetch("/api/quiz/list")
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setQuizzes(data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [session]);
 
   const handleHost = async (quizId: string) => {
-    try {
-      const res = await fetch('/api/room/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quizId })
-      });
-      if (res.ok) {
-        const { roomCode } = await res.json();
-        router.push(`/host/${roomCode}`);
-      }
-    } catch (err) {
-      console.error("Failed to create room", err);
+    const res = await fetch("/api/room/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quizId }),
+    });
+    if (res.ok) {
+      const { roomCode } = await res.json();
+      router.push(`/host/${roomCode}`);
     }
   };
 
   const handleDelete = async (quizId: string) => {
-    if (!confirm("Are you sure you want to delete this quiz?")) return;
-    try {
-      const res = await fetch(`/api/quiz/delete?quizId=${encodeURIComponent(quizId)}`, {
-        method: 'DELETE',
-      });
-      if (res.ok) {
-        setQuizzes(prev => prev.filter(q => q.id !== quizId));
-      } else {
-        console.error("Failed to delete quiz");
-      }
-    } catch (err) {
-      console.error("Failed to delete quiz", err);
-    }
+    if (!confirm("Delete this quiz?")) return;
+    const res = await fetch(`/api/quiz/delete?quizId=${encodeURIComponent(quizId)}`, { method: "DELETE" });
+    if (res.ok) setQuizzes(p => p.filter(q => q.id !== quizId));
   };
 
   if (status === "loading") {
-    return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">
-      <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-    </div>;
-  }
-
-  if (!session) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center text-foreground gap-4">
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm font-black uppercase tracking-widest text-muted-foreground">Redirecting...</p>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 size={32} className="animate-spin" style={{ color: "var(--p)" }} />
       </div>
     );
   }
 
+  if (!session) return null;
+
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <Navbar />
+    <AppShell>
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, marginBottom: 28, flexWrap: "wrap" }}>
+        <div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.025em", color: "var(--t1)" }}>Dashboard</h1>
+          <p style={{ fontSize: 14, color: "var(--t3)", marginTop: 4 }}>
+            Welcome back, {session.user?.name?.split(" ")[0] || "Host"}
+          </p>
+        </div>
+        <Link href="/create" className="zy-btn-primary" style={{ textDecoration: "none", fontSize: 14 }}>
+          <Plus size={16} /> New quiz
+        </Link>
+      </div>
 
-      <main className="flex-1 container mx-auto px-4 py-12 max-w-6xl">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-4xl font-black uppercase tracking-tight">My Quizzes</h1>
-              <Link href="/setup">
-                <div className="px-3 py-1 rounded-full bg-blue-600/10 border border-blue-600/20 text-blue-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 hover:bg-blue-600/20 transition-all cursor-pointer">
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                  Zynqio Advanced
-                </div>
-              </Link>
-            </div>
-            <p className="text-muted-foreground font-medium">Manage and host your professional quiz sessions</p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 28 }}>
+        <StatCard label="Quizzes" value={quizzes.length} icon={Book} color="var(--p)" />
+        <StatCard label="Questions" value={quizzes.reduce((s, q) => s + (q.questionCount || 0), 0)} icon={Zap} color="var(--acc)" />
+        <StatCard label="Public" value={quizzes.filter(q => q.status !== "private").length} icon={Users} color="var(--green)" />
+        <StatCard label="Total plays" value="—" icon={Target} color="var(--orange)" />
+      </div>
+
+      <div>
+        <h2 style={{ fontSize: 13, fontWeight: 700, color: "var(--t2)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 14 }}>
+          My Quizzes
+        </h2>
+
+        {loading ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} className="zy-card" style={{ height: 180, animation: "pulse 1.5s infinite" }} />
+            ))}
           </div>
-          <Link href="/create">
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white font-black py-7 px-10 rounded-2xl flex items-center gap-3 shadow-lg shadow-blue-900/20 transform hover:scale-105 transition-all">
-              <Plus size={24} />
-              CREATE NEW QUIZ
-            </Button>
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {quizzes.map(quiz => (
-            <div key={quiz.id} className="group bg-card border border-border rounded-[2.5rem] p-8 flex flex-col transition-all hover:border-blue-500/50 hover:shadow-2xl shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 blur-3xl -mr-16 -mt-16 group-hover:bg-blue-600/10 transition-colors" />
-
-              <div className="flex justify-between items-start mb-6">
-                <h3 className="text-2xl font-black text-foreground line-clamp-1 uppercase tracking-tight">{quiz.title}</h3>
-                <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest ${quiz.status !== 'private' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'}`}>
-                  {quiz.status !== 'private' ? 'PUBLIC' : 'PRIVATE'}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-8 font-bold uppercase tracking-widest">
-                <span className="text-blue-500">{quiz.questionCount} Questions</span>
-                <span className="opacity-30">•</span>
-                <span>{new Date(quiz.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-              </div>
-
-              <div className="mt-auto grid grid-cols-2 gap-3">
-                <Button
-                  className="w-full bg-blue-600 text-white hover:bg-blue-700 font-black rounded-xl py-6 shadow-md"
-                  onClick={() => handleHost(quiz.id)}
-                >
-                  <Play size={18} className="mr-2 fill-white" /> HOST
-                </Button>
-                <Link href={`/create?quizId=${encodeURIComponent(quiz.id)}`} className="w-full">
-                  <Button variant="outline" className="w-full font-black rounded-xl py-6 border-border dark:border-white/20 dark:text-white/80 dark:bg-white/5 hover:bg-accent dark:hover:bg-white/10">
-                    <Edit size={18} className="mr-2" /> EDIT
-                  </Button>
-                </Link>
-              </div>
-
-              <div className="flex justify-between mt-6 pt-6 border-t border-border text-muted-foreground">
-                <button className="hover:text-blue-500 transition-colors p-2" title="Duplicate"><Copy size={18} /></button>
-                <button className="hover:text-blue-500 transition-colors p-2" title="Analytics"><BarChart2 size={18} /></button>
-                <button className="hover:text-red-500 transition-colors p-2" title="Delete" onClick={() => handleDelete(quiz.id)}><Trash2 size={18} /></button>
-              </div>
+        ) : quizzes.length === 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 24px", border: "1.5px dashed var(--border-raw)", borderRadius: 16, background: "var(--card-raw)", textAlign: "center", gap: 14 }}>
+            <div style={{ width: 60, height: 60, borderRadius: 18, background: "var(--bg2-raw)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--t3)" }}>
+              <Book size={26} />
             </div>
-          ))}
-          
-          {quizzes.length === 0 && (
-            <div className="col-span-full py-24 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-[3rem] bg-card/50 shadow-inner">
-              <div className="w-20 h-20 bg-blue-600/10 rounded-full flex items-center justify-center mb-6 text-blue-500">
-                <Plus size={40} />
-              </div>
-              <h3 className="text-3xl font-black text-foreground mb-3 uppercase tracking-tight">No quizzes yet</h3>
-              <p className="text-muted-foreground mb-10 text-center max-w-md font-medium">Create your first professional quiz to start hosting engaging real-time sessions today.</p>
-              <Link href="/create">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white font-black py-7 px-12 rounded-2xl shadow-xl shadow-blue-900/20 transform hover:scale-105 transition-all">
-                  START CREATING
-                </Button>
-              </Link>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--t1)" }}>No quizzes yet</h3>
+              <p style={{ fontSize: 13, color: "var(--t3)", marginTop: 6, maxWidth: 320, lineHeight: 1.6 }}>
+                Create your first quiz to start hosting real-time sessions.
+              </p>
             </div>
-          )}
-        </div>
-      </main>
-    </div>
+            <Link href="/create" className="zy-btn-primary" style={{ textDecoration: "none", marginTop: 6, fontSize: 14 }}>
+              <Plus size={15} /> Create quiz
+            </Link>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+            {quizzes.map(quiz => (
+              <div key={quiz.id} className="zy-card" style={{ padding: 18, display: "flex", flexDirection: "column" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 11, background: "var(--bg2-raw)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>
+                    📚
+                  </div>
+                  <span style={{
+                    padding: "3px 9px", borderRadius: 8, fontSize: 11, fontWeight: 600,
+                    background: quiz.status !== "private" ? "rgba(52,211,153,0.15)" : "var(--bg2-raw)",
+                    color: quiz.status !== "private" ? "var(--green)" : "var(--t3)",
+                  }}>
+                    {quiz.status !== "private" ? "● PUBLIC" : "PRIVATE"}
+                  </span>
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--t1)", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {quiz.title}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--t3)", marginBottom: 16 }}>
+                  {quiz.questionCount} questions · {new Date(quiz.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
+                  <button onClick={() => handleHost(quiz.id)} className="zy-btn-primary" style={{ flex: 1, padding: "9px", fontSize: 13 }}>
+                    <Play size={14} /> Host
+                  </button>
+                  <Link href={`/create?quizId=${encodeURIComponent(quiz.id)}`} className="zy-btn-ghost" style={{ padding: "9px 12px", textDecoration: "none", fontSize: 13 }}>
+                    <Edit size={14} />
+                  </Link>
+                  <button onClick={() => handleDelete(quiz.id)} className="zy-btn-ghost" style={{ padding: "9px 12px", color: "var(--red)" }}>
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </AppShell>
   );
 }
