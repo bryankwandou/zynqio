@@ -70,7 +70,7 @@ export default function SetupPage() {
     <div className="flex flex-col min-h-screen bg-background text-foreground relative overflow-hidden">
       {/* Dynamic Background */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-30">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 rounded-full blur-[120px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/10 rounded-full blur-[120px]" />
       </div>
 
@@ -83,11 +83,11 @@ export default function SetupPage() {
           className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12"
         >
           <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-600/10 border border-blue-600/20 text-blue-500 text-[10px] font-black uppercase tracking-widest">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-blue-600/20 text-primary text-[10px] font-black uppercase tracking-widest">
               <Shield size={14} /> Production Security Active
             </div>
             <h1 className="text-4xl md:text-6xl font-black tracking-tight uppercase leading-none">
-              System <span className="text-blue-600">Diagnostics</span>
+              System <span className="text-primary">Diagnostics</span>
             </h1>
             <p className="text-muted-foreground text-lg max-w-xl font-medium">
               Real-time monitoring of Zynqio&apos;s production infrastructure and automated scaling.
@@ -97,7 +97,7 @@ export default function SetupPage() {
           <div className={`px-6 py-4 rounded-3xl border-2 flex items-center gap-4 shadow-xl transition-all ${
             isHealthy 
               ? "bg-green-500/10 border-green-500/30 text-green-500" 
-              : "bg-blue-500/10 border-blue-500/30 text-blue-500 shadow-blue-500/10" 
+              : "bg-primary/90/10 border-primary/30 text-primary shadow-primary/10" 
           }`}>
             <div className="w-12 h-12 rounded-2xl bg-current/10 flex items-center justify-center">
               {isHealthy ? <Activity size={24} /> : <Zap size={24} />}
@@ -120,12 +120,12 @@ export default function SetupPage() {
               <Database size={120} />
             </div>
             <h2 className="text-2xl font-black mb-6 uppercase tracking-tight flex items-center gap-3 text-foreground">
-              <Server className="text-blue-600" /> Infrastructure Core
+              <Server className="text-primary" /> Infrastructure Core
             </h2>
             <div className="space-y-6 relative z-10">
               <div className="flex justify-between items-center p-4 rounded-2xl bg-accent/30 border border-border">
                 <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Environment</span>
-                <span className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-black uppercase">{data?.nodeEnv || "production"}</span>
+                <span className="px-3 py-1 bg-primary text-white rounded-lg text-xs font-black uppercase">{data?.nodeEnv || "production"}</span>
               </div>
               <div className="flex justify-between items-center p-4 rounded-2xl bg-accent/30 border border-border">
                 <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Engine Mode</span>
@@ -168,7 +168,7 @@ export default function SetupPage() {
                     item.state === 'set' 
                       ? 'bg-green-500/10 border-green-500/30 text-green-500' 
                       : item.state === 'fallback' 
-                        ? 'bg-blue-500/10 border-blue-500/30 text-blue-500' 
+                        ? 'bg-primary/90/10 border-primary/30 text-primary' 
                         : 'bg-red-500/10 border-red-500/30 text-red-500'
                   }`}>
                     {item.state === 'fallback' ? 'PRODUCTION' : item.state}
@@ -182,7 +182,7 @@ export default function SetupPage() {
         {/* Presidential Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Link href="/auth/signin" className="md:col-span-2 group">
-            <div className="bg-blue-600 p-8 rounded-[2rem] text-white flex justify-between items-center shadow-xl shadow-blue-900/20 group-hover:bg-blue-500 transition-all">
+            <div className="bg-primary p-8 rounded-[2rem] text-white flex justify-between items-center shadow-xl shadow-primary/30 group-hover:bg-primary/90 transition-all">
               <div>
                 <h3 className="text-2xl font-black uppercase tracking-tight mb-1">Return to Login</h3>
                 <p className="text-blue-100 text-sm font-medium">Continue to the platform login page.</p>
@@ -192,48 +192,48 @@ export default function SetupPage() {
           </Link>
 
           <a href="https://vercel.com/dashboard" target="_blank" rel="noreferrer" className="group">
-            <div className="bg-card border border-border p-8 rounded-[2rem] text-foreground flex justify-between items-center shadow-xl group-hover:border-blue-500/50 transition-all">
+            <div className="bg-card border border-border p-8 rounded-[2rem] text-foreground flex justify-between items-center shadow-xl group-hover:border-primary/50 transition-all">
               <div>
                 <h3 className="text-lg font-black uppercase tracking-tight mb-1">Update Vercel</h3>
                 <p className="text-muted-foreground text-xs font-medium flex items-center gap-1">Configure Vars <ExternalLink size={10} /></p>
               </div>
-              <Activity className="text-muted-foreground/30 group-hover:text-blue-500 transition-colors" size={24} />
+              <Activity className="text-muted-foreground/30 group-hover:text-primary transition-colors" size={24} />
             </div>
           </a>
         </div>
 
         {/* Presidential Action Notice */}
-        <div className="mt-12 p-8 bg-blue-600/10 border border-blue-600/20 rounded-[2.5rem] relative overflow-hidden">
+        <div className="mt-12 p-8 bg-primary/10 border border-blue-600/20 rounded-[2.5rem] relative overflow-hidden">
            <div className="relative z-10">
-              <h3 className="text-blue-600 font-black uppercase tracking-widest text-sm mb-4 flex items-center gap-2">
+              <h3 className="text-primary font-black uppercase tracking-widest text-sm mb-4 flex items-center gap-2">
                 <Shield size={18} /> Production Security Protocol
               </h3>
               <div className="space-y-3">
-                <p className="text-blue-600/80 text-sm font-medium leading-relaxed">
+                <p className="text-primary/80 text-sm font-medium leading-relaxed">
                   The Zynqio Engine is currently running in <strong>Production Mode</strong>. 
                   All systems are operational with full production state management and serverless persistence.
                 </p>
-                <div className="pt-4 border-t border-blue-600/10 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-600/60 tracking-widest">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                <div className="pt-4 border-t border-primary/10 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase text-primary/60 tracking-widest">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                     Google Auth: Operational
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-600/60 tracking-widest">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase text-primary/60 tracking-widest">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                     Storage Engine: Optimized
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-600/60 tracking-widest">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase text-primary/60 tracking-widest">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                     Real-time Logic: Active
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-600/60 tracking-widest">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase text-primary/60 tracking-widest">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                     Excel Engine: Production Ready
                   </div>
                 </div>
               </div>
            </div>
-           <Zap className="absolute right-[-20px] bottom-[-20px] text-blue-600/5 rotate-12" size={200} />
+           <Zap className="absolute right-[-20px] bottom-[-20px] text-primary/5 rotate-12" size={200} />
         </div>
       </main>
 

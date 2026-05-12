@@ -1,5 +1,6 @@
 import { redis } from './redis';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 export interface User {
   id: string;
@@ -41,9 +42,26 @@ export async function createUser(email: string, username: string, passwordPlain:
 export async function verifyUser(email: string, passwordPlain: string): Promise<User | null> {
   const user = await getUserByEmail(email);
   if (!user || !user.passwordHash) return null;
-  
+
   const isValid = await bcrypt.compare(passwordPlain, user.passwordHash);
   if (!isValid) return null;
-  
+
   return user;
+}
+
+export async function getUserById(id: string): Promise<User | null> {
+  const user = await redis.get<User>(`user:${id}`);
+  return user || null;
+}
+
+export async function updateUserPassword(userId: string, newPassword: string): Promise<void> {
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  user.passwordHash = passwordHash;
+
+  await redis.set(`user:${userId}`, user);
 }

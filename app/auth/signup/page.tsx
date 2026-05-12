@@ -2,38 +2,49 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { Zap, ArrowRight, User, Mail, Lock, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { signIn } from "next-auth/react";
 import Link from "next/link";
+import { useTheme } from "next-themes";
+import { Sun, Moon, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+
+function LogoMark() {
+  return (
+    <div style={{ width:48,height:48,borderRadius:13,background:"conic-gradient(from 0deg, var(--p), var(--p2), var(--acc), var(--p))",boxShadow:"0 4px 16px rgba(124,111,253,0.35)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:24,marginInline:"auto" }}>Z</div>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M22.5 12.3c0-.8-.1-1.4-.2-2.1H12v3.9h5.9c-.1.9-.8 2.3-2.3 3.3L18 19.5c2.2-2 3.5-5 3.5-7.2z"/>
+      <path fill="#34A853" d="M12 23c3.2 0 5.8-1 7.7-2.8l-3.7-2.9c-1 .7-2.3 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9l-4 3C3.4 20.5 7.4 23 12 23z"/>
+      <path fill="#FBBC04" d="M5.4 13.5C5.2 12.9 5.1 12.2 5.1 11.5s.1-1.4.3-2L1.4 6.5C.5 8 0 9.7 0 11.5s.5 3.5 1.4 5l4-3z"/>
+      <path fill="#EA4335" d="M12 4.6c1.8 0 3 .8 3.7 1.4l2.7-2.6C16.7 1.9 14.4 1 12 1 7.4 1 3.4 3.5 1.4 6.5l4 3C6.3 6.7 8.9 4.6 12 4.6z"/>
+    </svg>
+  );
+}
 
 export default function Signup() {
+  const router = useRouter();
+  const { theme, setTheme } = useTheme();
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
-
     try {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, username, password }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Something went wrong");
-      }
-
+      if (!res.ok) throw new Error(data.error || "Something went wrong");
       router.push("/auth/signin?registered=true");
     } catch (err: any) {
       setError(err.message);
@@ -43,91 +54,47 @@ export default function Signup() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background text-foreground p-4 relative overflow-hidden">
-      {/* Background Blobs */}
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
+    <div style={{ position:"relative",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24 }}>
+      <div className="ambient"/>
+      <div style={{ position:"fixed",top:20,right:20,zIndex:100 }}>
+        <button className="zy-btn-ghost" style={{ padding:"8px 10px" }} onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+          {theme === "dark" ? <Sun size={16}/> : <Moon size={16}/>}
+        </button>
       </div>
-
-      <div className="fixed top-6 right-6 z-[100]">
-        <ThemeToggle />
-      </div>
-
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-[480px] space-y-6 relative z-10"
-      >
-        <div className="bg-card backdrop-blur-3xl border border-border rounded-[2.5rem] p-10 md:p-12 shadow-[0_30px_100px_rgba(0,0,0,0.3)]">
-          <div className="text-center mb-10">
-            <div className="w-16 h-16 bg-blue-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg mb-6">
-              <Zap className="text-white fill-white" size={32} />
-            </div>
-            <h1 className="text-3xl font-black text-foreground tracking-tight mb-2 uppercase">Create Account</h1>
-            <p className="text-muted-foreground font-medium">Join Zynqio and start hosting quizzes</p>
-          </div>
-
-          {error && (
-            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-xs font-bold text-red-500 uppercase tracking-wider text-center">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSignup} className="space-y-4">
-            <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-blue-500 transition-colors" size={18} />
-              <input 
-                type="email" 
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email Address" 
-                className="w-full bg-background border border-border text-foreground rounded-2xl py-4 pl-12 pr-4 focus:border-blue-500 outline-none transition-all font-medium"
-              />
-            </div>
-            <div className="relative group">
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-blue-500 transition-colors" size={18} />
-              <input 
-                type="text" 
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Username" 
-                className="w-full bg-background border border-border text-foreground rounded-2xl py-4 pl-12 pr-4 focus:border-blue-500 outline-none transition-all font-medium"
-              />
-            </div>
-            <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-blue-500 transition-colors" size={18} />
-              <input 
-                type="password" 
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password (min. 6 characters)" 
-                className="w-full bg-background border border-border text-foreground rounded-2xl py-4 pl-12 pr-4 focus:border-blue-500 outline-none transition-all font-medium"
-              />
-            </div>
-
-            <Button 
-              type="submit" 
-              disabled={isLoading}
-              className="w-full py-7 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl shadow-xl shadow-blue-900/20 uppercase tracking-widest mt-4"
-            >
-              {isLoading ? <Loader2 className="animate-spin" /> : <>REGISTER NOW <ArrowRight size={18} className="ml-2" /></>}
-            </Button>
-          </form>
-
-          <div className="mt-8 pt-6 border-t border-border/50 text-center">
-            <p className="text-sm text-muted-foreground font-medium">
-              Already have an account?{" "}
-              <Link href="/auth/signin" className="text-blue-500 hover:underline font-bold">
-                Sign In
-              </Link>
-            </p>
-          </div>
+      <div className="zy-card animate-fade-up" style={{ width:"100%",maxWidth:400,padding:"36px 32px",position:"relative",zIndex:2 }}>
+        <div style={{ textAlign:"center",marginBottom:28 }}>
+          <LogoMark/>
+          <h1 style={{ fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:"var(--t1)",marginTop:14 }}>Create account</h1>
+          <p style={{ fontSize:13,color:"var(--t3)",marginTop:4 }}>Join Zynqio and start hosting quizzes</p>
         </div>
-      </motion.div>
+
+        {error && (
+          <div style={{ marginBottom:18,padding:"10px 14px",borderRadius:10,background:"rgba(248,113,113,0.1)",border:"1px solid rgba(248,113,113,0.25)",fontSize:13,color:"var(--red)",display:"flex",gap:8,alignItems:"flex-start" }}>
+            <AlertCircle size={15} style={{ flexShrink:0,marginTop:1 }}/>{error}
+          </div>
+        )}
+
+        <button onClick={() => signIn("google", { callbackUrl:"/dashboard" })} className="zy-btn-ghost" style={{ width:"100%",padding:"11px",justifyContent:"center",fontSize:14 }}>
+          <GoogleIcon/> Sign up with Google
+        </button>
+
+        <div style={{ display:"flex",alignItems:"center",gap:12,margin:"20px 0",color:"var(--t4)",fontSize:11,fontWeight:600,letterSpacing:"0.1em" }}>
+          <div style={{ flex:1,height:1,background:"var(--border-raw)"}}/> OR <div style={{ flex:1,height:1,background:"var(--border-raw)"}}/>
+        </div>
+
+        <form onSubmit={handleSignup} style={{ display:"flex",flexDirection:"column",gap:12 }}>
+          <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address" className="zy-input"/>
+          <input type="text" required value={username} onChange={e => setUsername(e.target.value)} placeholder="Username" className="zy-input"/>
+          <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="Password (min. 6 characters)" className="zy-input"/>
+          <button type="submit" disabled={isLoading} className="zy-btn-primary" style={{ width:"100%",padding:"12px",fontSize:14,marginTop:4,opacity:isLoading?0.7:1 }}>
+            {isLoading ? <Loader2 size={16} className="animate-spin"/> : <>Create account <ArrowRight size={15}/></>}
+          </button>
+        </form>
+
+        <div style={{ marginTop:22,textAlign:"center",fontSize:13,color:"var(--t3)" }}>
+          Already have an account?{" "}<Link href="/auth/signin" style={{ color:"var(--p2)",fontWeight:600,textDecoration:"none" }}>Sign in →</Link>
+        </div>
+      </div>
     </div>
   );
 }

@@ -504,7 +504,7 @@ export default function CreateQuiz() {
               Download Template
             </Button>
             <Button 
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 font-bold"
+              className="bg-primary hover:bg-primary text-white px-6 font-bold"
               onClick={saveQuiz}
             >
               {editingQuizId ? "Update Quiz" : "Save Quiz"}
@@ -525,7 +525,7 @@ export default function CreateQuiz() {
               placeholder="Enter Quiz Title..."
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="bg-transparent text-2xl font-bold text-foreground outline-none placeholder:text-muted-foreground/30 focus:border-b-2 border-blue-500 transition-all px-1"
+              className="bg-transparent text-2xl font-bold text-foreground outline-none placeholder:text-muted-foreground/30 focus:border-b-2 border-primary transition-all px-1"
             />
           </div>
           <div className="flex items-center gap-3">
@@ -547,7 +547,7 @@ export default function CreateQuiz() {
               <Settings size={18} className="mr-2" /> Settings
             </Button>
             <Button 
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-primary hover:bg-primary text-white"
               onClick={saveQuiz}
               disabled={isSaving}
             >
@@ -560,7 +560,7 @@ export default function CreateQuiz() {
       <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
         
         {/* GLOBAL QUESTION TYPE TOGGLE (ZYNQIO UNIQUE FEATURE) */}
-        <div className="bg-card border border-border rounded-2xl p-4 mb-8 sticky top-[120px] z-30 shadow-xl">
+        <div className="bg-card border border-border rounded-2xl p-4 mb-8 sticky top-[80px] md:top-[120px] z-30 shadow-xl">
           <div className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Global Question Type Toggle</div>
           <div className="flex flex-wrap gap-2">
             {QUESTION_TYPES.map(type => (
@@ -569,7 +569,7 @@ export default function CreateQuiz() {
                 onClick={() => setActiveType(type.id)}
                 className={`flex-1 min-w-[120px] py-3 px-4 rounded-xl text-left transition-all border ${
                   activeType === type.id 
-                    ? 'bg-blue-600/10 border-blue-500 text-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.1)]' 
+                    ? 'bg-primary/10 border-primary text-primary shadow-[0_0_15px_rgba(59,130,246,0.1)]' 
                     : 'bg-background border-border text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground'
                 }`}
               >
@@ -581,11 +581,11 @@ export default function CreateQuiz() {
           
           <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
             <div className="text-sm text-muted-foreground">
-              Next added question will be: <span className="text-blue-500 font-bold">{QUESTION_TYPES.find(t => t.id === activeType)?.label}</span>
+              Next added question will be: <span className="text-primary font-bold">{QUESTION_TYPES.find(t => t.id === activeType)?.label}</span>
             </div>
-            <Button 
+            <Button
               onClick={addQuestion}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 px-8 rounded-xl shadow-lg hover:shadow-blue-600/20 transition-all scale-105"
+              className="bg-primary hover:bg-primary text-white font-bold py-6 px-8 rounded-xl shadow-lg hover:shadow-primary/20 transition-all md:scale-105"
             >
               <Plus size={20} className="mr-2" />
               Add Question
@@ -629,7 +629,7 @@ export default function CreateQuiz() {
               <div className="p-6 space-y-6">
                 <textarea 
                   placeholder="Type your question here..."
-                  className="w-full bg-background border border-border rounded-xl p-4 text-lg text-foreground outline-none focus:border-blue-500 resize-none min-h-[100px] placeholder:text-muted-foreground/30"
+                  className="w-full bg-background border border-border rounded-xl p-4 text-lg text-foreground outline-none focus:border-primary resize-none min-h-[100px] placeholder:text-muted-foreground/30"
                   value={q.text}
                   onChange={(e) => {
                     const newQ = [...questions];
@@ -691,7 +691,7 @@ export default function CreateQuiz() {
                     <input 
                       type="text" 
                       placeholder="e.g. Jakarta;DKI Jakarta;Ibukota"
-                      className="w-full bg-transparent border-b border-border pb-2 text-foreground outline-none focus:border-blue-500 placeholder:text-muted-foreground/20"
+                      className="w-full bg-transparent border-b border-border pb-2 text-foreground outline-none focus:border-primary placeholder:text-muted-foreground/20"
                       value={typeof q.correctAnswer === 'string' ? q.correctAnswer : ''}
                       onChange={(e) => {
                         const newQ = [...questions];
@@ -702,7 +702,56 @@ export default function CreateQuiz() {
                   </div>
                 )}
                 
-                {(q.type === 'MSQ' || q.type === 'ORDER' || q.type === 'OPEN') && (
+                {q.type === 'ORDER' && (
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-3 font-semibold">Items to sequence (drag to set correct order):</p>
+                      <div className="space-y-2">
+                        {q.options?.map((opt, i) => (
+                          <div key={i} className="flex items-center gap-3 p-3 bg-background border border-border rounded-lg hover:border-muted-foreground/40 transition-colors group">
+                            <div className="cursor-grab text-muted-foreground group-hover:text-foreground transition-colors">
+                              <GripVertical size={16} />
+                            </div>
+                            <span className="text-xs font-bold bg-accent px-2.5 py-1 rounded min-w-[40px] text-center">{i + 1}</span>
+                            <input
+                              type="text"
+                              placeholder={`Step ${i + 1}`}
+                              className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground/20"
+                              value={opt}
+                              onChange={(e) => {
+                                const newQ = [...questions];
+                                if(newQ[index].options) newQ[index].options![i] = e.target.value;
+                                setQuestions(newQ);
+                              }}
+                            />
+                            <button
+                              onClick={() => {
+                                const newQ = [...questions];
+                                newQ[index].options = (newQ[index].options || []).filter((_, idx) => idx !== i);
+                                setQuestions(newQ);
+                              }}
+                              className="text-muted-foreground hover:text-red-500 transition-colors"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const newQ = [...questions];
+                        newQ[index].options = [...(newQ[index].options || []), ''];
+                        setQuestions(newQ);
+                      }}
+                      className="w-full py-2 px-4 border border-dashed border-muted-foreground/30 rounded-lg text-sm font-semibold text-muted-foreground hover:border-muted-foreground/60 hover:text-foreground transition-colors"
+                    >
+                      + Add Step
+                    </button>
+                  </div>
+                )}
+
+                {(q.type === 'MSQ' || q.type === 'OPEN') && (
                   <div className="bg-accent/20 rounded-xl p-8 border border-dashed border-border text-center text-muted-foreground">
                     {q.type} editor component placeholder
                   </div>
@@ -738,7 +787,7 @@ export default function CreateQuiz() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setQuizPrivacy('public')}
-                    className={`flex-1 flex items-center gap-3 p-4 rounded-2xl border-2 transition-all ${quizPrivacy === 'public' ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}
+                    className={`flex-1 flex items-center gap-3 p-4 rounded-2xl border-2 transition-all ${quizPrivacy === 'public' ? 'border-primary bg-primary/90/10 text-primary' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}
                   >
                     <Globe size={20} />
                     <div className="text-left">
@@ -791,7 +840,7 @@ export default function CreateQuiz() {
                     <button
                       key={cat}
                       onClick={() => setQuizCategory(cat)}
-                      className={`px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all ${quizCategory === cat ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}
+                      className={`px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all ${quizCategory === cat ? 'border-primary bg-primary/90/10 text-primary' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}
                     >
                       {cat}
                     </button>
@@ -808,7 +857,7 @@ export default function CreateQuiz() {
                   onChange={(e) => setQuizDescription(e.target.value)}
                   maxLength={200}
                   rows={3}
-                  className="w-full bg-background border border-border rounded-xl p-3 text-sm text-foreground outline-none focus:border-blue-500 resize-none placeholder:text-muted-foreground/30"
+                  className="w-full bg-background border border-border rounded-xl p-3 text-sm text-foreground outline-none focus:border-primary resize-none placeholder:text-muted-foreground/30"
                 />
                 <p className="text-right text-xs text-muted-foreground mt-1">{quizDescription.length}/200</p>
               </div>
@@ -822,7 +871,7 @@ export default function CreateQuiz() {
                     placeholder="https://..."
                     value={coverImage}
                     onChange={(e) => setCoverImage(e.target.value)}
-                    className="flex-1 bg-background border border-border rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-blue-500 placeholder:text-muted-foreground/30"
+                    className="flex-1 bg-background border border-border rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-primary placeholder:text-muted-foreground/30"
                   />
                   {coverImage && (
                     <button onClick={() => setCoverImage('')} className="p-2 text-muted-foreground hover:text-red-500 transition-colors">
@@ -840,7 +889,7 @@ export default function CreateQuiz() {
 
             <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
               <Button variant="outline" className="border-border dark:border-white/20 dark:text-white/70" onClick={() => setShowSettings(false)}>Cancel</Button>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6" onClick={() => setShowSettings(false)}>
+              <Button className="bg-primary hover:bg-primary text-white font-bold px-6" onClick={() => setShowSettings(false)}>
                 Apply Settings
               </Button>
             </div>
@@ -855,7 +904,7 @@ export default function CreateQuiz() {
             <div className="flex justify-between items-center mb-8">
               <div>
                 <h2 className="text-3xl font-black text-foreground flex items-center gap-3 uppercase">
-                  <FileUp className="text-blue-500" /> Confirm Import
+                  <FileUp className="text-primary" /> Confirm Import
                 </h2>
                 <p className="text-muted-foreground mt-1">Review your questions before adding them to the quiz.</p>
               </div>
@@ -905,7 +954,7 @@ export default function CreateQuiz() {
                 </div>
                 <div className="flex gap-4">
                   <Button variant="outline" className="border-border dark:border-white/20 dark:text-white/70" onClick={() => setIsImporting(false)}>Cancel</Button>
-                  <Button className="bg-blue-600 hover:bg-blue-700 px-8 py-6 rounded-xl font-bold text-white shadow-lg" onClick={confirmImport}>
+                  <Button className="bg-primary hover:bg-primary px-8 py-6 rounded-xl font-bold text-white shadow-lg" onClick={confirmImport}>
                     <CheckCircle2 size={18} className="mr-2" /> Add All Questions
                   </Button>
                 </div>

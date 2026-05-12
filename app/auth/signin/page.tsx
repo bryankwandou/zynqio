@@ -2,186 +2,101 @@
 
 import { signIn } from "next-auth/react";
 import { useState, Suspense } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { Zap, ArrowRight, Mail, Lock, AlertCircle, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useTheme } from "next-themes";
+import { Sun, Moon, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+
+function LogoMark() {
+  return (
+    <div style={{ width:48,height:48,borderRadius:13,background:"conic-gradient(from 0deg, var(--p), var(--p2), var(--acc), var(--p))",boxShadow:"0 4px 16px rgba(124,111,253,0.35)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:24,marginInline:"auto" }}>Z</div>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M22.5 12.3c0-.8-.1-1.4-.2-2.1H12v3.9h5.9c-.1.9-.8 2.3-2.3 3.3L18 19.5c2.2-2 3.5-5 3.5-7.2z"/>
+      <path fill="#34A853" d="M12 23c3.2 0 5.8-1 7.7-2.8l-3.7-2.9c-1 .7-2.3 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9l-4 3C3.4 20.5 7.4 23 12 23z"/>
+      <path fill="#FBBC04" d="M5.4 13.5C5.2 12.9 5.1 12.2 5.1 11.5s.1-1.4.3-2L1.4 6.5C.5 8 0 9.7 0 11.5s.5 3.5 1.4 5l4-3z"/>
+      <path fill="#EA4335" d="M12 4.6c1.8 0 3 .8 3.7 1.4l2.7-2.6C16.7 1.9 14.4 1 12 1 7.4 1 3.4 3.5 1.4 6.5l4 3C6.3 6.7 8.9 4.6 12 4.6z"/>
+    </svg>
+  );
+}
 
 function SignInContent() {
   const searchParams = useSearchParams();
   const urlError = searchParams.get("error");
   const registered = searchParams.get("registered");
   const router = useRouter();
-
+  const { theme, setTheme } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [localError, setLocalError] = useState("");
 
-  const error = localError || urlError;
+  const errorMsg = localError || (urlError === "CredentialsSignin" ? "Invalid email or password." : urlError ? "Authentication failed." : "");
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsAuthenticating(true);
+    setIsLoading(true);
     setLocalError("");
-
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
+    const result = await signIn("credentials", { email, password, redirect: false });
     if (result?.error) {
-      setLocalError(result.error === "CredentialsSignin" ? "CredentialsSignin" : result.error);
-      setIsAuthenticating(false);
+      setLocalError(result.error === "CredentialsSignin" ? "Invalid email or password." : result.error);
+      setIsLoading(false);
     } else {
       router.push("/dashboard");
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background text-foreground p-4 relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-600/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
+    <div style={{ position:"relative",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24 }}>
+      <div className="ambient" />
+      <div style={{ position:"fixed",top:20,right:20,zIndex:100 }}>
+        <button className="zy-btn-ghost" style={{ padding:"8px 10px" }} onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+          {theme === "dark" ? <Sun size={16}/> : <Moon size={16}/>}
+        </button>
       </div>
-
-      <div className="fixed top-6 right-6 z-[100]">
-        <ThemeToggle />
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="w-full max-w-[480px] p-1 space-y-6 relative z-10"
-      >
-        <div className="bg-card backdrop-blur-3xl border border-border rounded-[2.5rem] p-10 md:p-12 shadow-[0_30px_100px_rgba(0,0,0,0.3)]">
-          <div className="text-center mb-10">
-            <motion.div
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              className="w-20 h-20 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl mx-auto flex items-center justify-center shadow-xl mb-8"
-            >
-              <Zap className="text-white fill-white" size={40} />
-            </motion.div>
-            <h1 className="text-3xl font-black text-foreground tracking-tight mb-2 uppercase">Sign In</h1>
-            <p className="text-muted-foreground font-medium tracking-wide">Access your host dashboard</p>
-          </div>
-
-          {registered && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-2xl text-center"
-            >
-              <div className="text-xs font-bold text-green-500 uppercase tracking-wider">
-                Account created! Sign in below.
-              </div>
-            </motion.div>
-          )}
-
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start gap-3"
-            >
-              <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={18} />
-              <div className="text-xs font-bold text-red-500 uppercase tracking-wider">
-                {error === "CredentialsSignin"
-                  ? "Invalid email or password. Please try again."
-                  : "Authentication failed. Please try again."}
-              </div>
-            </motion.div>
-          )}
-
-          <form onSubmit={handleEmailLogin} className="space-y-4">
-            <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-blue-500 transition-colors" size={18} />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email Address"
-                className="w-full bg-background border border-border text-foreground rounded-2xl py-4 pl-12 pr-4 focus:border-blue-500 outline-none transition-all font-medium"
-              />
-            </div>
-            <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-blue-500 transition-colors" size={18} />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                className="w-full bg-background border border-border text-foreground rounded-2xl py-4 pl-12 pr-4 focus:border-blue-500 outline-none transition-all font-medium"
-              />
-            </div>
-            <Button
-              type="submit"
-              disabled={isAuthenticating}
-              className="w-full py-7 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl shadow-xl shadow-blue-900/20 uppercase tracking-widest"
-            >
-              {isAuthenticating ? <Loader2 className="animate-spin" /> : <>SIGN IN <ArrowRight size={18} className="ml-2" /></>}
-            </Button>
-          </form>
-
-          <div className="mt-8 pt-6 border-t border-border text-center">
-            <p className="text-sm text-muted-foreground font-medium">
-              Don&apos;t have an account?{" "}
-              <Link href="/auth/signup" className="text-blue-500 hover:underline font-bold">
-                Create Account
-              </Link>
-            </p>
-          </div>
+      <div className="zy-card animate-fade-up" style={{ width:"100%",maxWidth:400,padding:"36px 32px",position:"relative",zIndex:2 }}>
+        <div style={{ textAlign:"center",marginBottom:28 }}>
+          <LogoMark />
+          <h1 style={{ fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:"var(--t1)",marginTop:14 }}>Sign in</h1>
+          <p style={{ fontSize:13,color:"var(--t3)",marginTop:4 }}>Access your host dashboard</p>
         </div>
-      </motion.div>
-    </div>
-  );
-}
 
-function SignInSkeleton() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background text-foreground p-4 relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-600/10 rounded-full blur-[120px]" />
-      </div>
-
-      <div className="w-full max-w-[480px] p-1 space-y-6 relative z-10">
-        <div className="bg-card backdrop-blur-3xl border border-border rounded-[2.5rem] p-10 md:p-12 shadow-[0_30px_100px_rgba(0,0,0,0.3)]">
-          <div className="text-center mb-10">
-            <div className="w-20 h-20 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl mx-auto flex items-center justify-center shadow-xl mb-8">
-              <Zap className="text-white fill-white" size={40} />
-            </div>
-            <h1 className="text-3xl font-black text-foreground tracking-tight mb-2 uppercase">Sign In</h1>
-            <p className="text-muted-foreground font-medium tracking-wide">Access your host dashboard</p>
+        {registered && (
+          <div style={{ marginBottom:18,padding:"10px 14px",borderRadius:10,background:"rgba(52,211,153,0.12)",border:"1px solid rgba(52,211,153,0.3)",fontSize:13,color:"var(--green)",fontWeight:600 }}>
+            Account created! Sign in below.
           </div>
-
-          <div className="space-y-4">
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-              <div className="w-full bg-background border border-border rounded-2xl py-4 pl-12 pr-4 animate-pulse">
-                <div className="h-5 bg-muted rounded-lg w-2/3" />
-              </div>
-            </div>
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-              <div className="w-full bg-background border border-border rounded-2xl py-4 pl-12 pr-4 animate-pulse">
-                <div className="h-5 bg-muted rounded-lg w-1/2" />
-              </div>
-            </div>
-            <div className="w-full py-7 bg-blue-600/60 rounded-2xl animate-pulse" />
+        )}
+        {errorMsg && (
+          <div style={{ marginBottom:18,padding:"10px 14px",borderRadius:10,background:"rgba(248,113,113,0.1)",border:"1px solid rgba(248,113,113,0.25)",fontSize:13,color:"var(--red)",display:"flex",gap:8,alignItems:"flex-start" }}>
+            <AlertCircle size={15} style={{ flexShrink:0,marginTop:1 }}/> {errorMsg}
           </div>
+        )}
 
-          <div className="mt-8 pt-6 border-t border-border text-center">
-            <div className="h-4 bg-muted rounded-lg w-3/4 mx-auto animate-pulse" />
+        <button onClick={() => signIn("google", { callbackUrl:"/dashboard" })} className="zy-btn-ghost" style={{ width:"100%",padding:"11px",justifyContent:"center",fontSize:14 }}>
+          <GoogleIcon /> Sign in with Google
+        </button>
+
+        <div style={{ display:"flex",alignItems:"center",gap:12,margin:"20px 0",color:"var(--t4)",fontSize:11,fontWeight:600,letterSpacing:"0.1em" }}>
+          <div style={{ flex:1,height:1,background:"var(--border-raw)" }}/> OR <div style={{ flex:1,height:1,background:"var(--border-raw)" }}/>
+        </div>
+
+        <form onSubmit={handleEmailLogin} style={{ display:"flex",flexDirection:"column",gap:12 }}>
+          <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address" className="zy-input"/>
+          <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" className="zy-input"/>
+          <div style={{ display:"flex",justifyContent:"flex-end" }}>
+            <Link href="/auth/forgot-password" style={{ fontSize:12,fontWeight:600,color:"var(--p2)",textDecoration:"none" }}>Forgot password?</Link>
           </div>
+          <button type="submit" disabled={isLoading} className="zy-btn-primary" style={{ width:"100%",padding:"12px",fontSize:14,marginTop:4,opacity:isLoading?0.7:1 }}>
+            {isLoading ? <Loader2 size={16} className="animate-spin"/> : <>Sign in <ArrowRight size={15}/></>}
+          </button>
+        </form>
+
+        <div style={{ marginTop:22,textAlign:"center",fontSize:13,color:"var(--t3)" }}>
+          No account?{" "}<Link href="/auth/signup" style={{ color:"var(--p2)",fontWeight:600,textDecoration:"none" }}>Create one →</Link>
         </div>
       </div>
     </div>
@@ -190,7 +105,7 @@ function SignInSkeleton() {
 
 export default function SignIn() {
   return (
-    <Suspense fallback={<SignInSkeleton />}>
+    <Suspense fallback={<div style={{ minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center" }}><Loader2 size={32} className="animate-spin" style={{ color:"var(--p)" }}/></div>}>
       <SignInContent />
     </Suspense>
   );
