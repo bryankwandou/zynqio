@@ -29,7 +29,9 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   const [showEndConfirm, setShowEndConfirm] = useState(false);
 
   const autoEndScheduledRef = useRef(false);
+  const autoEndWaygroundRef = useRef(false);
   const autoAdvanceRef = useRef(false);
+  const autoRevealScheduledRef = useRef(false);
   const autoAdvanceScheduledRef = useRef(false);
   const prevIndexRef = useRef<number | null>(null);
   const lastUpdatedAtRef = useRef(0);
@@ -49,6 +51,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         setIsRevealed(false);
         autoAdvanceScheduledRef.current = false;
         autoEndScheduledRef.current = false;
+        autoRevealScheduledRef.current = false;
         const t = state.settings?.timer || 30;
         setTotalTime(t);
         setTimeLeft(t);
@@ -83,6 +86,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
           setTotalQuestions(state.totalQuestions);
         }
         if (state.currentQuestionIndex !== prevIndexRef.current) {
+          autoRevealScheduledRef.current = false;
           await fetchQuestion(state);
         }
         if (state.status === "ended") {
@@ -134,16 +138,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
     return () => clearTimeout(t);
   }, [timeLeft, isRevealed]);
 
-  // Auto-advance after reveal
-  useEffect(() => {
-    if (!isRevealed || !autoAdvanceRef.current || autoAdvanceScheduledRef.current) return;
-    autoAdvanceScheduledRef.current = true;
-    const t = setTimeout(() => handleNextQuestion(), 3000);
-    return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRevealed]);
-
-  // ── Derived data ─────────────────────────────────────────────────
+  // ── Derived data (must be above useEffects that use them) ─────────
   const questionId = currentQuestion?.id;
   const answerStats = roomState?.answerStats?.[questionId] || { total: 0, correct: 0, byAnswer: {} };
   const totalAnswered = answerStats.total || 0;
@@ -155,6 +150,15 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   );
   const totalPlayers = leaderboard.length;
   const qIndex = roomState?.currentQuestionIndex ?? 0;
+
+  // For Wayground Classic header: count players who finished all questions
+  const playersFinished = isWaygroundClassic
+    ? leaderboard.filter((p: any) => (p.totalAnswered || 0) >= (totalQuestions || 1)).length
+    : totalAnswered;
+
+  const timerPct = totalTime > 0 ? (timeLeft / totalTime) * 100 : 0;
+  const timerColor =
+    timerPct > 60 ? "bg-green-400" : timerPct > 30 ? "bg-amber-400" : "bg-red-500";
 
   const handleNextQuestion = async () => {
     try {
@@ -177,9 +181,29 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
     } catch {}
   };
 
-  // Auto-recap: last question + all players answered → end game after 4s
+  // Auto-advance after reveal (if autoAdvance is on)
   useEffect(() => {
-    if (!isRevealed || autoEndScheduledRef.current) return;
+    if (!isRevealed || !autoAdvanceRef.current || autoAdvanceScheduledRef.current) return;
+    autoAdvanceScheduledRef.current = true;
+    const t = setTimeout(() => handleNextQuestion(), 3000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRevealed]);
+
+  // Auto-reveal when ALL players have answered (even before timer ends)
+  useEffect(() => {
+    if (isWaygroundClassic || isRevealed || autoRevealScheduledRef.current) return;
+    if (totalPlayers === 0) return;
+    if (totalAnswered < totalPlayers) return;
+    autoRevealScheduledRef.current = true;
+    const t = setTimeout(() => { setIsRevealed(true); setTimeLeft(0); }, 1000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalAnswered, totalPlayers, isRevealed, isWaygroundClassic]);
+
+  // Auto-recap: last question + all players answered → end game after 4s (classic modes)
+  useEffect(() => {
+    if (isWaygroundClassic || !isRevealed || autoEndScheduledRef.current) return;
     if (totalQuestions === 0) return;
     const isLastQuestion = qIndex >= totalQuestions - 1;
     if (!isLastQuestion) return;
@@ -189,15 +213,18 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
     const t = setTimeout(() => handleEndGame(), 4000);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRevealed, totalAnswered, totalPlayers, qIndex, totalQuestions]);
-  const timerPct = totalTime > 0 ? (timeLeft / totalTime) * 100 : 0;
-  const timerColor =
-    timerPct > 60 ? "bg-green-400" : timerPct > 30 ? "bg-amber-400" : "bg-red-500";
+  }, [isRevealed, totalAnswered, totalPlayers, qIndex, totalQuestions, isWaygroundClassic]);
 
-  // For Wayground Classic header: count players who finished all questions
-  const playersFinished = isWaygroundClassic
-    ? leaderboard.filter((p: any) => (p.totalAnswered || 0) >= (totalQuestions || 1)).length
-    : totalAnswered;
+  // Auto-end for Wayground Classic: all players finished all questions → end after 4s
+  useEffect(() => {
+    if (!isWaygroundClassic || autoEndWaygroundRef.current) return;
+    if (totalPlayers === 0 || totalQuestions === 0) return;
+    if (playersFinished < totalPlayers) return;
+    autoEndWaygroundRef.current = true;
+    const t = setTimeout(() => handleEndGame(), 4000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isWaygroundClassic, playersFinished, totalPlayers, totalQuestions]);
 
   if (status === "loading" || !currentQuestion) {
     return (
@@ -252,9 +279,15 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                 <span className="font-bold text-white">{playersFinished}</span>
                 <span>/ {totalPlayers} done</span>
               </div>
-              <div className="text-[10px] px-2 py-0.5 bg-blue-600/20 rounded-full text-blue-400 font-black uppercase tracking-widest">
-                🌊 Wayground Classic
-              </div>
+              {playersFinished > 0 && totalPlayers > 0 && playersFinished >= totalPlayers ? (
+                <div className="text-[10px] px-2 py-0.5 bg-green-600/20 rounded-full text-green-400 font-black uppercase tracking-widest animate-pulse">
+                  ✓ All Done — Ending...
+                </div>
+              ) : (
+                <div className="text-[10px] px-2 py-0.5 bg-blue-600/20 rounded-full text-blue-400 font-black uppercase tracking-widest">
+                  🌊 Wayground Classic
+                </div>
+              )}
             </>
           ) : (
             <>
@@ -371,9 +404,10 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
               const totalAns = p.totalAnswered || 0;
               const correct = p.totalCorrect || 0;
               const wrong = totalAns - correct;
-              const questionsAsked = qIndex + 1;
-              const correctPct = questionsAsked > 0 ? (correct / questionsAsked) * 100 : 0;
-              const wrongPct = questionsAsked > 0 ? (wrong / questionsAsked) * 100 : 0;
+              // Progress bar = soal terjawab / total soal (bukan benar/salah)
+              const totalQs = totalQuestions || 1;
+              const answeredPct = Math.min(100, (totalAns / totalQs) * 100);
+              const correctOfAnswered = totalAns > 0 ? Math.round((correct / totalAns) * 100) : 0;
 
               const rankBg =
                 i === 0 ? "bg-yellow-500/15 border-yellow-500/40" :
@@ -401,7 +435,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                     {av.emoji}
                   </div>
 
-                  {/* Name + bar + score */}
+                  {/* Name + answered-progress bar + score */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-xs text-white truncate">{p.name}</span>
@@ -409,16 +443,23 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                         {(p.score || 0).toLocaleString()}
                       </span>
                     </div>
-                    {/* Correct/Wrong bar */}
-                    <div className="h-2 flex rounded-full overflow-hidden bg-white/5">
-                      <div className="bg-green-500 transition-all duration-500" style={{ width: `${correctPct}%` }} />
-                      <div className="bg-red-500 transition-all duration-500" style={{ width: `${wrongPct}%` }} />
+                    {/* Progress bar: soal terjawab / total soal */}
+                    <div className="h-2 rounded-full overflow-hidden bg-white/5">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          answeredPct >= 100 ? "bg-green-500" : "bg-blue-500"
+                        }`}
+                        style={{ width: `${answeredPct}%` }}
+                      />
                     </div>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <span className="text-[9px] text-white/20">
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[9px] text-white/30">
+                        {totalAns}/{totalQs} dijawab
+                      </span>
+                      <span className="text-[9px]">
                         <span className="text-green-400">{correct}✓</span>
                         {wrong > 0 && <span className="text-red-400 ml-1">{wrong}✗</span>}
-                        <span className="ml-1 text-white/20">{p.accuracy ?? 0}%</span>
+                        <span className="text-white/20 ml-1">{correctOfAnswered}%</span>
                       </span>
                     </div>
                   </div>

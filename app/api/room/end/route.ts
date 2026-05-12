@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { getRoomState, setRoomState } from "@/lib/kv";
+import { getRoomState, redis } from "@/lib/kv";
 import { pusherServer } from "@/lib/pusher";
+
+const RESULTS_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
 export async function POST(req: Request) {
   try {
@@ -16,7 +18,10 @@ export async function POST(req: Request) {
 
     room.status = "ended";
     room.updatedAt = Date.now();
-    await setRoomState(roomCode, room);
+    room.endedAt = Date.now();
+
+    // Persist with 7-day TTL so results remain accessible after the game
+    await (redis as any).set(`room:${roomCode}`, JSON.stringify(room), { ex: RESULTS_TTL_SECONDS });
 
     try {
       await pusherServer.trigger(`room-${roomCode}`, "game_ended", { status: "ended" });
