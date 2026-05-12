@@ -90,8 +90,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "You have been removed from this room." }, { status: 403 });
     }
 
-    // Deduplicate name
-    const existingNames = (room.players || []).map((p: any) => p.name || "");
+    // Re-read room state right before write to minimise the duplicate-name race window.
+    // If two players join at the same time, the one that reads last will see the other's
+    // name and correctly deduplicate (e.g. "Y" → "Y (2)").
+    const latestRoom = (await getRoomState(normalizedRoomCode)) || room;
+
+    // Also check kicked list on latest state
+    if ((latestRoom.kickedPlayers || []).includes(cleaned.toLowerCase())) {
+      return NextResponse.json({ error: "You have been removed from this room." }, { status: 403 });
+    }
+
+    const existingNames = (latestRoom.players || []).map((p: any) => p.name || "");
     const uniqueName = makeUniqueName(existingNames, cleaned);
 
     const playerId = `player_${Math.random().toString(36).slice(2, 10)}`;
@@ -111,13 +120,13 @@ export async function POST(req: Request) {
       token: playerToken,
     };
 
-    room.players = [...(room.players || []), newPlayer];
-    room.updatedAt = Date.now();
-    await setRoomState(normalizedRoomCode, room);
+    latestRoom.players = [...(latestRoom.players || []), newPlayer];
+    latestRoom.updatedAt = Date.now();
+    await setRoomState(normalizedRoomCode, latestRoom);
 
     try {
       await pusherServer.trigger(`room-${normalizedRoomCode}`, "player_joined", {
-        playerCount: room.players.length,
+        playerCount: latestRoom.players.length,
         player: { id: newPlayer.id, name: newPlayer.name, avatarId: newPlayer.avatarId },
       });
     } catch (e) {
@@ -127,7 +136,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       player: { id: playerId, name: uniqueName, token: playerToken, avatarId: newPlayer.avatarId },
-      room: { roomCode: normalizedRoomCode, playerCount: room.players.length },
+      room: { roomCode: normalizedRoomCode, playerCount: latestRoom.players.length },
     });
   } catch (error) {
     console.error("Join room error:", error);

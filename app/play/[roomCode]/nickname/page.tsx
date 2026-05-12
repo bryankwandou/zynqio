@@ -17,15 +17,32 @@ export default function NicknamePage({ params }: { params: Promise<{ roomCode: s
   const [errorMsg, setErrorMsg] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Check for existing session — redirect if reconnecting (non-blocking)
+  // Check for existing session — verify player still in room before reconnecting
   useEffect(() => {
     const existingToken = localStorage.getItem("zynqio_session_token");
     const existingRoom = localStorage.getItem("zynqio_room_code");
     const existingNick = localStorage.getItem("zynqio_nickname");
 
     if (existingToken && existingRoom === roomCode && existingNick) {
-      setRedirecting(true);
-      router.replace(`/play/${roomCode}/lobby`);
+      // Verify the player is still in the room (not kicked / room reset)
+      fetch(`/api/room/state?code=${roomCode}`)
+        .then((r) => r.ok ? r.json() : null)
+        .then((state) => {
+          const stillInRoom = state?.players?.some(
+            (p: any) => p.token === existingToken || p.name === existingNick
+          );
+          if (stillInRoom && state?.status !== "ended") {
+            setRedirecting(true);
+            router.replace(`/play/${roomCode}/lobby`);
+          } else {
+            // Stale session — clear it and let them join fresh
+            ["zynqio_nickname", "zynqio_session_token", "zynqio_player_id", "zynqio_room_code"].forEach(k => localStorage.removeItem(k));
+            setTimeout(() => inputRef.current?.focus(), 50);
+          }
+        })
+        .catch(() => {
+          setTimeout(() => inputRef.current?.focus(), 50);
+        });
     } else {
       // Focus input immediately once form is mounted
       setTimeout(() => inputRef.current?.focus(), 50);
