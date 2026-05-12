@@ -515,43 +515,46 @@ export default function CreateQuiz() {
       
       {/* Top Action Bar */}
       <div className="border-b border-border bg-card/30 sticky top-16 z-40 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={() => router.back()} className="p-2 hover:bg-accent rounded-lg transition-colors">
+        <div className="container mx-auto px-4 py-2 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <button onClick={() => router.back()} className="p-2 hover:bg-accent rounded-lg transition-colors shrink-0">
               <ArrowLeft size={20} />
             </button>
-            <input 
-              type="text" 
-              placeholder="Enter Quiz Title..."
+            <input
+              type="text"
+              placeholder="Quiz title..."
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="bg-transparent text-2xl font-bold text-foreground outline-none placeholder:text-muted-foreground/30 focus:border-b-2 border-primary transition-all px-1"
+              className="bg-transparent text-base md:text-xl font-bold text-foreground outline-none placeholder:text-muted-foreground/30 focus:border-b-2 border-primary transition-all px-1 min-w-0 w-full"
             />
           </div>
-          <div className="flex items-center gap-3">
-            <input 
-              type="file" 
-              id="csv-import" 
-              className="hidden" 
+          <div className="flex items-center gap-2 shrink-0">
+            <input
+              type="file"
+              id="csv-import"
+              className="hidden"
               accept=".csv,.xlsx,.xls"
               onChange={handleFileUpload}
             />
             <Button
               variant="outline"
-              className="border-border hover:bg-accent dark:border-white/20 dark:text-white/80 dark:bg-white/5"
+              size="sm"
+              className="border-border hover:bg-accent dark:border-white/20 dark:text-white/80 dark:bg-white/5 px-2 md:px-3"
               onClick={() => document.getElementById('csv-import')?.click()}
             >
-              <FileUp size={18} className="mr-2" /> Import CSV/Excel
+              <FileUp size={16} className="md:mr-1" /><span className="hidden md:inline">Import</span>
             </Button>
-            <Button variant="outline" className="border-border hover:bg-accent dark:border-white/20 dark:text-white/80 dark:bg-white/5" onClick={() => setShowSettings(true)}>
-              <Settings size={18} className="mr-2" /> Settings
+            <Button variant="outline" size="sm" className="border-border hover:bg-accent dark:border-white/20 dark:text-white/80 dark:bg-white/5 px-2 md:px-3" onClick={() => setShowSettings(true)}>
+              <Settings size={16} className="md:mr-1" /><span className="hidden md:inline">Settings</span>
             </Button>
-            <Button 
+            <Button
+              size="sm"
               className="bg-primary hover:bg-primary text-white"
               onClick={saveQuiz}
               disabled={isSaving}
             >
-              <Save size={18} className="mr-2" /> {isSaving ? 'Saving...' : editingQuizId ? 'Update Quiz' : 'Save Quiz'}
+              <Save size={16} className="md:mr-1" /><span className="hidden md:inline">{isSaving ? 'Saving...' : editingQuizId ? 'Update' : 'Save'}</span>
+              <span className="md:hidden">{isSaving ? '…' : 'Save'}</span>
             </Button>
           </div>
         </div>
@@ -560,7 +563,7 @@ export default function CreateQuiz() {
       <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
         
         {/* GLOBAL QUESTION TYPE TOGGLE (ZYNQIO UNIQUE FEATURE) */}
-        <div className="bg-card border border-border rounded-2xl p-4 mb-8 sticky top-[80px] md:top-[120px] z-30 shadow-xl">
+        <div className="bg-card border border-border rounded-2xl p-4 mb-8 md:sticky md:top-[128px] md:z-30 shadow-xl">
           <div className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Global Question Type Toggle</div>
           <div className="flex flex-wrap gap-2">
             {QUESTION_TYPES.map(type => (
@@ -751,9 +754,57 @@ export default function CreateQuiz() {
                   </div>
                 )}
 
-                {(q.type === 'MSQ' || q.type === 'OPEN') && (
-                  <div className="bg-accent/20 rounded-xl p-8 border border-dashed border-border text-center text-muted-foreground">
-                    {q.type} editor component placeholder
+                {q.type === 'MSQ' && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground font-semibold">Options (select all correct answers):</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {q.options?.map((opt, i) => {
+                        const selected = Array.isArray(q.correctAnswer)
+                          ? q.correctAnswer.includes(i.toString())
+                          : typeof q.correctAnswer === 'string'
+                            ? q.correctAnswer.split(';').includes(i.toString())
+                            : false;
+                        return (
+                          <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${selected ? 'border-green-500 bg-green-500/10' : 'border-border bg-background'}`}>
+                            <button
+                              className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all shrink-0 ${selected ? 'border-green-500 bg-green-500' : 'border-muted-foreground/30'}`}
+                              onClick={() => {
+                                const newQ = [...questions];
+                                const curr: string = typeof newQ[index].correctAnswer === 'string'
+                                  ? (newQ[index].correctAnswer as string)
+                                  : (newQ[index].correctAnswer as string[] || []).join(';');
+                                const parts = curr ? curr.split(';').filter(Boolean) : [];
+                                const key = i.toString();
+                                const updated = parts.includes(key) ? parts.filter(p => p !== key) : [...parts, key];
+                                newQ[index].correctAnswer = updated.join(';');
+                                setQuestions(newQ);
+                              }}
+                            >
+                              {selected && <div className="w-2.5 h-2.5 bg-white rounded-sm" />}
+                            </button>
+                            <input
+                              type="text"
+                              placeholder={`Option ${i + 1}`}
+                              className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground/20"
+                              value={opt}
+                              onChange={(e) => {
+                                const newQ = [...questions];
+                                if (newQ[index].options) newQ[index].options![i] = e.target.value;
+                                setQuestions(newQ);
+                              }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Tick all correct answers. Players must select all of them to earn full points.</p>
+                  </div>
+                )}
+
+                {q.type === 'OPEN' && (
+                  <div className="bg-accent/20 rounded-xl p-4 border border-dashed border-border space-y-2">
+                    <p className="text-sm font-semibold text-foreground">Open-ended question</p>
+                    <p className="text-xs text-muted-foreground">Players type a free-text answer. The host reviews and scores responses manually after the session.</p>
                   </div>
                 )}
               </div>
