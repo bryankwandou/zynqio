@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getAvatar } from "@/lib/avatars";
 import { getPusherClient } from "@/lib/pusher-client";
+import GameMusicPlayer from "@/components/GameMusicPlayer";
 
 const CORRECT_MEMES = [
   { gif: "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif", caption: "MIND = BLOWN 🤯" },
@@ -577,7 +578,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
           )}
         </div>
 
-        {/* Right: Score + mute */}
+        {/* Right: Score + music */}
         <div className="flex items-center gap-2">
           {gameMode === "gold_quest" && (
             <div className="text-yellow-400 text-sm font-bold">🪙 {gold}</div>
@@ -585,6 +586,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
           <div className="bg-blue-500/15 px-3 py-1 rounded-full font-black text-blue-400 text-sm border border-blue-500/20">
             {score.toLocaleString()} pts
           </div>
+          <GameMusicPlayer defaultVolume={0.15} />
         </div>
       </div>
 
