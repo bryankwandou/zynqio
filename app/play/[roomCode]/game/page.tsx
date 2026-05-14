@@ -352,23 +352,25 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
 
       setResult({ correct: answerHidden ? null : isCorrect, points: finalScore, speedBonus: data.speedBonus });
 
-      if (answerHidden) {
-        // Score still counted server-side; add locally so display is consistent
+      // Sync score from server totalScore (authoritative) when available, else increment locally
+      if (data.totalScore !== undefined) {
+        setScore(activePowerup === "2x" ? data.totalScore + finalScore - (data.sessionScore || 0) : data.totalScore);
+      } else if (isCorrect || answerHidden) {
         setScore((p) => p + finalScore);
-      } else if (isCorrect) {
+      }
+
+      if (isCorrect) {
         setCorrectStreak((prev) => {
           const next = prev + 1;
           if (next >= 3) { setStreakAnimation(true); setTimeout(() => setStreakAnimation(false), 1200); }
           return next;
         });
-        setScore((p) => p + finalScore);
-      } else {
+      } else if (!answerHidden) {
         setCorrectStreak(0);
-        setScore((p) => p + finalScore); // finalScore is 0 for wrong answers — keeps display in sync
       }
 
       if (gameMode === "survival") {
-        setScore(isCorrect ? (p) => p + finalScore : () => 0);
+        if (!isCorrect) setScore(0);
       } else if (gameMode === "battle_royale" && !isCorrect && activePowerup !== "shield") {
         setLives((p) => Math.max(0, p - 1));
       } else if (gameMode === "gold_quest" && isCorrect) {

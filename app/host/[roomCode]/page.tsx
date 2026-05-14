@@ -144,7 +144,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
   if (status === "loading") return <div className="min-h-screen bg-[#0f0f1a]" />;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0f0f1a] text-white overflow-hidden">
+    <div className="flex flex-col min-h-screen bg-[#0f0f1a] text-white">
       {/* Header */}
       <header className="px-6 py-4 border-b border-white/10 bg-[#16162a] flex justify-between items-center shadow-lg">
         <div className="flex items-center gap-3">
@@ -165,7 +165,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col md:flex-row p-6 gap-6 overflow-hidden">
+      <main className="flex-1 flex flex-col md:flex-row p-6 gap-6 overflow-auto">
         {/* Left: Join Info */}
         <div className="w-full md:w-80 shrink-0 flex flex-col gap-4">
           <div className="bg-[#16162a] border border-white/10 rounded-2xl p-6 flex flex-col items-center shadow-xl">

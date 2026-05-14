@@ -71,7 +71,6 @@ export async function getQuizData(userId: string, quizId: string) {
 
 export async function listPublicQuizzes() {
   try {
-    // Fast path: use pre-indexed metadata from public_quiz_data:* (no decompression needed)
     // Collect IDs from both indexes: public_quizzes (set, userId:quizId) + public_quizzes_sorted (sorted set, quizId only)
     const [legacyIds, sortedIds]: [string[], string[]] = await Promise.all([
       (redis as any).smembers('public_quizzes').catch(() => [] as string[]),
@@ -84,16 +83,29 @@ export async function listPublicQuizzes() {
       return parts.length >= 2 ? { userId: parts[0], quizId: parts.slice(1).join(':') } : null;
     }).filter(Boolean) as Array<{ userId: string; quizId: string }>;
 
-    // Fetch quiz data in parallel — try fast-path first (pre-indexed metadata)
-    const results = await Promise.all(
+    // Build a set of already-covered quiz IDs from legacy so we don't duplicate
+    const legacyQuizIds = new Set(legacyEntries.map(e => e.quizId));
+
+    // For sorted-set entries (newer quizzes saved via /api/quiz/save), read their cached metadata
+    const sortedEntries = await Promise.all(
+      (sortedIds as string[])
+        .filter(qid => !legacyQuizIds.has(qid))
+        .map(async (quizId) => {
+          try {
+            const cached = await redis.get<any>(`public_quiz_data:${quizId}`);
+            if (cached && cached.hostId) return { ...cached, id: quizId };
+            // No hostId cached — skip (cannot serve questions without it)
+            return null;
+          } catch { return null; }
+        })
+    );
+
+    // Fetch legacy quiz data in parallel
+    const legacyResults = await Promise.all(
       legacyEntries.map(async ({ userId, quizId }) => {
         try {
-          // Fast-path: pre-indexed lightweight metadata
           const cached = await redis.get<any>(`public_quiz_data:${quizId}`);
-          if (cached) {
-            return { ...cached, hostId: userId, id: quizId };
-          }
-          // Fallback: decompress full quiz (slower, but complete)
+          if (cached) return { ...cached, hostId: cached.hostId || userId, id: quizId };
           const data = await redisGetQuiz(userId, quizId);
           if (!data) return null;
           return {
@@ -107,13 +119,12 @@ export async function listPublicQuizzes() {
             hostId: userId,
             createdAt: data.createdAt,
           };
-        } catch {
-          return null;
-        }
+        } catch { return null; }
       })
     );
 
-    return results.filter(Boolean).sort((a: any, b: any) => (b.plays || 0) - (a.plays || 0));
+    const all = [...legacyResults, ...sortedEntries].filter(Boolean);
+    return all.sort((a: any, b: any) => (b.plays || 0) - (a.plays || 0));
   } catch (e) {
     console.error('Failed to list public quizzes:', e);
     return [];

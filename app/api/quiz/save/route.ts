@@ -48,13 +48,14 @@ export async function POST(req: Request) {
         });
         await redis.set(`public_quiz_data:${quizId}`, {
           id: quizId,
+          hostId: userId,
           title: quizData.title,
           author: quizData.author,
           category: quizData.category,
           questionCount: questions?.length || 0,
           createdAt: quizData.createdAt,
-          plays: 0,
-          rating: 0,
+          plays: quizData.plays || 0,
+          rating: quizData.rating || 0,
         });
       } catch (e) {
         console.error('Failed to index public quiz (non-fatal):', e);

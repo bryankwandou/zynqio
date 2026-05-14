@@ -180,9 +180,11 @@ export async function POST(req: Request) {
       console.error("[Pusher] Trigger error:", e);
     }
 
+    const updatedPlayer = room?.players?.find((p: any) => p.id === playerId || p.name === playerId);
     return NextResponse.json({
       correct: quiz.hideAnswer ? null : isCorrect,
-      sessionScore,
+      sessionScore,      // per-question points earned this answer
+      totalScore: updatedPlayer?.score || sessionScore, // running total
       accuracyPoints,
       speedBonus,
       gameMode,
