@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef, use, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { getAvatar } from "@/lib/avatars";
-import { Users, SkipForward, Trophy, Eye, Flame, Square, Waves } from "lucide-react";
+import { Users, SkipForward, Trophy, Eye, Flame, Square, Zap } from "lucide-react";
 import { getPusherClient } from "@/lib/pusher-client";
 
 const COLORS = [
@@ -27,16 +27,18 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   const [roomState, setRoomState] = useState<any>(null);
   const [totalQuestions, setTotalQuestions] = useState<number>(0);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [advanceCountdown, setAdvanceCountdown] = useState<number | null>(null);
 
   const autoEndScheduledRef = useRef(false);
-  const autoEndWaygroundRef = useRef(false);
-  const autoAdvanceRef = useRef(false);
+  const autoEndClassicRef = useRef(false);
   const autoRevealScheduledRef = useRef(false);
   const autoAdvanceScheduledRef = useRef(false);
   const prevIndexRef = useRef<number | null>(null);
   const lastUpdatedAtRef = useRef(0);
+  const countdownTickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const isWaygroundClassic = roomState?.gameMode === "wayground_classic";
+  // "Classic" mode = wayground_classic (self-paced per player)
+  const isClassicMode = roomState?.gameMode === "wayground_classic";
 
   const fetchQuestion = useCallback(
     async (state: any) => {
@@ -51,11 +53,13 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         setIsRevealed(false);
         autoAdvanceScheduledRef.current = false;
         autoEndScheduledRef.current = false;
+        autoEndClassicRef.current = false;
         autoRevealScheduledRef.current = false;
+        setAdvanceCountdown(null);
+        if (countdownTickRef.current) { clearInterval(countdownTickRef.current); countdownTickRef.current = null; }
         const t = state.settings?.timer || 30;
         setTotalTime(t);
         setTimeLeft(t);
-        autoAdvanceRef.current = state.settings?.autoAdvance || false;
         prevIndexRef.current = state.currentQuestionIndex;
         if (q.totalQuestions) setTotalQuestions(q.totalQuestions);
       } catch {}
@@ -152,7 +156,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   const qIndex = roomState?.currentQuestionIndex ?? 0;
 
   // For Wayground Classic header: count players who finished all questions
-  const playersFinished = isWaygroundClassic
+  const playersFinished = isClassicMode
     ? leaderboard.filter((p: any) => (p.totalAnswered || 0) >= (totalQuestions || 1)).length
     : totalAnswered;
 
@@ -181,29 +185,43 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
     } catch {}
   };
 
-  // Auto-advance after reveal (if autoAdvance is on)
+  // Auto-advance after reveal — ALWAYS seamless for non-Classic modes (Blooket-style)
   useEffect(() => {
-    if (!isRevealed || !autoAdvanceRef.current || autoAdvanceScheduledRef.current) return;
+    if (isClassicMode || !isRevealed || autoAdvanceScheduledRef.current) return;
     autoAdvanceScheduledRef.current = true;
-    const t = setTimeout(() => handleNextQuestion(), 3000);
-    return () => clearTimeout(t);
+    let secs = 5;
+    setAdvanceCountdown(secs);
+    countdownTickRef.current = setInterval(() => {
+      secs--;
+      if (secs > 0) setAdvanceCountdown(secs);
+      else {
+        if (countdownTickRef.current) { clearInterval(countdownTickRef.current); countdownTickRef.current = null; }
+        setAdvanceCountdown(null);
+      }
+    }, 1000);
+    const t = setTimeout(() => {
+      if (countdownTickRef.current) { clearInterval(countdownTickRef.current); countdownTickRef.current = null; }
+      setAdvanceCountdown(null);
+      handleNextQuestion();
+    }, 5000);
+    return () => { clearTimeout(t); if (countdownTickRef.current) { clearInterval(countdownTickRef.current); countdownTickRef.current = null; } setAdvanceCountdown(null); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRevealed]);
+  }, [isRevealed, isClassicMode]);
 
   // Auto-reveal when ALL players have answered (even before timer ends)
   useEffect(() => {
-    if (isWaygroundClassic || isRevealed || autoRevealScheduledRef.current) return;
+    if (isClassicMode || isRevealed || autoRevealScheduledRef.current) return;
     if (totalPlayers === 0) return;
     if (totalAnswered < totalPlayers) return;
     autoRevealScheduledRef.current = true;
     const t = setTimeout(() => { setIsRevealed(true); setTimeLeft(0); }, 1000);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalAnswered, totalPlayers, isRevealed, isWaygroundClassic]);
+  }, [totalAnswered, totalPlayers, isRevealed, isClassicMode]);
 
   // Auto-recap: last question + all players answered → end game after 4s (classic modes)
   useEffect(() => {
-    if (isWaygroundClassic || !isRevealed || autoEndScheduledRef.current) return;
+    if (isClassicMode || !isRevealed || autoEndScheduledRef.current) return;
     if (totalQuestions === 0) return;
     const isLastQuestion = qIndex >= totalQuestions - 1;
     if (!isLastQuestion) return;
@@ -213,18 +231,18 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
     const t = setTimeout(() => handleEndGame(), 4000);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRevealed, totalAnswered, totalPlayers, qIndex, totalQuestions, isWaygroundClassic]);
+  }, [isRevealed, totalAnswered, totalPlayers, qIndex, totalQuestions, isClassicMode]);
 
-  // Auto-end for Wayground Classic: all players finished all questions → end after 4s
+  // Auto-end for Classic: all players finished all questions → end after 4s
   useEffect(() => {
-    if (!isWaygroundClassic || autoEndWaygroundRef.current) return;
+    if (!isClassicMode || autoEndClassicRef.current) return;
     if (totalPlayers === 0 || totalQuestions === 0) return;
     if (playersFinished < totalPlayers) return;
-    autoEndWaygroundRef.current = true;
+    autoEndClassicRef.current = true;
     const t = setTimeout(() => handleEndGame(), 4000);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isWaygroundClassic, playersFinished, totalPlayers, totalQuestions]);
+  }, [isClassicMode, playersFinished, totalPlayers, totalQuestions]);
 
   if (status === "loading" || !currentQuestion) {
     return (
@@ -272,10 +290,10 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
           <div className="bg-blue-600 px-3 py-1.5 rounded-lg font-black tracking-widest text-sm">
             {roomCode}
           </div>
-          {isWaygroundClassic ? (
+          {isClassicMode ? (
             <>
               <div className="flex items-center gap-1.5 text-sm text-white/50">
-                <Waves size={13} className="text-blue-400" />
+                <Zap size={13} className="text-blue-400" />
                 <span className="font-bold text-white">{playersFinished}</span>
                 <span>/ {totalPlayers} done</span>
               </div>
@@ -285,7 +303,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                 </div>
               ) : (
                 <div className="text-[10px] px-2 py-0.5 bg-blue-600/20 rounded-full text-blue-400 font-black uppercase tracking-widest">
-                  🌊 Wayground Classic
+                  ⚡ Classic
                 </div>
               )}
             </>
@@ -299,6 +317,11 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
               <div className="text-xs text-white/30 font-bold">
                 Q{qIndex + 1}{totalQuestions > 0 ? `/${totalQuestions}` : ""}
               </div>
+              {advanceCountdown !== null && (
+                <div className="text-[10px] px-2 py-0.5 bg-amber-500/20 rounded-full text-amber-400 font-black uppercase tracking-widest animate-pulse">
+                  Next in {advanceCountdown}s…
+                </div>
+              )}
             </>
           )}
           {/* Timer circle */}
@@ -482,7 +505,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         <div className="flex-1 flex flex-col overflow-hidden">
 
           {/* --- Classic / non-Wayground: Question + answer distribution --- */}
-          {!isWaygroundClassic && (
+          {!isClassicMode && (
             <div className="flex-1 flex flex-col p-4 gap-4 overflow-y-auto">
 
               {/* Question card */}
@@ -570,14 +593,14 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
           )}
 
           {/* --- Wayground Classic: per-player progress tracker --- */}
-          {isWaygroundClassic && (
+          {isClassicMode && (
             <div className="flex-1 flex flex-col overflow-hidden">
 
               {/* Mode badge */}
               <div className="mx-4 mt-4 mb-3 px-4 py-2 bg-blue-600/10 border border-blue-500/20 rounded-xl flex items-center gap-2 shrink-0">
-                <Waves size={14} className="text-blue-400" />
+                <Zap size={14} className="text-blue-400" />
                 <span className="text-xs font-black text-blue-400 uppercase tracking-widest">
-                  WAYGROUND CLASSIC — Player-paced · each player advances at their own speed
+                  CLASSIC — Player-paced · each player advances at their own speed
                 </span>
               </div>
 
@@ -696,10 +719,10 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         <div className="flex items-center gap-1.5">
           <Users size={11} className="text-blue-400" />
           <span className="text-white/30 font-black uppercase tracking-widest">
-            {isWaygroundClassic ? "Finished" : "Answered"}
+            {isClassicMode ? "Finished" : "Answered"}
           </span>
           <span className="font-black text-white">
-            {isWaygroundClassic ? playersFinished : totalAnswered}
+            {isClassicMode ? playersFinished : totalAnswered}
           </span>
           <span className="text-white/30">/{totalPlayers}</span>
         </div>
@@ -715,13 +738,13 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
 
         {/* Game mode badge — right side */}
         <div className="ml-auto flex items-center gap-2">
-          {isWaygroundClassic && (
+          {isClassicMode && (
             <span className="px-2 py-0.5 bg-blue-600/20 rounded-full text-blue-400 font-black text-[10px] uppercase tracking-widest">
-              🌊 Wayground Classic
+              ⚡ Classic
             </span>
           )}
           <span className="text-white/20 font-bold capitalize">
-            {roomState?.gameMode?.replace("_", " ") || "classic"}
+            {isClassicMode ? "Classic" : (roomState?.gameMode?.replace(/_/g, " ") || "classic")}
           </span>
         </div>
       </div>

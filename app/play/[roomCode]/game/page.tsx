@@ -473,7 +473,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
     return (
       <div className="min-h-screen bg-[#0f0f1a] flex flex-col items-center justify-center p-8 text-center text-white">
         <div className="text-6xl mb-4">🏁</div>
-        <div className="text-xs font-black text-blue-400 uppercase tracking-widest mb-2">WAYGROUND CLASSIC</div>
+        <div className="text-xs font-black text-blue-400 uppercase tracking-widest mb-2">⚡ CLASSIC</div>
         <h2 className="text-3xl font-black mb-2">Finished!</h2>
         <p className="text-white/50 mb-6 text-sm">Loading your results...</p>
         <div className="bg-white/5 border border-white/10 rounded-2xl p-6 w-full max-w-xs">
@@ -491,7 +491,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       <div className="h-[100dvh] bg-[#0f0f1a] flex flex-col items-center justify-center text-white">
         {isWayground && (
           <div className="mb-6 px-4 py-2 bg-blue-600/20 border border-blue-500/30 rounded-full text-xs font-black text-blue-400 uppercase tracking-widest">
-            🌊 WAYGROUND CLASSIC MODE
+            ⚡ CLASSIC MODE
           </div>
         )}
         <div className="w-14 h-14 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-5" />
@@ -514,7 +514,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
         <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-[#0f0f1a]/95">
           {isWayground && (
             <div className="mb-4 px-4 py-1.5 bg-blue-600/20 border border-blue-500/30 rounded-full text-xs font-black text-blue-400 uppercase tracking-widest">
-              🌊 WAYGROUND CLASSIC
+              ⚡ CLASSIC
             </div>
           )}
           <div key={String(countdownValue)} className="text-9xl font-black animate-ping-once"
@@ -525,7 +525,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
             {countdownValue === "GO!" ? "Game On!" : "Get Ready..."}
           </p>
           {isWayground && countdownValue !== "GO!" && (
-            <p className="mt-3 text-white/30 text-sm">Answer instantly — no waiting!</p>
+            <p className="mt-3 text-white/30 text-sm">⚡ Classic mode — answer instantly!</p>
           )}
         </div>
       )}
@@ -597,7 +597,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       {/* Wayground mode badge */}
       {isWayground && !showCountdown && (
         <div className="flex items-center justify-center gap-2 py-1 bg-blue-600/10 border-b border-blue-500/10 shrink-0">
-          <span className="text-[9px] font-black text-blue-400/60 uppercase tracking-widest">🌊 WAYGROUND CLASSIC · Answer instantly · advance instantly</span>
+          <span className="text-[9px] font-black text-blue-400/60 uppercase tracking-widest">⚡ CLASSIC · Answer instantly · advance instantly</span>
         </div>
       )}
 
