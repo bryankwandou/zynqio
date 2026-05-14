@@ -10,13 +10,12 @@ import { getPusherClient } from "@/lib/pusher-client";
 import { getAvatar } from "@/lib/avatars";
 
 const GAME_MODES = [
-  { id: "wayground_classic", name: "WAYGROUND CLASSIC", icon: "🌊", desc: "Answer instantly, advance instantly. No timer waiting." },
-  { id: "classic",      name: "Classic",      icon: "🏆", desc: "Standard scoring" },
-  { id: "speed_rush",   name: "Speed Rush",   icon: "⚡", desc: "Faster = more pts" },
-  { id: "battle_royale",name: "Battle Royale",icon: "⚔️", desc: "Elimination rounds" },
-  { id: "survival",     name: "Survival",     icon: "🏔️", desc: "Don't miss or reset" },
-  { id: "gold_quest",   name: "Gold Quest",   icon: "💰", desc: "Chests & stealing" },
-  { id: "team",         name: "Team Mode",    icon: "👥", desc: "Collaborate to win" },
+  { id: "wayground_classic", name: "Classic",      icon: "🏆", desc: "Self-paced · each player at own speed · auto-advance" },
+  { id: "speed_rush",   name: "Speed Rush",   icon: "⚡", desc: "Faster = more pts · auto-advance" },
+  { id: "battle_royale",name: "Battle Royale",icon: "⚔️", desc: "Wrong = lose a life · auto-advance" },
+  { id: "survival",     name: "Survival",     icon: "🏔️", desc: "Miss = reset score · auto-advance" },
+  { id: "gold_quest",   name: "Gold Quest",   icon: "💰", desc: "Chests & stealing · auto-advance" },
+  { id: "team",         name: "Team Mode",    icon: "👥", desc: "Collaborate to win · auto-advance" },
 ];
 
 const TIMERS = [10, 15, 20, 30, 45, 60, 90];
@@ -45,14 +44,14 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
 
   // Launch modal
   const [showLaunchModal, setShowLaunchModal] = useState(false);
-  const [gameMode, setGameMode] = useState<string>("classic");
+  const [gameMode, setGameMode] = useState<string>("wayground_classic");
   const [globalTimer, setGlobalTimer] = useState(30);
   const [winnerCount, setWinnerCount] = useState(3);
   const [shuffleQuestions, setShuffleQuestions] = useState(false);
   const [showAnswerAfter, setShowAnswerAfter] = useState(true);
   const [oneAttemptOnly, setOneAttemptOnly] = useState(true);
   const [memeMode, setMemeMode] = useState(false);
-  const [autoAdvance, setAutoAdvance] = useState(false);
+  const [autoAdvance, setAutoAdvance] = useState(true);
 
   // Team auto-assign (team mode only)
   const [teams, setTeams] = useState<Record<string, any[]>>({});
