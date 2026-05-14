@@ -185,26 +185,22 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
     } catch {}
   };
 
-  // Auto-advance after reveal — ALWAYS seamless for non-Classic modes (Blooket-style)
+  // Auto-advance after reveal — ALWAYS seamless for non-Classic modes (Blooket-style), 2s delay
   useEffect(() => {
     if (isClassicMode || !isRevealed || autoAdvanceScheduledRef.current) return;
     autoAdvanceScheduledRef.current = true;
-    let secs = 5;
-    setAdvanceCountdown(secs);
-    countdownTickRef.current = setInterval(() => {
-      secs--;
-      if (secs > 0) setAdvanceCountdown(secs);
-      else {
-        if (countdownTickRef.current) { clearInterval(countdownTickRef.current); countdownTickRef.current = null; }
+    setAdvanceCountdown(2);
+    countdownTickRef.current = setTimeout(() => {
+      setAdvanceCountdown(1);
+      countdownTickRef.current = setTimeout(() => {
         setAdvanceCountdown(null);
-      }
+        handleNextQuestion();
+      }, 1000);
     }, 1000);
-    const t = setTimeout(() => {
-      if (countdownTickRef.current) { clearInterval(countdownTickRef.current); countdownTickRef.current = null; }
+    return () => {
+      if (countdownTickRef.current) { clearTimeout(countdownTickRef.current as any); countdownTickRef.current = null; }
       setAdvanceCountdown(null);
-      handleNextQuestion();
-    }, 5000);
-    return () => { clearTimeout(t); if (countdownTickRef.current) { clearInterval(countdownTickRef.current); countdownTickRef.current = null; } setAdvanceCountdown(null); };
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRevealed, isClassicMode]);
 

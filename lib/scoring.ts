@@ -93,12 +93,19 @@ export function calculateScore(params: {
  * Helper to determine if an answer is correct based on question type.
  */
 export function validateAnswer(question: any, selectedAnswer: any): boolean {
-  if (!question || selectedAnswer === undefined) return false;
+  if (!question || selectedAnswer === undefined || selectedAnswer === null) return false;
 
-  const type = question.type;
+  const type = question.type || "MCQ"; // default to MCQ for legacy/seed questions without type
 
   if (type === "MCQ") {
-    return String(question.correctAnswer) === String(selectedAnswer);
+    // Support both index-based and text-based answers
+    const ca = String(question.correctAnswer ?? "");
+    const sa = String(selectedAnswer ?? "");
+    if (ca === sa) return true;
+    // Also check if selectedAnswer matches the option text at the correct index
+    const correctOption = question.options?.[Number(ca)];
+    if (correctOption !== undefined && String(correctOption) === sa) return true;
+    return false;
   }
 
   if (type === "TF") {
