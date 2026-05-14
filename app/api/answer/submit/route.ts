@@ -171,6 +171,8 @@ export async function POST(req: Request) {
     try {
       await pusherServer.trigger(`room-${roomCode}`, 'answer_submitted', {
         playerId,
+        questionId,           // needed by host to update local answerStats
+        selectedAnswer,       // needed by host to update byAnswer distribution
         isCorrect,
         sessionScore,
         totalScore: room?.players?.find((p: any) => p.id === playerId || p.name === playerId)?.score || 0,

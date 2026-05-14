@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { getAvatar } from "@/lib/avatars";
 import { Users, SkipForward, Trophy, Eye, Flame, Square, Zap } from "lucide-react";
 import { getPusherClient } from "@/lib/pusher-client";
+import GameMusicPlayer from "@/components/GameMusicPlayer";
 
 const COLORS = [
   { bg: "bg-red-500",   bar: "bg-red-400",   shape: "▲" },
@@ -56,7 +57,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         autoEndClassicRef.current = false;
         autoRevealScheduledRef.current = false;
         setAdvanceCountdown(null);
-        if (countdownTickRef.current) { clearInterval(countdownTickRef.current); countdownTickRef.current = null; }
+        if (countdownTickRef.current) { clearTimeout(countdownTickRef.current as any); countdownTickRef.current = null; }
         const t = state.settings?.timer || 30;
         setTotalTime(t);
         setTimeLeft(t);
@@ -104,13 +105,15 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
     return () => clearInterval(interval);
   }, [roomCode, router, fetchQuestion]);
 
-  // Pusher: real-time per-player score updates
+  // Pusher: real-time per-player score + answerStats update
   useEffect(() => {
     const pusher = getPusherClient();
     const channel = pusher.subscribe(`room-${roomCode}`);
     channel.bind("answer_submitted", (data: any) => {
       setRoomState((prev: any) => {
         if (!prev?.players) return prev;
+
+        // Update player row
         const players = prev.players.map((p: any) => {
           if (p.id !== data.playerId && p.name !== data.playerId) return p;
           const newAnswered = (p.totalAnswered || 0) + 1;
@@ -123,7 +126,26 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
             accuracy: Math.round((newCorrect / newAnswered) * 100),
           };
         });
-        return { ...prev, players };
+
+        // Also update answerStats so totalAnswered immediately reflects new answer
+        // (avoids waiting for the 2s REST poll before auto-reveal triggers)
+        const qId = data.questionId;
+        if (!qId) return { ...prev, players };
+        const prevStats = prev.answerStats?.[qId] || { total: 0, correct: 0, byAnswer: {} };
+        const ansKey = String(data.selectedAnswer ?? "null");
+        const updatedStats = {
+          total: prevStats.total + 1,
+          correct: prevStats.correct + (data.isCorrect ? 1 : 0),
+          byAnswer: {
+            ...prevStats.byAnswer,
+            [ansKey]: (prevStats.byAnswer?.[ansKey] || 0) + 1,
+          },
+        };
+        return {
+          ...prev,
+          players,
+          answerStats: { ...(prev.answerStats || {}), [qId]: updatedStats },
+        };
       });
     });
     return () => {
@@ -358,6 +380,8 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
               Next <SkipForward size={15} className="ml-1" />
             </Button>
           )}
+          {/* Music player */}
+          <GameMusicPlayer />
           {/* End Now button — always visible, requires confirm modal */}
           <Button
             onClick={() => setShowEndConfirm(true)}
