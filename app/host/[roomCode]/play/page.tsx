@@ -37,6 +37,10 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   const prevIndexRef = useRef<number | null>(null);
   const lastUpdatedAtRef = useRef(0);
   const countdownTickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Timeout refs — kept across renders so cleanup only fires on unmount or explicit reset
+  const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const endTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // "Classic" mode = wayground_classic (self-paced per player)
   const isClassicMode = roomState?.gameMode === "wayground_classic";
@@ -58,6 +62,10 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         autoRevealScheduledRef.current = false;
         setAdvanceCountdown(null);
         if (countdownTickRef.current) { clearTimeout(countdownTickRef.current as any); countdownTickRef.current = null; }
+        // Clear any pending timeouts from previous question
+        if (revealTimeoutRef.current) { clearTimeout(revealTimeoutRef.current); revealTimeoutRef.current = null; }
+        if (advanceTimeoutRef.current) { clearTimeout(advanceTimeoutRef.current); advanceTimeoutRef.current = null; }
+        if (endTimeoutRef.current) { clearTimeout(endTimeoutRef.current); endTimeoutRef.current = null; }
         const t = state.settings?.timer || 30;
         setTotalTime(t);
         setTimeLeft(t);
@@ -113,17 +121,32 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
       setRoomState((prev: any) => {
         if (!prev?.players) return prev;
 
-        // Update player row
+        // Update player row + append to per-question answerHistory
         const players = prev.players.map((p: any) => {
           if (p.id !== data.playerId && p.name !== data.playerId) return p;
           const newAnswered = (p.totalAnswered || 0) + 1;
           const newCorrect = (p.totalCorrect || 0) + (data.isCorrect ? 1 : 0);
+          const histStatus = data.selectedAnswer === null
+            ? "unattempted"
+            : data.isCorrect
+              ? "correct"
+              : "wrong";
+          const answerHistory = {
+            ...(p.answerHistory || {}),
+            [data.questionId]: {
+              status: histStatus,
+              selectedAnswer: data.selectedAnswer,
+              points: data.sessionScore,
+              questionIndex: data.questionIndex,
+            },
+          };
           return {
             ...p,
             score: data.totalScore,
             totalAnswered: newAnswered,
             totalCorrect: newCorrect,
             accuracy: Math.round((newCorrect / newAnswered) * 100),
+            answerHistory,
           };
         });
 
@@ -208,32 +231,29 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   };
 
   // Auto-advance after reveal — ALWAYS seamless for non-Classic modes (Blooket-style), 2s delay
+  // NOTE: No cleanup function — timeout must survive prop changes from rapid Pusher events.
   useEffect(() => {
     if (isClassicMode || !isRevealed || autoAdvanceScheduledRef.current) return;
     autoAdvanceScheduledRef.current = true;
     setAdvanceCountdown(2);
-    countdownTickRef.current = setTimeout(() => {
+    advanceTimeoutRef.current = setTimeout(() => {
       setAdvanceCountdown(1);
-      countdownTickRef.current = setTimeout(() => {
+      advanceTimeoutRef.current = setTimeout(() => {
         setAdvanceCountdown(null);
         handleNextQuestion();
       }, 1000);
     }, 1000);
-    return () => {
-      if (countdownTickRef.current) { clearTimeout(countdownTickRef.current as any); countdownTickRef.current = null; }
-      setAdvanceCountdown(null);
-    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRevealed, isClassicMode]);
 
   // Auto-reveal when ALL players have answered (even before timer ends)
+  // NOTE: No cleanup — otherwise rapid totalAnswered changes cancel the 1s reveal timeout.
   useEffect(() => {
     if (isClassicMode || isRevealed || autoRevealScheduledRef.current) return;
     if (totalPlayers === 0) return;
     if (totalAnswered < totalPlayers) return;
     autoRevealScheduledRef.current = true;
-    const t = setTimeout(() => { setIsRevealed(true); setTimeLeft(0); }, 1000);
-    return () => clearTimeout(t);
+    revealTimeoutRef.current = setTimeout(() => { setIsRevealed(true); setTimeLeft(0); }, 1000);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalAnswered, totalPlayers, isRevealed, isClassicMode]);
 
@@ -246,8 +266,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
     const allAnswered = totalPlayers > 0 && totalAnswered >= totalPlayers;
     if (!allAnswered) return;
     autoEndScheduledRef.current = true;
-    const t = setTimeout(() => handleEndGame(), 4000);
-    return () => clearTimeout(t);
+    endTimeoutRef.current = setTimeout(() => handleEndGame(), 4000);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRevealed, totalAnswered, totalPlayers, qIndex, totalQuestions, isClassicMode]);
 
@@ -257,10 +276,19 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
     if (totalPlayers === 0 || totalQuestions === 0) return;
     if (playersFinished < totalPlayers) return;
     autoEndClassicRef.current = true;
-    const t = setTimeout(() => handleEndGame(), 4000);
-    return () => clearTimeout(t);
+    endTimeoutRef.current = setTimeout(() => handleEndGame(), 4000);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isClassicMode, playersFinished, totalPlayers, totalQuestions]);
+
+  // Cleanup all timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (revealTimeoutRef.current) clearTimeout(revealTimeoutRef.current);
+      if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
+      if (endTimeoutRef.current) clearTimeout(endTimeoutRef.current);
+      if (countdownTickRef.current) clearTimeout(countdownTickRef.current as any);
+    };
+  }, []);
 
   if (status === "loading" || !currentQuestion) {
     return (
@@ -440,17 +468,31 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
             <span className="text-[10px] font-black text-white/20">{totalPlayers} players</span>
           </div>
 
-          {/* Player rows */}
-          <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-1.5">
+          {/* Legend: status colors (Wayground-style) */}
+          <div className="px-3 pb-2 flex items-center gap-2 flex-wrap shrink-0 text-[8px] font-bold uppercase tracking-wider">
+            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 bg-green-500 rounded-sm" /><span className="text-white/40">Correct</span></div>
+            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 bg-red-500 rounded-sm" /><span className="text-white/40">Wrong</span></div>
+            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 bg-amber-500 rounded-sm" /><span className="text-white/40">Partial</span></div>
+            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 bg-white/10 rounded-sm" /><span className="text-white/40">N/A</span></div>
+          </div>
+
+          {/* Player rows — Wayground-style with per-question colored grid */}
+          <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2">
             {leaderboard.slice(0, 15).map((p: any, i: number) => {
               const av = getAvatar(p.avatarId);
               const totalAns = p.totalAnswered || 0;
               const correct = p.totalCorrect || 0;
-              const wrong = totalAns - correct;
-              // Progress bar = soal terjawab / total soal (bukan benar/salah)
               const totalQs = totalQuestions || 1;
-              const answeredPct = Math.min(100, (totalAns / totalQs) * 100);
-              const correctOfAnswered = totalAns > 0 ? Math.round((correct / totalAns) * 100) : 0;
+              const accuracy = totalAns > 0 ? Math.round((correct / totalAns) * 100) : 0;
+              const history = p.answerHistory || {};
+
+              // Build per-question status array by questionIndex (0..totalQs-1)
+              const historyByIndex: Record<number, string> = {};
+              Object.values(history).forEach((h: any) => {
+                if (h && typeof h.questionIndex === "number") {
+                  historyByIndex[h.questionIndex] = h.status;
+                }
+              });
 
               const rankBg =
                 i === 0 ? "bg-yellow-500/15 border-yellow-500/40" :
@@ -466,46 +508,64 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
               return (
                 <div
                   key={p.id || p.name}
-                  className={`flex items-center gap-2 px-2.5 py-2.5 rounded-xl border transition-all ${rankBg}`}
+                  className={`flex flex-col gap-1.5 px-2.5 py-2.5 rounded-xl border transition-all ${rankBg}`}
                 >
-                  {/* Rank badge */}
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-xs shrink-0 ${rankBadge}`}>
-                    {i + 1}
+                  {/* Top row: rank + avatar + name + score */}
+                  <div className="flex items-center gap-2">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-xs shrink-0 ${rankBadge}`}>
+                      {i + 1}
+                    </div>
+                    <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${av.bg} flex items-center justify-center text-base shrink-0`}>
+                      {av.emoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-xs text-white truncate">{p.name}</span>
+                        <span className="text-xs font-black text-blue-400 shrink-0">
+                          {(p.score || 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 text-[9px]">
+                        <span className={`font-black ${accuracy >= 70 ? "text-green-400" : accuracy >= 40 ? "text-amber-400" : accuracy > 0 ? "text-red-400" : "text-white/30"}`}>
+                          {totalAns > 0 ? `${accuracy}%` : "—"}
+                        </span>
+                        <span className="text-white/20">·</span>
+                        <span className="text-green-400 font-bold">{correct}</span>
+                        <span className="text-white/20">/</span>
+                        <span className="text-white/40">{totalAns}</span>
+                        {(p.streak || 0) >= 3 && (
+                          <span className="ml-auto flex items-center gap-0.5 text-orange-400 font-bold">
+                            <Flame size={9} /> {p.streak}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Avatar */}
-                  <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${av.bg} flex items-center justify-center text-base shrink-0`}>
-                    {av.emoji}
-                  </div>
-
-                  {/* Name + answered-progress bar + score */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-xs text-white truncate">{p.name}</span>
-                      <span className="text-xs font-black text-blue-400 ml-1 shrink-0">
-                        {(p.score || 0).toLocaleString()}
-                      </span>
+                  {/* Per-question colored grid (Wayground-style) */}
+                  {totalQs > 0 && (
+                    <div className="flex items-center gap-[3px] flex-wrap pl-9">
+                      {Array.from({ length: Math.min(totalQs, 30) }).map((_, qi) => {
+                        const status = historyByIndex[qi];
+                        const cellColor =
+                          status === "correct" ? "bg-green-500" :
+                          status === "wrong" ? "bg-red-500" :
+                          status === "partial" ? "bg-amber-500" :
+                          status === "unattempted" ? "bg-red-900/50" :
+                          "bg-white/[0.06]";
+                        return (
+                          <div
+                            key={qi}
+                            title={`Q${qi + 1}: ${status || "not answered yet"}`}
+                            className={`h-3 flex-1 min-w-[6px] max-w-[14px] rounded-sm ${cellColor} transition-all`}
+                          />
+                        );
+                      })}
+                      {totalQs > 30 && (
+                        <span className="text-[8px] text-white/30 ml-1">+{totalQs - 30}</span>
+                      )}
                     </div>
-                    {/* Progress bar: soal terjawab / total soal */}
-                    <div className="h-2 rounded-full overflow-hidden bg-white/5">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          answeredPct >= 100 ? "bg-green-500" : "bg-blue-500"
-                        }`}
-                        style={{ width: `${answeredPct}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[9px] text-white/30">
-                        {totalAns}/{totalQs} dijawab
-                      </span>
-                      <span className="text-[9px]">
-                        <span className="text-green-400">{correct}✓</span>
-                        {wrong > 0 && <span className="text-red-400 ml-1">{wrong}✗</span>}
-                        <span className="text-white/20 ml-1">{correctOfAnswered}%</span>
-                      </span>
-                    </div>
-                  </div>
+                  )}
                 </div>
               );
             })}
@@ -634,6 +694,14 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                 </span>
               </div>
 
+              {/* Legend */}
+              <div className="px-5 pb-2 flex items-center gap-3 flex-wrap shrink-0 text-[9px] font-bold uppercase tracking-wider">
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-green-500 rounded-sm" /><span className="text-white/40">Correct</span></div>
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-red-500 rounded-sm" /><span className="text-white/40">Wrong</span></div>
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-red-900/50 rounded-sm" /><span className="text-white/40">No answer</span></div>
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-white/10 rounded-sm" /><span className="text-white/40">Unattempted</span></div>
+              </div>
+
               {/* Player progress rows */}
               <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
                 {[...leaderboard]
@@ -644,8 +712,16 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                     const correct = p.totalCorrect || 0;
                     const accuracy = answered > 0 ? Math.round((correct / answered) * 100) : 0;
                     const totalQs = totalQuestions || roomState?.totalQuestions || 1;
-                    const progressPct = Math.min(100, (answered / totalQs) * 100);
                     const isDone = totalQs > 0 && answered >= totalQs;
+
+                    // Build per-question status array
+                    const history = p.answerHistory || {};
+                    const historyByIndex: Record<number, string> = {};
+                    Object.values(history).forEach((h: any) => {
+                      if (h && typeof h.questionIndex === "number") {
+                        historyByIndex[h.questionIndex] = h.status;
+                      }
+                    });
 
                     return (
                       <div
@@ -666,7 +742,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                           {av.emoji}
                         </div>
 
-                        {/* Name + progress */}
+                        {/* Name + per-question grid */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1.5">
                             <span className="font-bold text-sm text-white truncate">{p.name}</span>
@@ -678,20 +754,38 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                               )}
                             </div>
                           </div>
-                          {/* Progress bar */}
-                          <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all duration-500 ${isDone ? "bg-green-500" : "bg-blue-500"}`}
-                              style={{ width: `${progressPct}%` }}
-                            />
+                          {/* Wayground-style colored grid (one cell per question) */}
+                          <div className="flex items-center gap-[3px]">
+                            {Array.from({ length: Math.min(totalQs, 25) }).map((_, qi) => {
+                              const status = historyByIndex[qi];
+                              const cellColor =
+                                status === "correct" ? "bg-green-500" :
+                                status === "wrong" ? "bg-red-500" :
+                                status === "partial" ? "bg-amber-500" :
+                                status === "unattempted" ? "bg-red-900/50" :
+                                "bg-white/[0.07]";
+                              return (
+                                <div
+                                  key={qi}
+                                  title={`Q${qi + 1}: ${status || "not yet"}`}
+                                  className={`h-3.5 flex-1 min-w-[8px] rounded-sm ${cellColor} transition-all`}
+                                />
+                              );
+                            })}
+                            {totalQs > 25 && (
+                              <span className="text-[8px] text-white/30 ml-1">+{totalQs - 25}</span>
+                            )}
                           </div>
                           {/* Mini stats */}
-                          <div className="flex items-center gap-3 mt-1 text-[9px]">
-                            <span className="text-white/20">
-                              Acc: <span className={accuracy >= 70 ? "text-green-400" : accuracy >= 40 ? "text-amber-400" : "text-red-400"}>{accuracy}%</span>
+                          <div className="flex items-center gap-3 mt-1.5 text-[10px]">
+                            <span className="text-white/30">
+                              Acc <span className={`font-black ${accuracy >= 70 ? "text-green-400" : accuracy >= 40 ? "text-amber-400" : accuracy > 0 ? "text-red-400" : "text-white/30"}`}>{accuracy}%</span>
+                            </span>
+                            <span className="text-white/30">
+                              <span className="text-green-400 font-bold">{correct}</span>/{answered}
                             </span>
                             <span className="flex items-center gap-0.5 text-orange-400">
-                              <Flame size={9} />
+                              <Flame size={10} />
                               <span className="font-bold">{p.streak || 0}</span>
                             </span>
                           </div>
