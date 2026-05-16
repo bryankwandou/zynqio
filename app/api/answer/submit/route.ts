@@ -145,6 +145,23 @@ export async function POST(req: Request) {
         player.accuracy = Math.round(
           ((player.totalCorrect || 0) / (player.totalAnswered || 1)) * 100
         );
+
+        // Per-question answer history — used by host dashboard for Wayground-style colored grid
+        // Status: "correct" | "wrong" | "unattempted" (timeout / no answer)
+        if (!player.answerHistory) player.answerHistory = {};
+        const histStatus = selectedAnswer === null
+          ? "unattempted"
+          : isCorrect
+            ? "correct"
+            : "wrong";
+        player.answerHistory[questionId] = {
+          status: histStatus,
+          selectedAnswer,
+          points: sessionScore,
+          timestamp: serverTimestamp,
+          questionIndex: questionIndex ?? room.currentQuestionIndex ?? 0,
+        };
+
         room.players[playerIndex] = player;
 
         // Track per-question answer stats for analytics
@@ -172,6 +189,7 @@ export async function POST(req: Request) {
       await pusherServer.trigger(`room-${roomCode}`, 'answer_submitted', {
         playerId,
         questionId,           // needed by host to update local answerStats
+        questionIndex: questionIndex ?? room?.currentQuestionIndex ?? 0,
         selectedAnswer,       // needed by host to update byAnswer distribution
         isCorrect,
         sessionScore,
