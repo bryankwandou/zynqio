@@ -498,16 +498,17 @@ export default function CreateQuiz() {
             <div className="h-6 w-[1px] bg-border mx-2" />
             <Button
               variant="outline"
-              className="border-border hover:bg-accent dark:border-white/20 dark:text-white/80 dark:bg-white/5"
+              className="hidden md:flex border-border hover:bg-accent dark:border-white/20 dark:text-white/80 dark:bg-white/5"
               onClick={downloadTemplate}
             >
               Download Template
             </Button>
-            <Button 
-              className="bg-primary hover:bg-primary text-white px-6 font-bold"
+            <Button
+              className="bg-primary hover:bg-primary/90 text-white px-6 font-bold"
               onClick={saveQuiz}
+              disabled={isSaving}
             >
-              {editingQuizId ? "Update Quiz" : "Save Quiz"}
+              {isSaving ? 'Saving...' : editingQuizId ? "Update Quiz" : "Save Quiz"}
             </Button>
           </div>
         </div>
@@ -819,6 +820,26 @@ export default function CreateQuiz() {
           )}
         </div>
       </main>
+
+      {/* Sticky Bottom Save Bar — always visible, eliminates confusion about where to save */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/90 backdrop-blur-md shadow-[0_-4px_24px_-4px_rgba(0,0,0,0.12)]">
+        <div className="container mx-auto max-w-4xl px-4 py-3 flex items-center justify-between gap-4">
+          <div className="text-sm text-muted-foreground min-w-0">
+            <span className="font-bold text-foreground">{questions.length}</span>
+            <span> question{questions.length !== 1 ? 's' : ''}</span>
+            {title && <span className="hidden sm:inline"> · <span className="text-primary font-semibold truncate">{title}</span></span>}
+          </div>
+          <Button
+            className="bg-primary hover:bg-primary/90 text-white font-bold px-8 rounded-xl shadow-lg hover:shadow-primary/30 transition-all shrink-0"
+            onClick={saveQuiz}
+            disabled={isSaving}
+            size="lg"
+          >
+            <Save size={18} className="mr-2" />
+            {isSaving ? 'Saving...' : editingQuizId ? 'Update Quiz' : 'Save Quiz'}
+          </Button>
+        </div>
+      </div>
 
       {/* Settings Modal */}
       {showSettings && (
