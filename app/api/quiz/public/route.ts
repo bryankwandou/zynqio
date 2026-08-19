@@ -1,29 +1,24 @@
 import { NextResponse } from 'next/server';
-import { listPublicQuizzes, updateQuizRating } from '@/lib/kv';
+import { handle } from '@/lib/api-guard';
+import { listPublicQuizzes } from '@/lib/quiz';
 
-export async function GET() {
-  try {
-    const quizzes = await listPublicQuizzes();
-    return NextResponse.json(quizzes);
-  } catch (error) {
-    console.error('Error fetching public quizzes:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-  }
-}
+export const dynamic = 'force-dynamic';
 
-export async function POST(req: Request) {
-  try {
-    const { quizId, rating, review, hostId } = await req.json();
-    
-    if (!quizId || !rating) {
-      return NextResponse.json({ error: 'Missing rating data' }, { status: 400 });
-    }
+/**
+ * GET /api/quiz/public — katalog kuis publik.
+ *
+ * Yang dikembalikan hanya keterangan kuis. Soal dan jawabannya tidak
+ * ikut, jadi katalog ini tidak bisa dipakai memanen isi kuis.
+ */
+export const GET = handle(async (req) => {
+  const { searchParams } = new URL(req.url);
 
-    await updateQuizRating(hostId, quizId, rating, review);
-    
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error rating quiz:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-  }
-}
+  const quizzes = await listPublicQuizzes({
+    category: searchParams.get('category'),
+    search: searchParams.get('q'),
+    limit: Number(searchParams.get('limit') ?? 24),
+    offset: Number(searchParams.get('offset') ?? 0),
+  });
+
+  return NextResponse.json(quizzes, { headers: { 'Cache-Control': 'no-store' } });
+});

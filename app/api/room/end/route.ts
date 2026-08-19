@@ -1,34 +1,71 @@
-import { NextResponse } from "next/server";
-import { getRoomState, redis } from "@/lib/kv";
-import { pusherServer } from "@/lib/pusher";
+import { NextResponse } from 'next/server';
+import { handle, readJson, requireUser } from '@/lib/api-guard';
+import { assertHost, normalizeRoomCode, endRoom, logEvent } from '@/lib/room';
+import { getLeaderboard } from '@/lib/answers';
+import { incrementPlays } from '@/lib/quiz';
+import { sql } from '@/lib/db';
+import { pusherServer } from '@/lib/pusher';
 
-const RESULTS_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
+/**
+ * POST /api/room/end
+ *
+ * Versi lama menerima roomCode dari siapa saja dan langsung menutup
+ * permainan. Satu permintaan dari peserta cukup untuk membubarkan sesi
+ * satu kelas.
+ *
+ * Selain memasang penjaga, route ini sekarang juga mengabadikan hasilnya.
+ * Sebelumnya hasil hanya menumpang pada keadaan ruangan yang berumur
+ * tujuh hari, lalu hilang bersama ruangannya. Riwayat permainan jadi
+ * kosong tanpa ada yang menghapus apa pun.
+ */
+export const POST = handle(async (req) => {
+  const user = await requireUser();
+  const body = await readJson<{ roomCode?: string }>(req);
 
-export async function POST(req: Request) {
+  const code = normalizeRoomCode(body.roomCode);
+  const room = await assertHost(code, user.id);
+
+  const leaderboard = await getLeaderboard(code, 500);
+
+  const stats = (await sql`
+    SELECT count(*)::int AS total,
+           count(*) FILTER (WHERE is_correct)::int AS benar
+    FROM answers WHERE session_id = ${room.session_id}
+  `) as { total: number; benar: number }[];
+
+  // Hasil disimpan sebagai catatan tersendiri supaya tetap ada setelah
+  // ruangannya kedaluwarsa dan terhapus.
+  await sql`
+    INSERT INTO session_results (session_id, room_code, quiz_id, host_id, payload)
+    VALUES (
+      ${room.session_id}, ${code}, ${room.quiz_id}, ${room.host_id}::uuid,
+      ${JSON.stringify({
+        gameMode: room.game_mode,
+        settings: room.settings,
+        leaderboard,
+        answers: stats[0] ?? { total: 0, benar: 0 },
+        endedAt: new Date().toISOString(),
+      })}::jsonb
+    )
+    ON CONFLICT (session_id) DO UPDATE SET payload = EXCLUDED.payload, finished_at = now()
+  `;
+
+  await endRoom(code);
+  await incrementPlays(room.quiz_id);
+  await logEvent(code, room.session_id, 'game_ended', { players: leaderboard.length });
+
   try {
-    const { roomCode } = await req.json();
-    if (!roomCode) {
-      return NextResponse.json({ error: "Missing roomCode" }, { status: 400 });
-    }
-
-    const room = await getRoomState(roomCode);
-    if (!room) {
-      return NextResponse.json({ error: "Room not found" }, { status: 404 });
-    }
-
-    room.status = "ended";
-    room.updatedAt = Date.now();
-    room.endedAt = Date.now();
-
-    // Persist with 7-day TTL so results remain accessible after the game
-    await (redis as any).set(`room:${roomCode}`, JSON.stringify(room), { ex: RESULTS_TTL_SECONDS });
-
-    try {
-      await pusherServer.trigger(`room-${roomCode}`, "game_ended", { status: "ended" });
-    } catch {}
-
-    return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    await pusherServer.trigger(`room-${code}`, 'game_ended', {
+      status: 'ended',
+      sessionId: room.session_id,
+    });
+  } catch (err) {
+    console.error('[Pusher] gagal menyiarkan game_ended:', err);
   }
-}
+
+  return NextResponse.json({
+    success: true,
+    sessionId: room.session_id,
+    players: leaderboard.length,
+  });
+});

@@ -1,16 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import { listUserQuizzes } from '@/lib/kv';
+import { handle, requireUser } from '@/lib/api-guard';
+import { listQuizzesByHost } from '@/lib/quiz';
 
-export async function GET() {
-  try {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id || 'admin';
-    const quizzes = await listUserQuizzes(userId);
-    return NextResponse.json(quizzes);
-  } catch (error) {
-    console.error('Error listing quizzes:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-  }
-}
+export const dynamic = 'force-dynamic';
+
+/** GET /api/quiz/list — kuis milik pengguna yang sedang masuk. */
+export const GET = handle(async () => {
+  const user = await requireUser();
+  const quizzes = await listQuizzesByHost(user.id);
+  return NextResponse.json({ quizzes }, { headers: { 'Cache-Control': 'no-store' } });
+});

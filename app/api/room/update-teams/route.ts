@@ -1,51 +1,63 @@
-import { NextResponse } from "next/server";
-import { getRoomState, setRoomState } from "@/lib/kv";
-import { pusherServer } from "@/lib/pusher";
+import { NextResponse } from 'next/server';
+import { handle, readJson, requireUser } from '@/lib/api-guard';
+import { assertHost, normalizeRoomCode, logEvent, RoomError } from '@/lib/room';
+import { sql } from '@/lib/db';
+import { pusherServer } from '@/lib/pusher';
 
-export async function POST(req: Request) {
-  try {
-    const { roomCode, teams } = await req.json();
+/**
+ * POST /api/room/update-teams
+ *
+ * Pembagian regu adalah kendali host, tetapi versi lama menerimanya dari
+ * siapa saja yang tahu kode ruangan. Peserta bisa memindahkan dirinya ke
+ * regu yang sedang unggul, atau mengacak seluruh pembagian di tengah
+ * permainan.
+ */
+export const POST = handle(async (req) => {
+  const user = await requireUser();
+  const body = await readJson<{ roomCode?: string; teams?: Record<string, { id: string }[]> }>(req);
 
-    if (!roomCode || !teams) {
-      return NextResponse.json({ error: "Missing data" }, { status: 400 });
-    }
-
-    const roomState: any = await getRoomState(roomCode);
-
-    if (!roomState) {
-      return NextResponse.json({ error: "Room not found" }, { status: 404 });
-    }
-
-    // Update players with their teams
-    const updatedPlayers = roomState.players.map((p: any) => {
-      let playerTeam = null;
-      for (const teamName in teams) {
-        if (teams[teamName].find((tp: any) => tp.id === p.id)) {
-          playerTeam = teamName;
-          break;
-        }
-      }
-      return { ...p, team: playerTeam };
-    });
-
-    roomState.players = updatedPlayers;
-    roomState.teams = teams; // Store team structure for host
-
-    await setRoomState(roomCode, roomState);
-    
-    // Trigger Pusher event
-    try {
-      await pusherServer.trigger(`room-${roomCode}`, 'teams_updated', {
-        teams: roomState.teams,
-        players: roomState.players
-      });
-    } catch (e) {
-      console.error("[Pusher] Teams-updated trigger error:", e);
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error("Update teams error", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  const code = normalizeRoomCode(body.roomCode);
+  if (!body.teams || typeof body.teams !== 'object') {
+    throw new RoomError('Susunan regu wajib disertakan.', 400);
   }
-}
+
+  const room = await assertHost(code, user.id);
+
+  // Peta peserta ke regu disusun lebih dulu, lalu ditulis dalam satu
+  // transaksi. Kalau salah satu penulisan ditolak, pembagiannya tidak
+  // berakhir separuh berubah.
+  const assignments: { playerId: string; team: string }[] = [];
+
+  for (const [teamName, members] of Object.entries(body.teams)) {
+    if (!Array.isArray(members)) continue;
+    const clean = teamName.trim().slice(0, 40);
+    if (!clean) continue;
+    for (const member of members) {
+      if (member && typeof member.id === 'string') {
+        assignments.push({ playerId: member.id, team: clean });
+      }
+    }
+  }
+
+  await sql.transaction([
+    sql`UPDATE room_players SET team = NULL WHERE room_code = ${code}`,
+    ...assignments.map(
+      (a) => sql`
+        UPDATE room_players SET team = ${a.team}
+        WHERE room_code = ${code} AND id = ${a.playerId}
+      `
+    ),
+  ]);
+
+  await logEvent(code, room.session_id, 'teams_updated', { count: assignments.length });
+
+  try {
+    await pusherServer.trigger(`room-${code}`, 'teams_updated', {
+      teams: Object.keys(body.teams),
+    });
+  } catch (err) {
+    console.error('[Pusher] gagal menyiarkan teams_updated:', err);
+  }
+
+  return NextResponse.json({ success: true, assigned: assignments.length });
+});

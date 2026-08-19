@@ -1,30 +1,24 @@
-import { NextResponse } from "next/server";
-import { listPublicQuizzes } from "@/lib/kv";
+import { NextResponse } from 'next/server';
+import { handle } from '@/lib/api-guard';
+import { listPublicQuizzes } from '@/lib/quiz';
 
-export async function GET(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const category = searchParams.get("category")?.trim();
-    const query = searchParams.get("q")?.trim().toLowerCase();
+export const dynamic = 'force-dynamic';
 
-    const quizzes = await listPublicQuizzes();
-    const filtered = quizzes
-      .filter((quiz) => {
-        if (category && quiz.category !== category) return false;
+/**
+ * GET /api/quiz/public — katalog kuis publik.
+ *
+ * Yang dikembalikan hanya keterangan kuis. Soal dan jawabannya tidak
+ * ikut, jadi katalog ini tidak bisa dipakai memanen isi kuis.
+ */
+export const GET = handle(async (req) => {
+  const { searchParams } = new URL(req.url);
 
-        if (query) {
-          const inTitle = (quiz.title || "").toLowerCase().includes(query);
-          const inAuthor = (quiz.author || "").toLowerCase().includes(query);
-          if (!inTitle && !inAuthor) return false;
-        }
+  const quizzes = await listPublicQuizzes({
+    category: searchParams.get('category'),
+    search: searchParams.get('q'),
+    limit: Number(searchParams.get('limit') ?? 24),
+    offset: Number(searchParams.get('offset') ?? 0),
+  });
 
-        return true;
-      })
-      .sort((a, b) => (b.plays || 0) - (a.plays || 0));
-
-    return NextResponse.json(filtered);
-  } catch (err) {
-    console.error("Explore error", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
-}
+  return NextResponse.json(quizzes, { headers: { 'Cache-Control': 'no-store' } });
+});

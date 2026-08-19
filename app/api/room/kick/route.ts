@@ -1,46 +1,37 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import { getRoomState, setRoomState } from "@/lib/kv";
-import { pusherServer } from "@/lib/pusher";
+import { NextResponse } from 'next/server';
+import { handle, readJson, requireUser } from '@/lib/api-guard';
+import { assertHost, normalizeRoomCode, kickPlayer, logEvent, RoomError } from '@/lib/room';
+import { pusherServer } from '@/lib/pusher';
 
-export async function POST(req: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+/**
+ * POST /api/room/kick
+ *
+ * Route ini sudah memeriksa host sejak semula. Yang berubah hanya
+ * penandaannya: peserta ditandai is_kicked, bukan dibuang dari daftar.
+ * Menghapus barisnya akan ikut menghapus jawaban dan skornya, sehingga
+ * rekap sesi jadi tidak cocok dengan apa yang benar-benar terjadi.
+ */
+export const POST = handle(async (req) => {
+  const user = await requireUser();
+  const body = await readJson<{ roomCode?: string; playerId?: string }>(req);
 
-    const { roomCode, playerId } = await req.json();
-    if (!roomCode || !playerId) {
-      return NextResponse.json({ error: "Missing params" }, { status: 400 });
-    }
-
-    const room = await getRoomState(roomCode);
-    if (!room) return NextResponse.json({ error: "Room not found" }, { status: 404 });
-
-    const userId = (session.user as any)?.id;
-    if (room.hostId !== userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    room.players = (room.players || []).filter(
-      (p: any) => p.id !== playerId && p.name !== playerId
-    );
-    // Store lowercase for consistent comparison with join/state checks
-    const kickedName = typeof playerId === "string" ? playerId.toLowerCase() : playerId;
-    room.kickedPlayers = [...(room.kickedPlayers || []), kickedName];
-    // CRITICAL: update updatedAt so polling clients get fresh state (not 304)
-    room.updatedAt = Date.now();
-    await setRoomState(roomCode, room);
-
-    // Notify via Pusher for instant kick detection (no polling delay)
-    try {
-      await pusherServer.trigger(`room-${roomCode}`, "player_kicked", { playerId });
-    } catch {}
-
-    return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  const code = normalizeRoomCode(body.roomCode);
+  if (typeof body.playerId !== 'string' || !body.playerId) {
+    throw new RoomError('playerId wajib diisi.', 400);
   }
-}
+
+  const room = await assertHost(code, user.id);
+  const removed = await kickPlayer(code, body.playerId);
+
+  if (!removed) throw new RoomError('Peserta tidak ditemukan di ruangan ini.', 404);
+
+  await logEvent(code, room.session_id, 'player_kicked', { playerId: body.playerId });
+
+  try {
+    await pusherServer.trigger(`room-${code}`, 'player_kicked', { playerId: body.playerId });
+  } catch (err) {
+    console.error('[Pusher] gagal menyiarkan player_kicked:', err);
+  }
+
+  return NextResponse.json({ success: true });
+});

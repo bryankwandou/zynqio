@@ -1,44 +1,25 @@
-import { NextResponse } from "next/server";
-import { redis, updateQuizRating } from "@/lib/kv";
+import { NextResponse } from 'next/server';
+import { handle, readJson, requireUser } from '@/lib/api-guard';
+import { rateQuiz } from '@/lib/quiz';
+import { RoomError } from '@/lib/room';
 
-async function resolveHostId(quizId: string, providedHostId?: string | null) {
-  if (providedHostId) return providedHostId;
+/**
+ * POST /api/quiz/rate
+ *
+ * Penilaian sekarang menuntut akun. Versi lama menerimanya tanpa
+ * identitas, jadi satu orang bisa mengirim penilaian berkali-kali dan
+ * menaikkan atau menjatuhkan kuis mana pun sesuka hati.
+ */
+export const POST = handle(async (req) => {
+  const user = await requireUser();
+  const body = await readJson<{ quizId?: string; rating?: number }>(req);
 
-  try {
-    const publicRefs: string[] = await (redis as any).smembers("public_quizzes");
-    const matched = publicRefs.find((ref) => ref.endsWith(`:${quizId}`));
-    if (!matched) return null;
-
-    const [hostId] = matched.split(":");
-    return hostId || null;
-  } catch (error) {
-    console.error("Host lookup failed:", error);
-    return null;
+  if (typeof body.quizId !== 'string' || !body.quizId) {
+    throw new RoomError('quizId wajib diisi.', 400);
   }
-}
 
-export async function POST(req: Request) {
-  try {
-    const { quizId, rating, review, hostId } = await req.json();
+  const ok = await rateQuiz(body.quizId, user.id, Number(body.rating));
+  if (!ok) throw new RoomError('Nilai harus antara 1 sampai 5.', 400);
 
-    const numericRating = Number(rating);
-    if (!quizId || Number.isNaN(numericRating)) {
-      return NextResponse.json({ error: "Missing data" }, { status: 400 });
-    }
-    if (numericRating < 1 || numericRating > 5) {
-      return NextResponse.json({ error: "Rating must be between 1 and 5" }, { status: 400 });
-    }
-
-    const resolvedHostId = await resolveHostId(quizId, hostId);
-    if (!resolvedHostId) {
-      return NextResponse.json({ error: "Quiz owner not found" }, { status: 404 });
-    }
-
-    await updateQuizRating(resolvedHostId, quizId, numericRating, review);
-
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error("Rating error", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
-}
+  return NextResponse.json({ success: true });
+});

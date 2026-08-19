@@ -1,49 +1,36 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import { redis, listPublicQuizzes } from '@/lib/kv';
+import { handle } from '@/lib/api-guard';
+import { sql } from '@/lib/db';
 
-export async function GET() {
-  try {
-    const session = await getServerSession(authOptions);
-    const publicQuizzes = await listPublicQuizzes();
+export const dynamic = 'force-dynamic';
 
-    if (!session || !(session.user as any)?.id || publicQuizzes.length === 0) {
-      return NextResponse.json(publicQuizzes.slice(0, 10));
-    }
+/**
+ * GET /api/quiz/recommend?quizId=...
+ *
+ * Saran kuis lain yang sejenis. Hanya kuis publik yang muncul, dan hanya
+ * keterangannya — tidak ada soal, tidak ada jawaban.
+ */
+export const GET = handle(async (req) => {
+  const { searchParams } = new URL(req.url);
+  const quizId = searchParams.get('quizId');
 
-    // Rule-based recommendation (Section 13.3)
-    let historyKeys: string[] = [];
-    try {
-      historyKeys = await (redis as any).keys(`user:${(session.user as any).id}:history:*`);
-    } catch {
-      historyKeys = [];
-    }
+  const rows = (await sql`
+    WITH acuan AS (
+      SELECT category FROM quizzes WHERE id = ${quizId} LIMIT 1
+    )
+    SELECT q.id, q.title, q.author, q.category, q.cover_image, q.plays,
+           CASE WHEN q.rating_count = 0 THEN 0
+                ELSE ROUND(q.rating_sum::numeric / q.rating_count, 2)
+           END AS rating,
+           (SELECT count(*)::int FROM questions WHERE quiz_id = q.id) AS question_count
+    FROM quizzes q
+    WHERE q.visibility = 'public'
+      AND q.id IS DISTINCT FROM ${quizId}
+    ORDER BY
+      (q.category = (SELECT category FROM acuan)) DESC,
+      q.plays DESC
+    LIMIT 8
+  `) as Record<string, unknown>[];
 
-    const categories: Record<string, number> = {};
-
-    for (const key of historyKeys) {
-      const item = await redis.get<any>(key);
-      if (item?.category) {
-        categories[item.category] = (categories[item.category] || 0) + 1;
-      }
-    }
-
-    const topCategories = Object.entries(categories)
-      .sort((a, b) => b[1] - a[1])
-      .map((e) => e[0]);
-
-    if (topCategories.length === 0) {
-      return NextResponse.json(publicQuizzes.slice(0, 10));
-    }
-
-    const recommended = publicQuizzes
-      .filter((q) => topCategories.includes(q.category || 'General'))
-      .sort((a, b) => (b.plays || 0) - (a.plays || 0));
-
-    return NextResponse.json(recommended.slice(0, 10));
-  } catch (error) {
-    console.error('Recommendation error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-  }
-}
+  return NextResponse.json({ quizzes: rows }, { headers: { 'Cache-Control': 'no-store' } });
+});

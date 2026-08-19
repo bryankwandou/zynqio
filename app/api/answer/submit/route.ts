@@ -1,216 +1,72 @@
-import { NextResponse } from "next/server";
-import { getQuizData, getRoomState, setRoomState, redis, setAnswerOnce } from "@/lib/kv";
-import { validateAnswer, calculateScore } from "@/lib/scoring";
-import { pusherServer } from "@/lib/pusher";
-import { rateLimit, getIP } from "@/lib/rate-limit";
+import { NextResponse } from 'next/server';
+import { handle, readJson } from '@/lib/api-guard';
+import { normalizeRoomCode } from '@/lib/room';
+import { submitAnswer, getQuestionStats } from '@/lib/answers';
+import { rateLimit, getIP } from '@/lib/rate-limit';
+import { pusherServer } from '@/lib/pusher';
+import { RoomError } from '@/lib/room';
 
-export async function POST(req: Request) {
-  try {
-    // Rate limit: 30 answer submits per minute per IP
-    const ip = getIP(req);
-    const allowed = await rateLimit(ip, "answer", 30, 60);
-    if (!allowed) {
-      return NextResponse.json({ error: "Too many requests. Slow down." }, { status: 429 });
-    }
-
-    const body = await req.json();
-    const {
-      playerId,
-      questionId,
-      questionIndex,
-      selectedAnswer,
-      roomCode,
-      sessionId,
-    } = body;
-
-    let { quizId, hostId } = body;
-
-    const serverTimestamp = Date.now();
-
-    // Get room state first so we can use quizId/hostId as fallbacks
-    const room = await getRoomState(roomCode);
-    if (!quizId && room?.quizId) quizId = room.quizId;
-    if (!hostId && room?.hostId) hostId = room.hostId;
-
-    if (!quizId) {
-      return NextResponse.json({ error: "Quiz ID not found" }, { status: 400 });
-    }
-
-    if (sessionId && playerId && questionId) {
-      const isFirstAttempt = await setAnswerOnce(sessionId, playerId, questionId, {
-        answer: selectedAnswer,
-        timestamp: serverTimestamp,
-      });
-      if (!isFirstAttempt) {
-        return NextResponse.json({ error: "Already answered this question." }, { status: 429 });
-      }
-    }
-
-    const cooldownKey = `cooldown:${roomCode}:${playerId}`;
-    try {
-      const onCooldown = await redis.get<boolean>(cooldownKey);
-      if (onCooldown) {
-        return NextResponse.json({ error: "Rate limit exceeded. Please wait." }, { status: 429 });
-      }
-      await redis.set(cooldownKey, true, { ex: 1 });
-    } catch {
-      // Non-fatal
-    }
-
-    if (!hostId) {
-      return NextResponse.json({ error: "HOST_ID_MISSING", message: "Room configuration invalid — missing host ID" }, { status: 500 });
-    }
-    const quiz = await getQuizData(hostId, quizId);
-    if (!quiz) {
-      return NextResponse.json({ error: "Quiz not found" }, { status: 404 });
-    }
-
-    // Find by id first; fall back to player's own index, then host's index
-    let question = quiz.questions?.find((q: any) => q.id === questionId);
-    if (!question) {
-      // Prefer player-sent index (correct for Wayground Classic where each player is at different Q)
-      const fallbackIndex = questionIndex ?? room?.currentQuestionIndex;
-      if (fallbackIndex != null) question = quiz.questions?.[Number(fallbackIndex)];
-    }
-    if (!question) {
-      return NextResponse.json({ error: "Question not found" }, { status: 404 });
-    }
-
-    const gameMode = room?.gameMode || "classic";
-    const globalTimer = room?.settings?.timer || 30;
-
-    try {
-      await (redis as any).sadd(`room:${roomCode}:q:${questionId}:answers`, playerId);
-    } catch {
-      // Non-fatal
-    }
-
-    const isCorrect = validateAnswer(question, selectedAnswer);
-
-    const questionStart = room?.questionStartTimestamp || serverTimestamp;
-    const elapsedSeconds = (serverTimestamp - questionStart) / 1000;
-    const totalTime = globalTimer || 30;
-    const timeLeft = Math.max(0, totalTime - elapsedSeconds);
-
-    const currentPlayerStreak = room?.players?.find(
-      (p: any) => p.id === playerId || p.name === playerId
-    )?.streak || 0;
-
-    const scoring = calculateScore({
-      isCorrect,
-      gameMode: gameMode as any,
-      timeLeft,
-      totalTime,
-      pointsWeight: question.points || 1,
-      streak: currentPlayerStreak,
-    });
-
-    const { totalScore: sessionScore, accuracyPoints } = scoring;
-    const speedBonus = scoring.speedBonus;
-
-    if (room?.players) {
-      // playerId may be UUID (p.id) or player name (p.name) — support both
-      const playerIndex = room.players.findIndex(
-        (p: any) => p.id === playerId || p.name === playerId
-      );
-      if (playerIndex >= 0) {
-        const player = room.players[playerIndex];
-        player.totalAnswered = (player.totalAnswered || 0) + 1;
-        if (isCorrect) player.totalCorrect = (player.totalCorrect || 0) + 1;
-
-        if (gameMode === "survival") {
-          if (isCorrect) {
-            player.streak = (player.streak || 0) + 1;
-            player.score = (player.score || 0) + sessionScore;
-          } else {
-            player.streak = 0;
-            player.score = 0;
-          }
-        } else if (gameMode === "battle_royale") {
-          if (!isCorrect && player.activePowerup !== "shield") {
-            player.lives = Math.max(0, (player.lives ?? 3) - 1);
-          }
-          player.score = (player.score || 0) + sessionScore;
-        } else if (gameMode === "wayground_classic") {
-          if (isCorrect) {
-            player.streak = (player.streak || 0) + 1;
-          } else {
-            player.streak = 0;
-          }
-          player.score = (player.score || 0) + sessionScore;
-        } else {
-          player.score = (player.score || 0) + sessionScore;
-        }
-
-        player.accuracy = Math.round(
-          ((player.totalCorrect || 0) / (player.totalAnswered || 1)) * 100
-        );
-
-        // Per-question answer history — used by host dashboard for Wayground-style colored grid
-        // Status: "correct" | "wrong" | "unattempted" (timeout / no answer)
-        if (!player.answerHistory) player.answerHistory = {};
-        const histStatus = selectedAnswer === null
-          ? "unattempted"
-          : isCorrect
-            ? "correct"
-            : "wrong";
-        player.answerHistory[questionId] = {
-          status: histStatus,
-          selectedAnswer,
-          points: sessionScore,
-          timestamp: serverTimestamp,
-          questionIndex: questionIndex ?? room.currentQuestionIndex ?? 0,
-        };
-
-        room.players[playerIndex] = player;
-
-        // Track per-question answer stats for analytics
-        if (!room.answerStats) room.answerStats = {};
-        if (!room.answerStats[questionId]) {
-          room.answerStats[questionId] = { total: 0, correct: 0, byAnswer: {} };
-        }
-        room.answerStats[questionId].total++;
-        if (isCorrect) room.answerStats[questionId].correct++;
-        const ansKey = String(selectedAnswer ?? "null");
-        room.answerStats[questionId].byAnswer[ansKey] =
-          (room.answerStats[questionId].byAnswer[ansKey] || 0) + 1;
-
-        room.updatedAt = Date.now();
-        try {
-          await setRoomState(roomCode, room);
-        } catch (error) {
-          console.error("Failed to update room state:", error);
-        }
-      }
-    }
-
-    // Trigger Pusher event for real-time leaderboard update
-    try {
-      await pusherServer.trigger(`room-${roomCode}`, 'answer_submitted', {
-        playerId,
-        questionId,           // needed by host to update local answerStats
-        questionIndex: questionIndex ?? room?.currentQuestionIndex ?? 0,
-        selectedAnswer,       // needed by host to update byAnswer distribution
-        isCorrect,
-        sessionScore,
-        totalScore: room?.players?.find((p: any) => p.id === playerId || p.name === playerId)?.score || 0,
-        answersCount: await (redis as any).scard(`room:${roomCode}:q:${questionId}:answers`)
-      });
-    } catch (e) {
-      console.error("[Pusher] Trigger error:", e);
-    }
-
-    const updatedPlayer = room?.players?.find((p: any) => p.id === playerId || p.name === playerId);
-    return NextResponse.json({
-      correct: quiz.hideAnswer ? null : isCorrect,
-      sessionScore,      // per-question points earned this answer
-      totalScore: updatedPlayer?.score || sessionScore, // running total
-      accuracyPoints,
-      speedBonus,
-      gameMode,
-    });
-  } catch (error) {
-    console.error("Scoring error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+/**
+ * POST /api/answer/submit
+ *
+ * Perubahan terpenting ada pada cara peserta dikenali.
+ *
+ * Versi lama memakai playerId yang dikirim dalam badan permintaan, apa
+ * adanya, lalu mencocokkannya dengan id atau nama peserta di ruangan.
+ * Nama peserta terpampang di papan peringkat, jadi mengirim jawaban atas
+ * nama orang lain — atau menaikkan skor sendiri berkali-kali — hanya
+ * perlu menyalin nama dari layar.
+ *
+ * Sekarang yang menentukan adalah token peserta, yang diterbitkan saat
+ * bergabung dan hanya disimpan dalam bentuk hash. Nama tidak lagi
+ * berfungsi sebagai identitas.
+ */
+export const POST = handle(async (req) => {
+  const ip = getIP(req);
+  if (!(await rateLimit(ip, 'answer', 30, 60))) {
+    return NextResponse.json({ error: 'Terlalu banyak permintaan. Tunggu sebentar.' }, { status: 429 });
   }
-}
+
+  const body = await readJson<{
+    roomCode?: string;
+    playerToken?: string;
+    questionId?: string;
+    selectedAnswer?: unknown;
+  }>(req);
+
+  const code = normalizeRoomCode(body.roomCode);
+
+  if (typeof body.questionId !== 'string' || !body.questionId) {
+    throw new RoomError('questionId wajib diisi.', 400);
+  }
+
+  const result = await submitAnswer({
+    roomCode: code,
+    playerToken: body.playerToken,
+    questionId: body.questionId,
+    selectedAnswer: body.selectedAnswer ?? null,
+  });
+
+  // Layar host butuh tahu berapa banyak yang sudah menjawab. Angkanya
+  // dihitung dari tabel jawaban, bukan dari penghitung terpisah yang
+  // bisa melenceng dari isinya.
+  try {
+    const stats = await getQuestionStats(result.sessionId, body.questionId);
+    await pusherServer.trigger(`room-${code}`, 'answer_submitted', {
+      questionId: body.questionId,
+      answered: stats.total,
+      correct: stats.correct,
+    });
+  } catch (err) {
+    console.error('[Pusher] gagal menyiarkan answer_submitted:', err);
+  }
+
+  return NextResponse.json({
+    correct: result.correct,
+    sessionScore: result.sessionScore,
+    totalScore: result.totalScore,
+    speedBonus: result.speedBonus,
+    streak: result.streak,
+    gameMode: result.gameMode,
+  });
+});

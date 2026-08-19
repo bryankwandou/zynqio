@@ -1,26 +1,19 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import { redis } from '@/lib/kv';
+import { handle, readJson, requireUser } from '@/lib/api-guard';
+import { deleteQuiz } from '@/lib/quiz';
+import { RoomError } from '@/lib/room';
 
-export async function DELETE(req: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+/** POST /api/quiz/delete — hanya pemilik yang bisa menghapus. */
+export const POST = handle(async (req) => {
+  const user = await requireUser();
+  const body = await readJson<{ quizId?: string }>(req);
 
-    const { searchParams } = new URL(req.url);
-    const quizId = searchParams.get('quizId');
-    if (!quizId) return NextResponse.json({ error: 'Missing quizId' }, { status: 400 });
-
-    await redis.del(`quiz:${userId}:${quizId}`);
-    // Remove from user's quiz index
-    try { await (redis as any).lrem(`user:${userId}:quizzes`, 0, quizId); } catch {}
-    // Remove from public index
-    try { await (redis as any).zrem('public_quizzes_sorted', quizId); await redis.del(`public_quiz_data:${quizId}`); } catch {}
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  if (typeof body.quizId !== 'string' || !body.quizId) {
+    throw new RoomError('quizId wajib diisi.', 400);
   }
-}
+
+  const removed = await deleteQuiz(body.quizId, user.id);
+  if (!removed) throw new RoomError('Kuis tidak ditemukan atau bukan milik Anda.', 404);
+
+  return NextResponse.json({ success: true });
+});
