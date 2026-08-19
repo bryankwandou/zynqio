@@ -1,110 +1,45 @@
 import { NextResponse } from 'next/server';
-import { getRoomState, getQuizData } from '@/lib/kv';
+import { handle } from '@/lib/api-guard';
+import { normalizeRoomCode, getRoom, RoomError } from '@/lib/room';
+import { getLeaderboard } from '@/lib/answers';
+import { sql } from '@/lib/db';
 
-export async function GET(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const roomCode = searchParams.get('code');
+export const dynamic = 'force-dynamic';
 
-    if (!roomCode) {
-      return NextResponse.json({ error: 'Missing room code' }, { status: 400 });
+/**
+ * GET /api/room/results?roomCode=...  atau  ?sessionId=...
+ *
+ * Hasil dibaca dari catatan sesi bila permainannya sudah selesai, dan
+ * dari tabel peserta bila masih berjalan. Keduanya dihitung dari data
+ * yang sama, jadi angkanya tidak berbeda antara layar akhir dan riwayat.
+ */
+export const GET = handle(async (req) => {
+  const { searchParams } = new URL(req.url);
+  const sessionId = searchParams.get('sessionId');
+  const roomCode = searchParams.get('roomCode');
+
+  if (sessionId) {
+    const saved = (await sql`
+      SELECT payload, finished_at FROM session_results WHERE session_id = ${sessionId} LIMIT 1
+    `) as { payload: Record<string, unknown>; finished_at: string }[];
+
+    if (saved[0]) {
+      return NextResponse.json({ ...saved[0].payload, finishedAt: saved[0].finished_at });
     }
-
-    const state = await getRoomState(roomCode);
-    if (!state) {
-      return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-    }
-
-    // Sort players by score
-    const leaderboard = (state.players || [])
-      .sort((a: any, b: any) => (b.score || 0) - (a.score || 0))
-      .map((p: any, i: number) => ({
-        rank: i + 1,
-        name: p.name,
-        avatarId: p.avatarId || "fox",
-        score: p.score || 0,
-        accuracy: p.accuracy || 0,
-        totalCorrect: p.totalCorrect || 0,
-        totalAnswered: p.totalAnswered || 0,
-        gold: p.gold || 0,
-        lives: p.lives ?? 3,
-        team: p.team,
-      }));
-
-    // Calculate Team Scores (Section 10.6)
-    const teamScores: Record<string, { totalAccuracy: number, count: number }> = {};
-    if (state.gameMode === 'team') {
-      leaderboard.forEach((p: any) => {
-        if (p.team) {
-          if (!teamScores[p.team]) teamScores[p.team] = { totalAccuracy: 0, count: 0 };
-          teamScores[p.team].totalAccuracy += p.accuracy;
-          teamScores[p.team].count += 1;
-        }
-      });
-    }
-
-    const teamLeaderboard = Object.entries(teamScores).map(([name, data]) => ({
-      name,
-      avgAccuracy: Math.round(data.totalAccuracy / data.count)
-    })).sort((a, b) => b.avgAccuracy - a.avgAccuracy);
-
-    const quiz = await getQuizData(state.hostId || '1', state.quizId);
-    
-    // Calculate Detailed Analytics (Section 12.2)
-    const questions = quiz?.questions || [];
-    const questionStats = questions.map((q: any) => {
-      // In a real app, we'd pull from answer logs in KV
-      // For this implementation, we can derive it if we tracked answers in room state
-      // Let's assume we have `state.answerStats[q.id]` = { correct: number, total: number }
-      const stats = state.answerStats?.[q.id] || { correct: 0, total: 0 };
-      const accuracyRate = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
-      
-      return {
-        id: q.id,
-        text: q.text,
-        accuracy: accuracyRate,
-        difficulty: 1 - (accuracyRate / 100),
-        difficultyLabel: accuracyRate < 40 ? "Sangat Sulit" : accuracyRate < 70 ? "Sulit" : "Mudah"
-      };
-    });
-
-    const performanceMatrix = leaderboard.map((p: any) => {
-      const playerAnswers = state.playerAnswers?.[p.name] || {}; // name as key for MVP
-      return {
-        name: p.name,
-        team: p.team,
-        answers: questions.map((q: any) => ({
-          questionId: q.id,
-          isCorrect: playerAnswers[q.id]?.correct || false
-        }))
-      };
-    });
-
-    // Calculate stats
-    const totalPlayers = leaderboard.length;
-    const avgAccuracy = totalPlayers > 0 
-      ? Math.round(leaderboard.reduce((acc: any, p: any) => acc + (p.accuracy || 0), 0) / totalPlayers) 
-      : 0;
-
-    return NextResponse.json({
-      leaderboard,
-      teamLeaderboard,
-      gameMode: state.gameMode,
-      stats: {
-        totalPlayers,
-        avgAccuracy,
-        hardestQuestion: [...questionStats].sort((a: any, b: any) => a.accuracy - b.accuracy)[0]?.text || 'N/A',
-      },
-      questions: questionStats,
-      matrix: performanceMatrix,
-      quizId: state.quizId,
-      hostId: state.hostId,
-      quizTitle: quiz?.title || state.quizTitle || "Quiz Session",
-      roomCode,
-      settings: state.settings || {},
-    });
-  } catch (error) {
-    console.error('Error fetching results:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
-}
+
+  if (!roomCode) throw new RoomError('Perlu roomCode atau sessionId.', 400);
+
+  const code = normalizeRoomCode(roomCode);
+  const room = await getRoom(code);
+  if (!room) throw new RoomError('Ruangan tidak ditemukan.', 404);
+
+  const leaderboard = await getLeaderboard(code, 500);
+
+  return NextResponse.json({
+    sessionId: room.session_id,
+    status: room.status,
+    gameMode: room.game_mode,
+    leaderboard,
+  });
+});

@@ -1,77 +1,45 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import { saveQuizData, redis, getQuizData } from '@/lib/kv';
+import { handle, readJson, requireUser } from '@/lib/api-guard';
+import { updateQuizMeta, replaceQuestions, type QuestionInput } from '@/lib/quiz';
+import { RoomError } from '@/lib/room';
 
-export async function POST(req: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id || 'admin';
-    const body = await req.json();
-    const { quizId: rawQuizId, title, questions, visibility, category, description, coverImage, hideAnswer } = body;
+/**
+ * POST /api/quiz/save
+ *
+ * Menyimpan keterangan kuis sekaligus seluruh soalnya.
+ *
+ * Kepemilikan diperiksa di dalam kedua fungsi yang dipanggil, bukan di
+ * sini. Pemeriksaan yang menempel pada operasinya sendiri tidak bisa
+ * terlewat ketika suatu saat ada pemanggil baru.
+ */
+export const POST = handle(async (req) => {
+  const user = await requireUser();
+  const body = await readJson<{
+    quizId?: string;
+    title?: string;
+    description?: string;
+    category?: string;
+    visibility?: string;
+    questions?: QuestionInput[];
+  }>(req);
 
-    if (!title) {
-      return NextResponse.json({ error: 'Missing title' }, { status: 400 });
-    }
-
-    const quizId =
-      typeof rawQuizId === 'string' && rawQuizId.trim().length > 0
-        ? rawQuizId.trim()
-        : Math.random().toString(36).substring(2, 9);
-
-    const existingQuiz = await getQuizData(userId, quizId);
-
-    const quizData = {
-      id: quizId,
-      title,
-      questions: questions || [],
-      visibility: visibility || 'public',
-      category: category || 'General',
-      description: description || existingQuiz?.description || '',
-      coverImage: coverImage || existingQuiz?.coverImage || '',
-      hideAnswer: !!hideAnswer,
-      author: session?.user?.name || 'Anonymous',
-      createdAt: existingQuiz?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      plays: existingQuiz?.plays || 0,
-      rating: existingQuiz?.rating || 0,
-    };
-
-    await saveQuizData(userId, quizId, quizData);
-
-    // Index for Explore Page (public quizzes)
-    if (quizData.visibility === 'public') {
-      try {
-        await (redis as any).zadd('public_quizzes_sorted', {
-          score: Date.now(),
-          member: quizId,
-        });
-        await redis.set(`public_quiz_data:${quizId}`, {
-          id: quizId,
-          hostId: userId,
-          title: quizData.title,
-          author: quizData.author,
-          category: quizData.category,
-          questionCount: questions?.length || 0,
-          createdAt: quizData.createdAt,
-          plays: quizData.plays || 0,
-          rating: quizData.rating || 0,
-        });
-      } catch (e) {
-        console.error('Failed to index public quiz (non-fatal):', e);
-      }
-    } else {
-      try {
-        await (redis as any).zrem('public_quizzes_sorted', quizId);
-        await redis.del(`public_quiz_data:${quizId}`);
-      } catch (e) {
-        console.error('Failed to remove public quiz index (non-fatal):', e);
-      }
-    }
-
-    return NextResponse.json({ success: true, quizId });
-  } catch (error) {
-    console.error('Error saving quiz:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  if (typeof body.quizId !== 'string' || !body.quizId) {
+    throw new RoomError('quizId wajib diisi.', 400);
   }
-}
+
+  const updated = await updateQuizMeta(body.quizId, user.id, {
+    title: body.title,
+    description: body.description,
+    category: body.category,
+    visibility: body.visibility,
+  });
+
+  if (!updated) throw new RoomError('Kuis tidak ditemukan atau bukan milik Anda.', 404);
+
+  let saved = 0;
+  if (Array.isArray(body.questions)) {
+    saved = await replaceQuestions(body.quizId, user.id, body.questions);
+  }
+
+  return NextResponse.json({ success: true, questions: saved });
+});

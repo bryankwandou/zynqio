@@ -1,30 +1,25 @@
 import { NextResponse } from 'next/server';
-import { redis } from '@/lib/kv';
+import { handle, requireUser } from '@/lib/api-guard';
+import { assertHost, normalizeRoomCode, getEvents } from '@/lib/room';
 
-export async function GET(req: Request) {
+export const dynamic = 'force-dynamic';
+
+/**
+ * GET /api/room/get-logs?roomCode=...&after=...
+ *
+ * Jejak kejadian sebuah ruangan memuat pergerakan tiap peserta. Versi
+ * lama membukanya tanpa pemeriksaan apa pun, jadi peserta bisa membaca
+ * kapan lawannya menjawab dan benar atau tidak. Sekarang hanya host.
+ */
+export const GET = handle(async (req) => {
+  const user = await requireUser();
   const { searchParams } = new URL(req.url);
-  const roomCode = searchParams.get('code');
 
-  if (!roomCode) {
-    return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
-  }
+  const code = normalizeRoomCode(searchParams.get('roomCode'));
+  await assertHost(code, user.id);
 
-  try {
-    const logKey = `room:${roomCode}:logs`;
-    let logs: any[] = [];
+  const after = Number(searchParams.get('after') ?? 0);
+  const events = await getEvents(code, Number.isFinite(after) ? after : 0);
 
-    try {
-      const raw = await (redis as any).lrange(logKey, 0, -1);
-      logs = (raw || []).map((l: any) => (typeof l === 'string' ? JSON.parse(l) : l));
-    } catch {
-      // Fallback if lrange not available
-      const raw = await redis.get<any[]>(logKey);
-      logs = (raw || []).map((l: any) => (typeof l === 'string' ? JSON.parse(l) : l));
-    }
-
-    return NextResponse.json(logs);
-  } catch (error) {
-    console.error('Get logs error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-  }
-}
+  return NextResponse.json({ events }, { headers: { 'Cache-Control': 'no-store' } });
+});

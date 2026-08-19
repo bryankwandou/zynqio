@@ -1,46 +1,67 @@
-import { NextResponse } from "next/server";
-import { getRoomState, redis } from "@/lib/kv";
+import { NextResponse } from 'next/server';
+import { handle } from '@/lib/api-guard';
+import { getRoom, getPlayers, normalizeRoomCode, RoomError } from '@/lib/room';
+import { getQuizForPlayers } from '@/lib/quiz';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 
-export async function GET(req: Request) {
+export const dynamic = 'force-dynamic';
+
+/**
+ * GET /api/room/state?roomCode=...
+ *
+ * Keadaan ruangan yang dibaca peserta.
+ *
+ * Yang dikirim hanya soal yang sedang berjalan, dan hanya dalam bentuk
+ * tanpa kunci jawaban. Versi sebelumnya menyertakan seluruh daftar soal
+ * sekaligus supaya klien bisa berpindah sendiri tanpa menunggu jaringan.
+ * Itu memang terasa mulus, tetapi seluruh kuis — termasuk jawabannya —
+ * sudah berada di peramban peserta sejak detik pertama.
+ */
+export const GET = handle(async (req) => {
   const { searchParams } = new URL(req.url);
-  const roomCode = searchParams.get("code");
-  const since = searchParams.get("since");
+  const code = normalizeRoomCode(searchParams.get('roomCode'));
 
-  if (!roomCode) {
-    return NextResponse.json({ error: "Missing room code" }, { status: 400 });
-  }
+  const room = await getRoom(code);
+  if (!room) throw new RoomError('Ruangan tidak ditemukan.', 404);
 
-  try {
-    const state = await getRoomState(roomCode);
-    if (!state) {
-      return NextResponse.json({ error: "Room not found" }, { status: 404 });
-    }
+  const players = await getPlayers(code);
 
-    // ETag / updatedAt versioning — return 304 if client is up-to-date
-    const updatedAt = state.updatedAt || 0;
-    if (since && Number(since) >= updatedAt) {
-      return new NextResponse(null, { status: 304 });
-    }
+  const session = await getServerSession(authOptions);
+  const isHost = (session?.user as { id?: string } | undefined)?.id === room.host_id;
 
-    // Attach live answer count when game is active
-    if (state.status === "playing") {
-      const qId = state.currentQuestionId || `q${state.currentQuestionIndex + 1}`;
-      try {
-        const answersCount = await (redis as any).scard(`room:${roomCode}:q:${qId}:answers`);
-        state.answersCount = answersCount || 0;
-      } catch {
-        state.answersCount = 0;
-      }
-    }
+  const quiz = await getQuizForPlayers(room.quiz_id);
+  const totalQuestions = quiz?.questions.length ?? 0;
 
-    const headers = new Headers({
-      "Cache-Control": "no-store",
-      ETag: String(updatedAt),
-    });
+  // Hanya satu soal yang menyeberang, dan hanya ketika permainan berjalan.
+  const current =
+    room.status === 'playing' && quiz
+      ? quiz.questions[room.current_question_index] ?? null
+      : null;
 
-    return NextResponse.json(state, { headers });
-  } catch (error) {
-    console.error("Error fetching room state:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-  }
-}
+  return NextResponse.json(
+    {
+      roomCode: room.code,
+      sessionId: room.session_id,
+      status: room.status,
+      gameMode: room.game_mode,
+      settings: room.settings,
+      version: room.version,
+      currentQuestionIndex: room.current_question_index,
+      questionStartedAt: room.question_started_at,
+      totalQuestions,
+      isHost,
+      question: current,
+      players: players.map((p) => ({
+        id: p.id,
+        name: p.name,
+        avatarId: p.avatar_id,
+        score: p.score,
+        streak: p.streak,
+        totalAnswered: p.total_answered,
+        totalCorrect: p.total_correct,
+      })),
+    },
+    { headers: { 'Cache-Control': 'no-store' } }
+  );
+});

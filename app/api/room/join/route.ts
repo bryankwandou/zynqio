@@ -1,145 +1,71 @@
-import { NextResponse } from "next/server";
-import { getRoomState, setRoomState } from "@/lib/kv";
-import { pusherServer } from "@/lib/pusher";
-import { rateLimit, getIP } from "@/lib/rate-limit";
+import { NextResponse } from 'next/server';
+import { handle, readJson } from '@/lib/api-guard';
+import { addPlayer, normalizeRoomCode, getRoom, RoomError, logEvent } from '@/lib/room';
+import { rateLimit, getIP } from '@/lib/rate-limit';
+import { pusherServer } from '@/lib/pusher';
 
-function sanitizeName(name: string) {
-  return name.replace(/[<>"'&]/g, "").trim().slice(0, 500);
-}
-
-function makeUniqueName(existingNames: string[], candidate: string) {
-  const normalized = candidate.toLowerCase();
-  if (!existingNames.some((n) => n.toLowerCase() === normalized)) return candidate;
-  let counter = 2;
-  let next = `${candidate} (${counter})`;
-  while (existingNames.some((n) => n.toLowerCase() === next.toLowerCase())) {
-    counter++;
-    next = `${candidate} (${counter})`;
+/**
+ * POST /api/room/join
+ *
+ * Route ini memang terbuka tanpa perlu masuk — peserta bergabung lewat
+ * kode di layar, dan memaksa mereka membuat akun akan mematikan alasan
+ * produk ini dipakai di kelas.
+ *
+ * Yang berubah: penyelesaian nama ganda tidak lagi bergantung pada
+ * membaca daftar peserta lalu menulis balik. Nama unik ditegakkan indeks
+ * basis data, jadi dua orang yang menekan tombol pada detik yang sama
+ * tidak bisa keduanya masuk sebagai "Budi".
+ *
+ * Token yang dikembalikan adalah satu-satunya bukti identitas peserta
+ * sesudah ini. Nilainya hanya muncul sekali di tanggapan ini; yang
+ * tersimpan di basis data adalah hash-nya.
+ */
+export const POST = handle(async (req) => {
+  const ip = getIP(req);
+  if (!(await rateLimit(ip, 'join', 10, 60))) {
+    return NextResponse.json(
+      { error: 'Terlalu banyak percobaan bergabung. Tunggu sebentar.' },
+      { status: 429 }
+    );
   }
-  return next;
-}
 
-export async function POST(req: Request) {
+  const body = await readJson<{
+    roomCode?: string;
+    playerName?: string;
+    nickname?: string;
+    avatarId?: string;
+  }>(req);
+
+  const code = normalizeRoomCode(body.roomCode);
+  const rawName = body.playerName ?? body.nickname;
+
+  if (typeof rawName !== 'string' || !rawName.trim()) {
+    throw new RoomError('Nama peserta wajib diisi.', 400);
+  }
+
+  const room = await getRoom(code);
+  if (!room) throw new RoomError('Ruangan tidak ditemukan.', 404);
+
+  const { player, token } = await addPlayer({
+    code,
+    name: rawName,
+    avatarId: body.avatarId,
+  });
+
+  await logEvent(code, room.session_id, 'player_joined', { playerId: player.id });
+
   try {
-    // Rate limit: 5 join attempts per minute per IP
-    const ip = getIP(req);
-    const allowed = await rateLimit(ip, "join", 5, 60);
-    if (!allowed) {
-      return NextResponse.json({ error: "Too many join attempts. Please wait." }, { status: 429 });
-    }
-
-    const body = await req.json();
-    const { roomCode, playerName, nickname, userId, avatarId, sessionToken } = body;
-    const incomingName = playerName ?? nickname;
-
-    if (!roomCode || !incomingName) {
-      return NextResponse.json({ error: "Missing room code or player name" }, { status: 400 });
-    }
-
-    const normalizedRoomCode = String(roomCode).toUpperCase();
-    if (!/^[A-Z0-9]{6}$/.test(normalizedRoomCode)) {
-      return NextResponse.json({ error: "Invalid room code format" }, { status: 400 });
-    }
-
-    const room = await getRoomState(normalizedRoomCode);
-    if (!room) {
-      return NextResponse.json({ error: "Room not found" }, { status: 404 });
-    }
-
-    if (room.status !== "waiting") {
-      // Allow rejoin if game is playing and player already has a session
-      if (room.status === "playing" && sessionToken) {
-        const existing = (room.players || []).find((p: any) => p.token === sessionToken);
-        if (existing) {
-          return NextResponse.json({
-            success: true,
-            player: { id: existing.id, name: existing.name, token: existing.token },
-            room: { roomCode: normalizedRoomCode, playerCount: room.players.length },
-            reconnected: true,
-          });
-        }
-      }
-      return NextResponse.json({ error: `Room is ${room.status}` }, { status: 409 });
-    }
-
-    const maxPlayers = room.settings?.maxPlayers || 300;
-    if ((room.players?.length || 0) >= maxPlayers) {
-      return NextResponse.json({ error: "Room is full" }, { status: 409 });
-    }
-
-    const cleaned = sanitizeName(String(incomingName));
-    if (!cleaned) {
-      return NextResponse.json({ error: "Player name cannot be empty" }, { status: 400 });
-    }
-
-    // If player sends a sessionToken that matches an existing player → reconnect
-    if (sessionToken) {
-      const existing = (room.players || []).find((p: any) => p.token === sessionToken);
-      if (existing) {
-        return NextResponse.json({
-          success: true,
-          player: { id: existing.id, name: existing.name, token: existing.token },
-          room: { roomCode: normalizedRoomCode, playerCount: room.players.length },
-          reconnected: true,
-        });
-      }
-    }
-
-    // Check if kicked
-    if ((room.kickedPlayers || []).includes(cleaned.toLowerCase())) {
-      return NextResponse.json({ error: "You have been removed from this room." }, { status: 403 });
-    }
-
-    // Re-read room state right before write to minimise the duplicate-name race window.
-    // If two players join at the same time, the one that reads last will see the other's
-    // name and correctly deduplicate (e.g. "Y" → "Y (2)").
-    const latestRoom = (await getRoomState(normalizedRoomCode)) || room;
-
-    // Also check kicked list on latest state
-    if ((latestRoom.kickedPlayers || []).includes(cleaned.toLowerCase())) {
-      return NextResponse.json({ error: "You have been removed from this room." }, { status: 403 });
-    }
-
-    const existingNames = (latestRoom.players || []).map((p: any) => p.name || "");
-    const uniqueName = makeUniqueName(existingNames, cleaned);
-
-    const playerId = `player_${Math.random().toString(36).slice(2, 10)}`;
-    const playerToken = `${normalizedRoomCode}.${playerId}.${Math.random().toString(36).slice(2, 14)}`;
-
-    const newPlayer = {
-      id: playerId,
-      userId: userId || undefined,
-      name: uniqueName,
-      avatarId: avatarId || "fox",
-      joinedAt: Date.now(),
-      score: 0,
-      totalAnswered: 0,
-      totalCorrect: 0,
-      accuracy: 0,
-      streak: 0,
-      token: playerToken,
-    };
-
-    latestRoom.players = [...(latestRoom.players || []), newPlayer];
-    latestRoom.updatedAt = Date.now();
-    await setRoomState(normalizedRoomCode, latestRoom);
-
-    try {
-      await pusherServer.trigger(`room-${normalizedRoomCode}`, "player_joined", {
-        playerCount: latestRoom.players.length,
-        player: { id: newPlayer.id, name: newPlayer.name, avatarId: newPlayer.avatarId },
-      });
-    } catch (e) {
-      console.error("[Pusher] Join trigger error:", e);
-    }
-
-    return NextResponse.json({
-      success: true,
-      player: { id: playerId, name: uniqueName, token: playerToken, avatarId: newPlayer.avatarId },
-      room: { roomCode: normalizedRoomCode, playerCount: latestRoom.players.length },
+    await pusherServer.trigger(`room-${code}`, 'player_joined', {
+      player: { id: player.id, name: player.name, avatarId: player.avatar_id },
     });
-  } catch (error) {
-    console.error("Join room error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (err) {
+    console.error('[Pusher] gagal menyiarkan player_joined:', err);
   }
-}
+
+  return NextResponse.json({
+    success: true,
+    player: { id: player.id, name: player.name, avatarId: player.avatar_id },
+    playerToken: token,
+    room: { roomCode: code, status: room.status },
+  });
+});

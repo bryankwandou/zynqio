@@ -1,5 +1,9 @@
 "use client";
 
+// Halaman ini membaca token dari URL, jadi tidak ada gunanya diprerender
+// sebagai berkas statis saat build.
+export const dynamic = "force-dynamic";
+
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -30,7 +34,7 @@ function ResetPasswordContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    if (password.length < 8) { setError("Kata sandi minimal 8 karakter"); return; }
     if (password !== confirmPassword) { setError("Passwords do not match"); return; }
     setIsLoading(true);
     try {

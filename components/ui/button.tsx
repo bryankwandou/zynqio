@@ -1,3 +1,4 @@
+import * as React from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -40,12 +41,27 @@ const buttonVariants = cva(
   }
 )
 
+/**
+ * Props tombol.
+ *
+ * Catatan untuk yang membaca riwayat berkas ini: sebelumnya seluruh
+ * pemakaian <Button>…</Button> ditolak pemeriksa tipe dengan keluhan
+ * children dan className tidak dikenal. Penyebabnya bukan komponen ini,
+ * melainkan @base-ui/react 1.4.1 yang deklarasi tipenya merujuk berkas
+ * internals/types.js yang tidak ikut terkirim dalam paketnya. Akibatnya
+ * ButtonProps di sana runtuh menjadi hampir kosong.
+ *
+ * Menaikkan paketnya ke 1.7.0 memulihkan berkas itu, dan tipe di bawah
+ * kembali cukup ditulis sesederhana ini.
+ */
+type ButtonProps = ButtonPrimitive.Props & VariantProps<typeof buttonVariants>
+
 function Button({
   className,
   variant = "default",
   size = "default",
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonProps) {
   return (
     <ButtonPrimitive
       data-slot="button"
@@ -56,3 +72,4 @@ function Button({
 }
 
 export { Button, buttonVariants }
+export type { ButtonProps }

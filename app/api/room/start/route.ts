@@ -1,55 +1,48 @@
 import { NextResponse } from 'next/server';
-import { getRoomState, setRoomState, getQuizData } from '@/lib/kv';
+import { handle, readJson, requireUser } from '@/lib/api-guard';
+import { assertHost, normalizeRoomCode, updateRoomState, logEvent } from '@/lib/room';
 import { pusherServer } from '@/lib/pusher';
 
-export async function POST(req: Request) {
+/**
+ * POST /api/room/start
+ *
+ * Sebelumnya route ini hanya menerima roomCode lalu menjalankan permainan.
+ * Tidak ada pemeriksaan sama sekali. Kode ruangan justru sengaja
+ * ditampilkan besar-besar di layar agar peserta bisa bergabung, jadi
+ * setiap orang di ruangan itu memegang semua yang dibutuhkan untuk
+ * memulai permainan orang lain — atau memulai ulang permainan sendiri
+ * dari soal pertama di tengah sesi.
+ *
+ * assertHost menutup itu: hanya pemilik ruangan yang bisa menjalankannya.
+ */
+export const POST = handle(async (req) => {
+  const user = await requireUser();
+  const body = await readJson<{ roomCode?: string; gameMode?: string; settings?: Record<string, unknown> }>(req);
+
+  const code = normalizeRoomCode(body.roomCode);
+  const room = await assertHost(code, user.id);
+
+  const updated = await updateRoomState(code, room.version, {
+    status: 'playing',
+    currentQuestionIndex: 0,
+    questionStartedAt: new Date(),
+    settings: { ...room.settings, ...(body.settings ?? {}) },
+  });
+
+  await logEvent(code, room.session_id, 'game_started', { gameMode: updated.game_mode });
+
   try {
-    const body = await req.json();
-    const { roomCode, gameMode, settings } = body;
-
-    if (!roomCode) {
-      return NextResponse.json({ error: 'Missing room code' }, { status: 400 });
-    }
-
-    const state = await getRoomState(roomCode);
-    
-    if (!state) {
-      return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-    }
-
-    state.status = 'playing';
-    state.gameMode = gameMode || 'classic';
-    state.settings = settings || state.settings || {};
-    state.currentQuestionIndex = 0;
-    state.questionStartTimestamp = Date.now();
-    state.updatedAt = Date.now();
-
-    // Store totalQuestions for all modes so host can track last question and auto-recap works
-    if (state.quizId && state.hostId) {
-      try {
-        const quiz = await getQuizData(state.hostId, state.quizId);
-        if (quiz?.questions?.length) {
-          state.totalQuestions = quiz.questions.length;
-        }
-      } catch { /* non-fatal */ }
-    }
-
-    await setRoomState(roomCode, state);
-    
-    // Trigger Pusher event
-    try {
-      await pusherServer.trigger(`room-${roomCode}`, 'game_started', {
-        status: state.status,
-        gameMode: state.gameMode,
-        settings: state.settings
-      });
-    } catch (e) {
-      console.error("[Pusher] Start trigger error:", e);
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error starting game:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    await pusherServer.trigger(`room-${code}`, 'game_started', {
+      status: updated.status,
+      gameMode: updated.game_mode,
+      settings: updated.settings,
+      version: updated.version,
+    });
+  } catch (err) {
+    // Penyiaran gagal bukan alasan menggagalkan permainan. Klien yang
+    // tidak menerima siaran tetap akan menyusul lewat polling keadaan.
+    console.error('[Pusher] gagal menyiarkan game_started:', err);
   }
-}
+
+  return NextResponse.json({ success: true, version: updated.version });
+});

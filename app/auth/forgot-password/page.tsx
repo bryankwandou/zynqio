@@ -1,5 +1,9 @@
 "use client";
 
+// Halaman ini membaca token dari URL, jadi tidak ada gunanya diprerender
+// sebagai berkas statis saat build.
+export const dynamic = "force-dynamic";
+
 import { useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";

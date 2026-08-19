@@ -1,10 +1,31 @@
 import { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { verifyUser, getUserByEmail, createUser } from "./user";
+import { verifyUser, getUserByEmail, createOAuthUser } from "./user";
 
-if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {
-  console.error("CRITICAL: NEXTAUTH_SECRET is not set. Set it in Vercel → Settings → Environment Variables.");
+/**
+ * Kunci penanda tangan sesi.
+ *
+ * Versi sebelumnya memakai nilai cadangan tetap bila peubah lingkungan
+ * kosong. Nilai itu ikut tersimpan di repositori publik, sehingga sekali
+ * saja NEXTAUTH_SECRET luput dipasang di produksi, siapa pun yang membaca
+ * repositori bisa menempa token sesi atas nama pengguna mana pun.
+ *
+ * Sekarang aplikasinya menolak berjalan tanpa kunci sungguhan. Gagal saat
+ * penyalaan jauh lebih murah daripada pembobolan yang tidak terlihat.
+ */
+const AUTH_SECRET = process.env.NEXTAUTH_SECRET;
+
+if (!AUTH_SECRET) {
+  throw new Error(
+    "NEXTAUTH_SECRET belum dipasang. Buat nilainya dengan `openssl rand -base64 32`, " +
+      "lalu simpan di .env.local untuk pengembangan dan di Vercel → Settings → " +
+      "Environment Variables untuk produksi."
+  );
+}
+
+if (AUTH_SECRET.length < 32) {
+  throw new Error("NEXTAUTH_SECRET terlalu pendek. Gunakan minimal 32 karakter acak.");
 }
 
 const hasGoogleKeys = !!(
@@ -18,7 +39,7 @@ const SESSION_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
 const isProd = process.env.NODE_ENV === "production";
 
 export const authOptions: AuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET || "zynqio-fallback-dev-secret-change-in-prod",
+  secret: AUTH_SECRET,
   debug: false,
   providers: [
     ...(hasGoogleKeys ? [GoogleProvider({
@@ -77,12 +98,18 @@ export const authOptions: AuthOptions = {
 
           const existingUser = await getUserByEmail(email);
           if (!existingUser) {
-            await createUser(email, user.name || email.split('@')[0], "google-oauth-managed-" + Math.random().toString(36));
+            // Akun dari penyedia luar tidak diberi kata sandi lokal acak.
+            // Kata sandi yang tidak pernah dipakai tetap menambah bidang
+            // serangan tanpa memberi manfaat apa pun.
+            await createOAuthUser(email, user.name || email.split('@')[0]);
           }
           return true;
         } catch (error) {
-          console.error("Error persisting Google user:", error);
-          return true;
+          console.error("Gagal menyimpan pengguna Google:", error);
+          // Gagal menyimpan berarti sesi berikutnya tidak punya sandaran
+          // di basis data. Lebih baik tolak masuknya daripada memberi sesi
+          // yang menunjuk pengguna yang tidak ada.
+          return false;
         }
       }
       return true;

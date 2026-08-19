@@ -1,62 +1,67 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import { getRoomState, setRoomState } from "@/lib/kv";
+import { NextResponse } from 'next/server';
+import { handle, readJson, requireUser } from '@/lib/api-guard';
+import { createRoom, RoomError } from '@/lib/room';
+import { getQuizMeta } from '@/lib/quiz';
+import { sql } from '@/lib/db';
 
-function generateRoomCode() {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
+/**
+ * POST /api/room/create
+ *
+ * Versi lama menerima hostId dari badan permintaan dan memakainya bila
+ * ada, dengan id sesi hanya sebagai cadangan. Artinya pengguna yang sudah
+ * masuk bisa membuat ruangan yang tercatat atas nama orang lain.
+ * Sekarang pemiliknya selalu diambil dari sesi.
+ *
+ * Kepemilikan kuis juga diperiksa: tanpa itu, siapa pun bisa membuka
+ * ruangan untuk kuis pribadi milik orang lain hanya dengan menebak id-nya,
+ * lalu menayangkan seluruh soalnya lewat layar permainan.
+ */
+export const POST = handle(async (req) => {
+  const user = await requireUser();
+  const body = await readJson<{
+    quizId?: string;
+    gameMode?: string;
+    settings?: Record<string, unknown>;
+  }>(req);
 
-async function generateUniqueRoomCode(maxAttempts = 20) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const candidate = generateRoomCode();
-    const existing = await getRoomState(candidate);
-    if (!existing) return candidate;
+  if (typeof body.quizId !== 'string' || !body.quizId) {
+    throw new RoomError('quizId wajib diisi.', 400);
   }
-  throw new Error("Failed to generate unique room code");
-}
 
-export async function POST(req: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const quiz = await getQuizMeta(body.quizId);
+  if (!quiz) throw new RoomError('Kuis tidak ditemukan.', 404);
 
-    const body = await req.json();
-    const { quizId, hostId, settings } = body;
-
-    if (!quizId) {
-      return NextResponse.json({ error: "Missing quiz ID" }, { status: 400 });
-    }
-
-    const roomCode = await generateUniqueRoomCode();
-    const sessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-
-    const initialState = {
-      roomCode,
-      sessionId,
-      quizId,
-      hostId: hostId || (session.user as any)?.id || "admin",
-      status: "waiting",
-      players: [],
-      gameMode: settings?.gameMode || "classic",
-      settings: {
-        timer: settings?.timer ?? 30,
-        oneAttemptOnly: settings?.oneAttemptOnly ?? true,
-        showAnswerAfterQuestion: settings?.showAnswerAfterQuestion ?? false,
-        showLeaderboardBetweenQuestions: settings?.showLeaderboardBetweenQuestions ?? true,
-        enablePowerUps: settings?.enablePowerUps ?? false,
-      },
-      currentQuestionIndex: 0,
-      createdAt: new Date().toISOString(),
-    };
-
-    await setRoomState(roomCode, initialState);
-
-    return NextResponse.json({ roomCode, sessionId });
-  } catch (error) {
-    console.error("Error creating room:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  // Kuis publik boleh dibawakan siapa saja; selain itu hanya pemiliknya.
+  if (quiz.visibility === 'private' && quiz.hostId !== user.id) {
+    throw new RoomError('Kuis tidak ditemukan.', 404);
   }
-}
+
+  const questionCount = (await sql`
+    SELECT count(*)::int AS n FROM questions WHERE quiz_id = ${body.quizId}
+  `) as { n: number }[];
+
+  if ((questionCount[0]?.n ?? 0) === 0) {
+    throw new RoomError('Kuis ini belum punya soal.', 409);
+  }
+
+  const settings = {
+    timer: 30,
+    maxPlayers: 300,
+    showAnswerAfterQuestion: true,
+    showLeaderboardBetweenQuestions: true,
+    ...(body.settings ?? {}),
+  };
+
+  const { code, sessionId } = await createRoom({
+    quizId: body.quizId,
+    hostId: user.id,
+    gameMode: body.gameMode ?? 'classic',
+    settings,
+  });
+
+  return NextResponse.json({
+    roomCode: code,
+    sessionId,
+    totalQuestions: questionCount[0].n,
+  });
+});

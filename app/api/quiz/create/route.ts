@@ -1,61 +1,31 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import { saveQuizData } from "@/lib/kv";
+import { NextResponse } from 'next/server';
+import { handle, readJson, requireUser } from '@/lib/api-guard';
+import { createQuiz } from '@/lib/quiz';
+import { RoomError } from '@/lib/room';
 
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+/** POST /api/quiz/create — membuat kuis kosong milik pengguna yang masuk. */
+export const POST = handle(async (req) => {
+  const user = await requireUser();
+  const body = await readJson<{
+    title?: string;
+    description?: string;
+    category?: string;
+    visibility?: string;
+  }>(req);
 
-    const body = await request.json();
-    const { title, description, category, tags, visibility = "public", allowCopy = false } = body;
-
-    if (!title || title.trim().length === 0) {
-      return NextResponse.json({ error: "Title is required" }, { status: 400 });
-    }
-
-    const userId = (session.user as any).id || "admin";
-    const quizId = Math.random().toString(36).substring(2, 11);
-    const now = new Date().toISOString();
-
-    const quiz = {
-      id: quizId,
-      userId,
-      title: title.trim(),
-      description: description?.trim() || "",
-      category: category || "General",
-      tags: Array.isArray(tags) ? tags : [],
-      questions: [],
-      visibility,
-      allowCopy,
-      questionCount: 0,
-      createdAt: now,
-      updatedAt: now,
-      isPublished: false,
-      author: session.user.name || "Anonymous",
-      plays: 0,
-      rating: 0,
-    };
-
-    await saveQuizData(userId, quizId, quiz);
-
-    return NextResponse.json(
-      {
-        success: true,
-        quiz: {
-          id: quizId,
-          title: quiz.title,
-          createdAt: now,
-          questions: 0,
-        },
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error("[API] Create quiz error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  const title = String(body.title ?? '').trim();
+  if (title.length < 3 || title.length > 200) {
+    throw new RoomError('Judul kuis harus 3 sampai 200 karakter.', 400);
   }
-}
+
+  // Pemiliknya diambil dari sesi, tidak pernah dari badan permintaan.
+  const quizId = await createQuiz(user.id, {
+    title,
+    description: body.description ?? null,
+    author: user.name ?? null,
+    category: body.category,
+    visibility: body.visibility,
+  });
+
+  return NextResponse.json({ quizId });
+});
