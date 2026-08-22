@@ -21,7 +21,7 @@ const BADGES = [
 
 function StatCard({ label, value, color }: { label: string; value: string | number; color: string }) {
   return (
-    <div className="zy-card" style={{ padding: 16 }}>
+    <div className="zy-panel-interactive" style={{ padding: 16 }}>
       <div style={{ fontSize: 11, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, marginBottom: 10 }}>{label}</div>
       <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em", color }}>{value}</div>
     </div>
@@ -98,7 +98,7 @@ export default function HistoryPage() {
               </div>
 
               {playerHistory.length > 0 && (
-                <div className="zy-card" style={{ padding: 20 }}>
+                <div className="zy-panel-interactive" style={{ padding: 20 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t2)", display: "flex", alignItems: "center", gap: 6 }}>
                       <BarChart2 size={14} style={{ color: "var(--p)" }}/> Accuracy Trend
@@ -125,7 +125,7 @@ export default function HistoryPage() {
               )}
 
               {/* Badges */}
-              <div className="zy-card" style={{ padding: 20 }}>
+              <div className="zy-panel-interactive" style={{ padding: 20 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t2)", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
                   <Award size={14} style={{ color: "var(--gold)" }}/> Badges
                 </div>
@@ -149,7 +149,7 @@ export default function HistoryPage() {
               </div>
 
               {/* History list */}
-              <div className="zy-card" style={{ overflow: "hidden" }}>
+              <div className="zy-panel-interactive" style={{ overflow: "hidden" }}>
                 <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border-raw)", display: "flex", alignItems: "center", gap: 8 }}>
                   <History size={14} style={{ color: "var(--p)" }}/>
                   <span style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)" }}>Recent Games</span>
@@ -198,7 +198,7 @@ export default function HistoryPage() {
                 <StatCard label="Sessions" value="—" color="var(--green)" />
               </div>
 
-              <div className="zy-card" style={{ overflow: "hidden" }}>
+              <div className="zy-panel-interactive" style={{ overflow: "hidden" }}>
                 <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border-raw)", display: "flex", alignItems: "center", gap: 8 }}>
                   <Target size={14} style={{ color: "var(--p)" }}/>
                   <span style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)" }}>Your Quiz Library</span>
@@ -225,7 +225,7 @@ export default function HistoryPage() {
                 )}
               </div>
 
-              <div className="zy-card" style={{ padding: 20 }}>
+              <div className="zy-panel-interactive" style={{ padding: 20 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t2)", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
                   <TrendingUp size={14} style={{ color: "var(--gold)" }}/> Host Tips
                 </div>
@@ -244,7 +244,7 @@ export default function HistoryPage() {
 
         {/* Sidebar: recommendations */}
         <div>
-          <div className="zy-card" style={{ padding: 18, position: "sticky", top: 28 }}>
+          <div className="zy-panel-interactive" style={{ padding: 18, position: "sticky", top: 28 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t2)", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
               <Star size={13} style={{ color: "var(--gold)" }}/> Recommended
             </div>

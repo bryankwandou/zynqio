@@ -111,7 +111,7 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
                 <Button
                   onClick={handleHost}
                   disabled={hosting}
-                  className="flex-1 py-6 bg-primary hover:bg-primary disabled:opacity-70 text-white font-black text-lg rounded-2xl group transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                  className="flex-1 py-6 bg-primary hover:bg-primary disabled:opacity-70 text-white font-black text-lg rounded-2xl group zy-motion shadow-[0_0_20px_rgba(59,130,246,0.3)]"
                 >
                   {hosting ? (
                     <Loader2 size={20} className="animate-spin mr-2" />

@@ -48,7 +48,7 @@ export default function NotFound() {
       {/* Go Home */}
       <Link
         href="/"
-        className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-sm text-white mb-12 transition-all hover:scale-105"
+        className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-sm text-white mb-12 zy-motion hover:scale-105"
         style={{ background: "linear-gradient(135deg, #3b82f6, #6366f1)" }}
       >
         Go Home
@@ -69,7 +69,7 @@ export default function NotFound() {
             onChange={(e) => setCode(e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase())}
             maxLength={6}
             placeholder="ENTER CODE"
-            className="w-full text-center text-2xl font-black tracking-[0.3em] rounded-xl py-4 outline-none transition-all"
+            className="w-full text-center text-2xl font-black tracking-[0.3em] rounded-xl py-4 outline-none zy-motion"
             style={{
               backgroundColor: "#0f0f1a",
               border: "1px solid #2a2a45",
@@ -84,7 +84,7 @@ export default function NotFound() {
           <button
             type="submit"
             disabled={code.length !== 6}
-            className="w-full py-4 rounded-xl font-black uppercase tracking-widest text-sm text-white transition-all hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="w-full py-4 rounded-xl font-black uppercase tracking-widest text-sm text-white zy-motion hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed"
             style={{ background: "linear-gradient(135deg, #3b82f6, #6366f1)" }}
           >
             Join Battle

@@ -23,13 +23,13 @@ export default function PlayError({
       <div className="flex gap-4">
         <button
           onClick={reset}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all"
+          className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold zy-motion"
         >
           Reconnect
         </button>
         <a
           href="/"
-          className="px-6 py-3 border border-border text-foreground rounded-xl font-bold hover:bg-accent transition-all"
+          className="px-6 py-3 border border-border text-foreground rounded-xl font-bold hover:bg-accent zy-motion"
         >
           Go Home
         </a>

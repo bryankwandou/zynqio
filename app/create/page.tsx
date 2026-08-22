@@ -549,7 +549,7 @@ export default function CreateQuiz() {
               placeholder="Quiz title..."
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="bg-transparent text-base md:text-xl font-bold text-foreground outline-none placeholder:text-muted-foreground/30 focus:border-b-2 border-primary transition-all px-1 min-w-0 w-full"
+              className="bg-transparent text-base md:text-xl font-bold text-foreground outline-none placeholder:text-muted-foreground/30 focus:border-b-2 border-primary zy-motion px-1 min-w-0 w-full"
             />
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -594,7 +594,7 @@ export default function CreateQuiz() {
               <button
                 key={type.id}
                 onClick={() => setActiveType(type.id)}
-                className={`flex-1 min-w-[120px] py-3 px-4 rounded-xl text-left transition-all border ${
+                className={`flex-1 min-w-[120px] py-3 px-4 rounded-xl text-left zy-motion border ${
                   activeType === type.id 
                     ? 'bg-primary/10 border-primary text-primary shadow-[0_0_15px_rgba(59,130,246,0.1)]' 
                     : 'bg-background border-border text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground'
@@ -612,7 +612,7 @@ export default function CreateQuiz() {
             </div>
             <Button
               onClick={addQuestion}
-              className="bg-primary hover:bg-primary text-white font-bold py-6 px-8 rounded-xl shadow-lg hover:shadow-primary/20 transition-all md:scale-105"
+              className="bg-primary hover:bg-primary text-white font-bold py-6 px-8 rounded-xl shadow-lg hover:shadow-primary/20 zy-motion md:scale-105"
             >
               <Plus size={20} className="mr-2" />
               Add Question
@@ -669,9 +669,9 @@ export default function CreateQuiz() {
                 {q.type === 'MCQ' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {q.options?.map((opt, i) => (
-                      <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${q.correctAnswer === i.toString() ? 'border-green-500 bg-green-500/10' : 'border-border bg-background'}`}>
+                      <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border-2 zy-motion ${q.correctAnswer === i.toString() ? 'border-green-500 bg-green-500/10' : 'border-border bg-background'}`}>
                         <button 
-                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${q.correctAnswer === i.toString() ? 'border-green-500 bg-green-500' : 'border-muted-foreground/30'}`}
+                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center zy-motion ${q.correctAnswer === i.toString() ? 'border-green-500 bg-green-500' : 'border-muted-foreground/30'}`}
                           onClick={() => {
                             const newQ = [...questions];
                             newQ[index].correctAnswer = i.toString();
@@ -699,7 +699,7 @@ export default function CreateQuiz() {
                 {q.type === 'TF' && (
                   <div className="flex gap-4">
                     {['True', 'False'].map((opt, i) => (
-                      <div key={i} className={`flex-1 flex items-center justify-center gap-3 p-6 rounded-xl border-2 cursor-pointer transition-all ${q.correctAnswer === opt ? (opt === 'True' ? 'border-green-500 bg-green-500/10 text-green-500' : 'border-red-500 bg-red-500/10 text-red-500') : 'border-border bg-background text-muted-foreground hover:border-muted-foreground/50'}`}
+                      <div key={i} className={`flex-1 flex items-center justify-center gap-3 p-6 rounded-xl border-2 cursor-pointer zy-motion ${q.correctAnswer === opt ? (opt === 'True' ? 'border-green-500 bg-green-500/10 text-green-500' : 'border-red-500 bg-red-500/10 text-red-500') : 'border-border bg-background text-muted-foreground hover:border-muted-foreground/50'}`}
                         onClick={() => {
                           const newQ = [...questions];
                           newQ[index].correctAnswer = opt;
@@ -789,9 +789,9 @@ export default function CreateQuiz() {
                             ? q.correctAnswer.split(';').includes(i.toString())
                             : false;
                         return (
-                          <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${selected ? 'border-green-500 bg-green-500/10' : 'border-border bg-background'}`}>
+                          <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border-2 zy-motion ${selected ? 'border-green-500 bg-green-500/10' : 'border-border bg-background'}`}>
                             <button
-                              className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all shrink-0 ${selected ? 'border-green-500 bg-green-500' : 'border-muted-foreground/30'}`}
+                              className={`w-5 h-5 rounded border-2 flex items-center justify-center zy-motion shrink-0 ${selected ? 'border-green-500 bg-green-500' : 'border-muted-foreground/30'}`}
                               onClick={() => {
                                 const newQ = [...questions];
                                 const curr: string = typeof newQ[index].correctAnswer === 'string'
@@ -862,7 +862,7 @@ export default function CreateQuiz() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setQuizPrivacy('public')}
-                    className={`flex-1 flex items-center gap-3 p-4 rounded-2xl border-2 transition-all ${quizPrivacy === 'public' ? 'border-primary bg-primary/90/10 text-primary' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}
+                    className={`flex-1 flex items-center gap-3 p-4 rounded-2xl border-2 zy-motion ${quizPrivacy === 'public' ? 'border-primary bg-primary/90/10 text-primary' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}
                   >
                     <Globe size={20} />
                     <div className="text-left">
@@ -872,7 +872,7 @@ export default function CreateQuiz() {
                   </button>
                   <button
                     onClick={() => setQuizPrivacy('private')}
-                    className={`flex-1 flex items-center gap-3 p-4 rounded-2xl border-2 transition-all ${quizPrivacy === 'private' ? 'border-amber-500 bg-amber-500/10 text-amber-500' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}
+                    className={`flex-1 flex items-center gap-3 p-4 rounded-2xl border-2 zy-motion ${quizPrivacy === 'private' ? 'border-amber-500 bg-amber-500/10 text-amber-500' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}
                   >
                     <Lock size={20} />
                     <div className="text-left">
@@ -888,7 +888,7 @@ export default function CreateQuiz() {
                 <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Answer Visibility</p>
                 <button
                   onClick={() => setHideAnswer((v) => !v)}
-                  className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${hideAnswer ? 'border-purple-500 bg-purple-500/10 text-purple-400' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 zy-motion text-left ${hideAnswer ? 'border-purple-500 bg-purple-500/10 text-purple-400' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}
                 >
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${hideAnswer ? 'bg-purple-500/20' : 'bg-accent'}`}>
                     {hideAnswer ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -901,8 +901,8 @@ export default function CreateQuiz() {
                         : 'Players see green ✓ or red ✗ immediately after answering'}
                     </div>
                   </div>
-                  <div className={`ml-auto w-10 h-6 rounded-full transition-all shrink-0 relative ${hideAnswer ? 'bg-purple-500' : 'bg-border'}`}>
-                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${hideAnswer ? 'right-1' : 'left-1'}`} />
+                  <div className={`ml-auto w-10 h-6 rounded-full zy-motion shrink-0 relative ${hideAnswer ? 'bg-purple-500' : 'bg-border'}`}>
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow zy-motion ${hideAnswer ? 'right-1' : 'left-1'}`} />
                   </div>
                 </button>
               </div>
@@ -915,7 +915,7 @@ export default function CreateQuiz() {
                     <button
                       key={cat}
                       onClick={() => setQuizCategory(cat)}
-                      className={`px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all ${quizCategory === cat ? 'border-primary bg-primary/90/10 text-primary' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}
+                      className={`px-4 py-2 rounded-xl text-sm font-bold border-2 zy-motion ${quizCategory === cat ? 'border-primary bg-primary/90/10 text-primary' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}
                     >
                       {cat}
                     </button>

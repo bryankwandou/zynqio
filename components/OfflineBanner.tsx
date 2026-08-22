@@ -30,7 +30,7 @@ export function OfflineBanner() {
 
   return (
     <div
-      className={`fixed top-0 left-0 right-0 z-[9999] text-center text-sm font-bold py-2.5 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-[9999] text-center text-sm font-bold py-2.5 zy-motion duration-300 ${
         isOnline
           ? "bg-green-500 text-white"
           : "bg-red-500 text-white animate-pulse"

@@ -411,7 +411,7 @@ export default function ImportQuiz() {
 
         {!preview.length ? (
           <div
-            className={`bg-card border-2 rounded-3xl p-16 text-center transition-all ${dragging ? "border-primary bg-primary/90/5" : "border-border border-dashed"}`}
+            className={`bg-card border-2 rounded-3xl p-16 text-center zy-motion ${dragging ? "border-primary bg-primary/90/5" : "border-border border-dashed"}`}
             onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}

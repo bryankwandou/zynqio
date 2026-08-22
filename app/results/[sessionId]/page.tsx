@@ -67,7 +67,7 @@ function PodiumSlot({ player, rank, delay, visible }: { player: any; rank: numbe
   const isFirst = rank === 1;
   return (
     <div
-      className={`flex flex-col items-center transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
+      className={`flex flex-col items-center zy-motion duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
       style={{ transitionDelay: `${delay}ms` }}
     >
       {/* Avatar */}
