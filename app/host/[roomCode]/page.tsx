@@ -76,7 +76,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
   useEffect(() => {
     const fetchPlayers = async () => {
       try {
-        const res = await fetch(`/api/room/state?code=${roomCode}`);
+        const res = await fetch(`/api/room/state?roomCode=${roomCode}`);
         if (res.ok) {
           const state = await res.json();
           if (state?.players) setPlayers(state.players);
@@ -125,12 +125,18 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
   };
 
   const handleKickPlayer = async (playerId: string, playerName: string) => {
-    await fetch("/api/room/kick", {
+    // Yang dikirim id pesertanya, bukan namanya. Versi sebelumnya
+    // mengirim nama, sehingga dua peserta dengan nama serupa bisa
+    // terkena bersamaan — dan peserta yang namanya diganti lolos.
+    const res = await fetch("/api/room/kick", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ roomCode, playerId: playerName }),
+      body: JSON.stringify({ roomCode, playerId }),
     });
-    setPlayers((prev) => prev.filter((p) => p.name !== playerName && p.id !== playerId));
+
+    if (res.ok) {
+      setPlayers((prev) => prev.filter((p) => p.id !== playerId));
+    }
   };
 
   const joinUrl = typeof window !== "undefined" ? `${window.location.origin}/join/${roomCode}` : "";

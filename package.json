@@ -14,7 +14,9 @@
     "build:turbo": "next build",
     "migrate": "node scripts/migrate.mjs",
     "seed": "node scripts/seed.mjs",
-    "verify:db": "node scripts/verify-db.mjs"
+    "verify:db": "node scripts/verify-db.mjs",
+    "seed:bank": "node scripts/seed-bank.mjs",
+    "verify:api": "node scripts/verify-api.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

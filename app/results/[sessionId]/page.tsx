@@ -6,6 +6,7 @@ import { Navbar } from "@/components/navbar";
 import { Button } from "@/components/ui/button";
 import { Download, BarChart2, Users, Share2, Copy, Trophy } from "lucide-react";
 import { getAvatar } from "@/lib/avatars";
+import { readAnySessionName } from "@/lib/player-session";
 
 /* ── Confetti ──────────────────────────────────────────────────── */
 function Confetti() {
@@ -119,7 +120,10 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
   const historySavedRef = useRef(false);
 
   useEffect(() => {
-    const nick = localStorage.getItem("zynqio_nickname") || "";
+    // Nama peserta dibaca lewat pembantu sesi bersama, bukan langsung
+    // dari localStorage dengan nama kunci yang ditulis ulang di tiap
+    // halaman — sumber utama sesi yang "hilang" saat berpindah halaman.
+    const nick = readAnySessionName();
     setMyNickname(nick);
 
     let cancelled = false;
@@ -127,7 +131,9 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
     async function load(attempt = 0) {
       if (cancelled) return;
       try {
-        const res = await fetch(`/api/room/results?code=${unwrappedParams.sessionId}`);
+        const res = await fetch(
+          `/api/room/results?sessionId=${encodeURIComponent(unwrappedParams.sessionId)}`
+        );
         if (!res.ok) {
           if (attempt < 8) {
             // exponential backoff: 1.5s, 3s, 4.5s … capped at 8s
@@ -143,31 +149,17 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
         setResults(data);
         setLoadError(false);
 
-        const amHost =
-          (session?.user as any)?.id === data.hostId ||
-          localStorage.getItem("zynqio_host_id") === data.hostId;
+        // Status host ditentukan sesi yang sudah tervalidasi di server.
+        // Penanda cadangan di localStorage dibuang: nilainya ditulis oleh
+        // peramban sendiri, jadi siapa pun bisa mengisinya dan tampil
+        // sebagai host di layar hasil.
+        const amHost = (session?.user as { id?: string } | undefined)?.id === data.hostId;
         setIsHost(amHost);
         if (!amHost) setShowRating(true);
 
-        // Save player history once
-        if ((session?.user as any)?.id && !amHost && !historySavedRef.current) {
-          const me = data.leaderboard?.find((p: any) => p.name === nick);
-          if (me) {
-            historySavedRef.current = true;
-            fetch("/api/player/history", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                quizId: data.quizId,
-                title: data.quizTitle || "Quiz Session",
-                score: me.score,
-                accuracy: me.accuracy,
-                rank: me.rank,
-                totalPlayers: data.leaderboard.length,
-              }),
-            }).catch(() => {});
-          }
-        }
+        // Riwayat tidak lagi dikirim dari peramban. Hasil sesi sudah
+        // tercatat server saat permainan ditutup, jadi mengirimkannya
+        // ulang dari sini hanya membuka jalan bagi angka karangan.
 
         setTimeout(() => setPodiumVisible(true), 200);
         setTimeout(() => setShowConfetti(true), 500);
@@ -190,7 +182,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
     await fetch("/api/quiz/rate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ quizId: results.quizId, hostId: results.hostId, rating, review: reviewText }),
+      body: JSON.stringify({ quizId: results.quizId, rating }),
     }).catch(() => {});
     setRatingDone(true);
     setTimeout(() => setShowRating(false), 1800);

@@ -44,13 +44,15 @@ export default function HistoryPage() {
   useEffect(() => {
     if (status !== "authenticated") return;
     Promise.all([
-      fetch("/api/player/history").then(r => r.ok ? r.json() : []),
-      fetch("/api/quiz/recommend").then(r => r.ok ? r.json() : []),
-      fetch("/api/quiz/list").then(r => r.ok ? r.json() : []),
+      fetch("/api/player/history").then(r => (r.ok ? r.json() : { sessions: [] })),
+      fetch("/api/quiz/recommend").then(r => (r.ok ? r.json() : { quizzes: [] })),
+      fetch("/api/quiz/list").then(r => (r.ok ? r.json() : { quizzes: [] })),
     ]).then(([hist, rec, quizzes]) => {
-      setPlayerHistory(hist);
-      setRecommendations(rec);
-      setHostedQuizzes(quizzes);
+      // Riwayat kini berupa catatan sesi milik pengguna ini saja —
+      // penyaringannya terjadi di query, bukan setelah data terbaca.
+      setPlayerHistory(hist.sessions ?? []);
+      setRecommendations(rec.quizzes ?? []);
+      setHostedQuizzes(quizzes.quizzes ?? []);
     }).finally(() => setLoading(false));
   }, [status]);
 

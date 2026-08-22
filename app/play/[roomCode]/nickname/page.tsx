@@ -4,6 +4,7 @@ import { useState, use, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { AVATARS, getAvatar } from "@/lib/avatars";
+import { saveSession, readSession, clearSession, verifySession } from "@/lib/player-session";
 
 export default function NicknamePage({ params }: { params: Promise<{ roomCode: string }> }) {
   const router = useRouter();
@@ -17,36 +18,39 @@ export default function NicknamePage({ params }: { params: Promise<{ roomCode: s
   const [errorMsg, setErrorMsg] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Check for existing session — verify player still in room before reconnecting
+  // Menyambung kembali peserta yang sudah pernah bergabung di ruangan ini.
+  //
+  // Keabsahan sesi ditanyakan ke server dengan menyodorkan token, bukan
+  // dengan mencari token sendiri di dalam daftar peserta seperti dulu.
+  // Daftar itu terbuka untuk siapa saja, jadi cara lama menuntut token
+  // semua orang ikut terkirim ke semua orang.
   useEffect(() => {
-    const existingToken = localStorage.getItem("zynqio_session_token");
-    const existingRoom = localStorage.getItem("zynqio_room_code");
-    const existingNick = localStorage.getItem("zynqio_nickname");
+    const session = readSession(roomCode);
 
-    if (existingToken && existingRoom === roomCode && existingNick) {
-      // Verify the player is still in the room (not kicked / room reset)
-      fetch(`/api/room/state?code=${roomCode}`)
-        .then((r) => r.ok ? r.json() : null)
-        .then((state) => {
-          const stillInRoom = state?.players?.some(
-            (p: any) => p.token === existingToken || p.name === existingNick
-          );
-          if (stillInRoom && state?.status !== "ended") {
-            setRedirecting(true);
-            router.replace(`/play/${roomCode}/lobby`);
-          } else {
-            // Stale session — clear it and let them join fresh
-            ["zynqio_nickname", "zynqio_session_token", "zynqio_player_id", "zynqio_room_code"].forEach(k => localStorage.removeItem(k));
-            setTimeout(() => inputRef.current?.focus(), 50);
-          }
-        })
-        .catch(() => {
-          setTimeout(() => inputRef.current?.focus(), 50);
-        });
-    } else {
-      // Focus input immediately once form is mounted
-      setTimeout(() => inputRef.current?.focus(), 50);
+    const focusInput = () => setTimeout(() => inputRef.current?.focus(), 50);
+
+    if (!session) {
+      focusInput();
+      return;
     }
+
+    let cancelled = false;
+
+    verifySession(roomCode, session.token).then((player) => {
+      if (cancelled) return;
+
+      if (player) {
+        setRedirecting(true);
+        router.replace(`/play/${roomCode}/lobby`);
+      } else {
+        clearSession();
+        focusInput();
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [roomCode, router]);
 
   const handleJoin = async (e: React.FormEvent) => {
@@ -70,19 +74,24 @@ export default function NicknamePage({ params }: { params: Promise<{ roomCode: s
       const data = await res.json();
 
       if (res.ok) {
-        localStorage.setItem("zynqio_nickname", data.player.name);
-        localStorage.setItem("zynqio_player_id", data.player.id);
-        localStorage.setItem("zynqio_session_token", data.player.token);
-        localStorage.setItem("zynqio_room_code", roomCode);
-        localStorage.setItem("zynqio_avatar", selectedAvatar);
+        // Token peserta hanya muncul sekali, pada tanggapan ini. Yang
+        // tersimpan di server adalah hash-nya, jadi tidak ada cara
+        // mengambilnya kembali nanti.
+        saveSession({
+          token: data.playerToken,
+          roomCode,
+          name: data.player.name,
+          id: data.player.id,
+          avatarId: data.player.avatarId ?? selectedAvatar,
+        });
         router.push(`/play/${roomCode}/lobby`);
       } else {
-        setErrorMsg(data.error || "Failed to join room.");
+        setErrorMsg(data.error || "Gagal bergabung ke ruangan.");
         setIsLoading(false);
         setTimeout(() => inputRef.current?.focus(), 50);
       }
     } catch {
-      setErrorMsg("Connection error. Please try again.");
+      setErrorMsg("Sambungan terputus. Coba lagi.");
       setIsLoading(false);
     }
   };

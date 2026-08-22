@@ -36,6 +36,9 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   const autoAdvanceScheduledRef = useRef(false);
   const prevIndexRef = useRef<number | null>(null);
   const lastUpdatedAtRef = useRef(0);
+  // Nomor versi keadaan ruangan yang terakhir terbaca, dipakai sebagai
+  // syarat saat meminta perpindahan soal.
+  const roomVersionRef = useRef(0);
   const countdownTickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Timeout refs — kept across renders so cleanup only fires on unmount or explicit reset
   const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -49,8 +52,11 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
     async (state: any) => {
       if (state.currentQuestionIndex == null) return;
       try {
+        // quizId tidak lagi ikut dikirim. Server menurunkannya sendiri
+        // dari ruangan, jadi tidak ada gunanya menerima dari klien nilai
+        // yang menentukan soal mana yang tampil.
         const res = await fetch(
-          `/api/quiz/get-question?quizId=${state.quizId}&index=${state.currentQuestionIndex}&roomCode=${roomCode}`
+          `/api/quiz/get-question?roomCode=${roomCode}&index=${state.currentQuestionIndex}`
         );
         if (!res.ok) return;
         const q = await res.json();
@@ -86,14 +92,15 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
       try {
         const since = lastUpdatedAtRef.current;
         const url = since
-          ? `/api/room/state?code=${roomCode}&since=${since}`
-          : `/api/room/state?code=${roomCode}`;
+          ? `/api/room/state?roomCode=${roomCode}&since=${since}`
+          : `/api/room/state?roomCode=${roomCode}`;
         const res = await fetch(url);
         if (res.status === 304) return;
         if (!res.ok) return;
         const state = await res.json();
         if (state.updatedAt) lastUpdatedAtRef.current = state.updatedAt;
         setRoomState(state);
+        if (typeof state.version === "number") roomVersionRef.current = state.version;
         // HIGH-007: read totalQuestions from room state (set by /api/room/start for all modes)
         if (state.totalQuestions && state.totalQuestions > 0) {
           setTotalQuestions(state.totalQuestions);
@@ -104,7 +111,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         }
         if (state.status === "ended") {
           clearInterval(interval);
-          router.push(`/results/${roomCode}`);
+          router.push(`/results/${state.sessionId ?? roomCode}`);
         }
       } catch {}
     };
@@ -211,22 +218,31 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
 
   const handleNextQuestion = async () => {
     try {
+      // Nomor versi yang sedang terlihat ikut dikirim. Server menolak
+      // permintaan yang membawa versi basi, sehingga tombol yang
+      // tertekan dua kali — atau permintaan yang terkirim ulang karena
+      // jaringan lambat — tidak melompati satu soal tanpa menampilkannya.
       await fetch("/api/room/next-question", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roomCode }),
+        body: JSON.stringify({ roomCode, expectedVersion: roomVersionRef.current }),
       });
     } catch {}
   };
 
   const handleEndGame = async () => {
     try {
-      await fetch("/api/room/end", {
+      const res = await fetch("/api/room/end", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roomCode }),
       });
-      router.push(`/results/${roomCode}`);
+
+      // Halaman hasil dialamatkan dengan sessionId, bukan kode ruangan.
+      // Kode ruangan berumur pendek dan bisa terpakai ulang; sessionId
+      // menandai satu permainan tertentu dan bertahan di riwayat.
+      const data = await res.json().catch(() => null);
+      router.push(`/results/${data?.sessionId ?? roomCode}`);
     } catch {}
   };
 
