@@ -19,7 +19,10 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
   useEffect(() => {
     async function fetchQuiz() {
       try {
-        const res = await fetch(`/api/quiz/get?hostId=${unwrappedParams.hostId}&quizId=${unwrappedParams.quizId}`);
+        // hostId tidak lagi menentukan kuis mana yang terbaca. Dulu
+        // pasangan hostId + quizId sudah cukup untuk membuka kuis apa
+        // pun, termasuk yang bertanda pribadi.
+        const res = await fetch(`/api/quiz/get?quizId=${encodeURIComponent(unwrappedParams.quizId)}`);
         if (res.ok) {
           const data = await res.json();
           setQuiz(data);
@@ -44,7 +47,9 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
       const res = await fetch("/api/room/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quizId: quiz.id, hostId: unwrappedParams.hostId }),
+        // Pemilik ruangan diambil dari sesi di server, jadi hostId tidak
+        // perlu — dan tidak boleh — ikut dikirim dari peramban.
+        body: JSON.stringify({ quizId: quiz.id }),
       });
       if (res.ok) {
         const { roomCode } = await res.json();
@@ -52,10 +57,10 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
       } else if (res.status === 401) {
         router.push(`/auth/signin?callbackUrl=/quiz/${unwrappedParams.hostId}/${unwrappedParams.quizId}`);
       } else {
-        setHostError("Failed to create room. Please try again.");
+        setHostError("Gagal membuat ruangan. Coba lagi.");
       }
     } catch {
-      setHostError("Network error. Please try again.");
+      setHostError("Sambungan bermasalah. Coba lagi.");
     } finally {
       setHosting(false);
     }

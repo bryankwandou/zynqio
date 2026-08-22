@@ -442,24 +442,48 @@ export default function CreateQuiz() {
   };
 
   const saveQuiz = async () => {
-    if (!title) {
-      alert("Please enter a title");
+    if (!title.trim()) {
+      alert("Judul kuis belum diisi.");
       return;
     }
     setIsSaving(true);
     try {
+      // Kuis baru dibuat lebih dulu supaya punya id, baru soalnya
+      // disimpan. Penyimpanan menuntut id karena kepemilikan diperiksa
+      // terhadap baris kuis yang sudah ada — bukan terhadap nilai yang
+      // ikut dikirim bersama permintaan.
+      let quizId = editingQuizId;
+
+      if (!quizId) {
+        const created = await fetch('/api/quiz/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            description: quizDescription,
+            category: quizCategory,
+            visibility: quizPrivacy,
+          }),
+        });
+        if (!created.ok) {
+          alert("Gagal membuat kuis. Coba lagi.");
+          setIsSaving(false);
+          return;
+        }
+        quizId = (await created.json()).quizId;
+        setEditingQuizId(quizId);
+      }
+
       const res = await fetch('/api/quiz/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          quizId: editingQuizId || undefined,
+          quizId,
           title,
           questions,
           visibility: quizPrivacy,
           category: quizCategory,
           description: quizDescription,
-          coverImage,
-          hideAnswer,
         })
       });
       if (res.ok) {

@@ -34,8 +34,8 @@ export default function Dashboard() {
   useEffect(() => {
     if (!session) return;
     fetch("/api/quiz/list")
-      .then(r => r.ok ? r.json() : [])
-      .then(data => setQuizzes(data))
+      .then(r => r.ok ? r.json() : { quizzes: [] })
+      .then(data => setQuizzes(data.quizzes ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [session]);
@@ -53,8 +53,15 @@ export default function Dashboard() {
   };
 
   const handleDelete = async (quizId: string) => {
-    if (!confirm("Delete this quiz?")) return;
-    const res = await fetch(`/api/quiz/delete?quizId=${encodeURIComponent(quizId)}`, { method: "DELETE" });
+    if (!confirm("Hapus kuis ini? Tindakan ini tidak bisa dibatalkan.")) return;
+    // Penghapusan lewat POST, bukan DELETE dengan id di querystring.
+    // Alamat lengkap beserta querystring ikut tercatat di log peladen
+    // dan riwayat peramban; badan permintaan tidak.
+    const res = await fetch("/api/quiz/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quizId }),
+    });
     if (res.ok) setQuizzes(p => p.filter(q => q.id !== quizId));
   };
 

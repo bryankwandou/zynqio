@@ -4,6 +4,7 @@ import { useEffect, useState, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getAvatar } from "@/lib/avatars";
 import { getPusherClient } from "@/lib/pusher-client";
+import { readSession, clearSession } from "@/lib/player-session";
 
 type Player = {
   id: string;
@@ -17,6 +18,7 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
   const roomCode = unwrappedParams.roomCode.toUpperCase();
 
   const [nickname, setNickname] = useState("");
+  const [playerId, setPlayerId] = useState("");
   const [myAvatar, setMyAvatar] = useState("fox");
   const [players, setPlayers] = useState<Player[]>([]);
   const [quizTitle, setQuizTitle] = useState("");
@@ -28,24 +30,23 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    const savedName = localStorage.getItem("zynqio_nickname");
-    const savedAvatar = localStorage.getItem("zynqio_avatar") || "fox";
-    const savedToken = localStorage.getItem("zynqio_session_token");
+    const session = readSession(roomCode);
 
-    if (!savedName || !savedToken) {
+    if (!session) {
       router.replace(`/play/${roomCode}/nickname`);
       return;
     }
 
-    setNickname(savedName);
-    setMyAvatar(savedAvatar);
+    setNickname(session.name);
+    setMyAvatar(session.avatarId);
+    setPlayerId(session.id);
   }, [roomCode, router]);
 
   const poll = useCallback(async () => {
     try {
       const url = lastUpdatedAt
-        ? `/api/room/state?code=${roomCode}&since=${lastUpdatedAt}`
-        : `/api/room/state?code=${roomCode}`;
+        ? `/api/room/state?roomCode=${roomCode}&since=${lastUpdatedAt}`
+        : `/api/room/state?roomCode=${roomCode}`;
 
       const res = await fetch(url);
 
@@ -64,21 +65,15 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
 
       if (state.updatedAt) setLastUpdatedAt(state.updatedAt);
 
-      // Kicked detection
-      const savedName = localStorage.getItem("zynqio_nickname") || "";
-      const savedToken = localStorage.getItem("zynqio_session_token") || "";
-      const nameLower = savedName.toLowerCase();
-      const kicked = (state.kickedPlayers || []).some(
-        (k: string) => k.toLowerCase() === nameLower || k === savedToken
-      );
+      // Peserta yang dikeluarkan dikenali dari hilangnya dirinya di
+      // daftar peserta aktif. Keadaan ruangan tidak lagi menyiarkan
+      // daftar nama yang pernah dikeluarkan ke semua orang.
+      const session = readSession(roomCode);
+      const savedName = session?.name ?? "";
 
-      if (kicked) {
+      if (session && state.players && !state.players.some((p: Player) => p.id === session.id)) {
         setIsKicked(true);
-        // Clear session data
-        localStorage.removeItem("zynqio_nickname");
-        localStorage.removeItem("zynqio_session_token");
-        localStorage.removeItem("zynqio_player_id");
-        localStorage.removeItem("zynqio_room_code");
+        clearSession();
         setTimeout(() => router.replace("/?kicked=1"), 2000);
         return;
       }
@@ -120,12 +115,11 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
     if (!nickname) return;
     const pusher = getPusherClient();
     const channel = pusher.subscribe(`room-${roomCode}`);
-    const onKicked = (data: any) => {
-      const savedName = localStorage.getItem("zynqio_nickname") || "";
-      const nameLower = savedName.toLowerCase();
-      if (data?.playerId?.toLowerCase() === nameLower || data?.playerId === savedName) {
+    const onKicked = (data: { playerId?: string }) => {
+      const session = readSession(roomCode);
+      if (session && data?.playerId === session.id) {
         setIsKicked(true);
-        ["zynqio_nickname", "zynqio_session_token", "zynqio_player_id", "zynqio_room_code"].forEach(k => localStorage.removeItem(k));
+        clearSession();
         setTimeout(() => router.replace("/?kicked=1"), 2000);
       }
     };

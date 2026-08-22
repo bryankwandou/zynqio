@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getAvatar } from "@/lib/avatars";
 import { getPusherClient } from "@/lib/pusher-client";
 import GameMusicPlayer from "@/components/GameMusicPlayer";
+import { readSession, clearSession } from "@/lib/player-session";
 
 const CORRECT_MEMES = [
   { gif: "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif", caption: "MIND = BLOWN 🤯" },
@@ -69,6 +70,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
 
   const nicknameRef = useRef("");
   const playerIdRef = useRef("");
+  const playerTokenRef = useRef("");
   const currentQuestionRef = useRef<any>(null);
   const roomStateRef = useRef<any>(null);
   const timerTotalRef = useRef(30);
@@ -172,27 +174,30 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
   }, [timeLeft]);
 
   useEffect(() => {
-    const savedName = localStorage.getItem("zynqio_nickname");
-    const savedAvatar = localStorage.getItem("zynqio_avatar") || "fox";
-    const savedToken = localStorage.getItem("zynqio_session_token");
-    const savedPlayerId = localStorage.getItem("zynqio_player_id") || "";
+    const session = readSession(roomCode);
 
-    if (!savedName || !savedToken) {
+    if (!session) {
       router.push(`/play/${roomCode}/nickname`);
       return;
     }
 
+    const savedName = session.name;
+
     setNickname(savedName);
-    setMyAvatar(savedAvatar);
+    setMyAvatar(session.avatarId);
     nicknameRef.current = savedName;
-    playerIdRef.current = savedPlayerId || savedName;
+    // Identitas peserta kini token, bukan nama. Nama tampil di papan
+    // peringkat dan bisa dibaca siapa saja, jadi memakainya sebagai
+    // identitas berarti siapa pun bisa menjawab atas nama orang lain.
+    playerTokenRef.current = session.token;
+    playerIdRef.current = session.id;
 
     const pollRoom = async () => {
       try {
         const since = lastUpdatedAt.current;
         const url = since
-          ? `/api/room/state?code=${roomCode}&since=${since}`
-          : `/api/room/state?code=${roomCode}`;
+          ? `/api/room/state?roomCode=${roomCode}&since=${since}`
+          : `/api/room/state?roomCode=${roomCode}`;
         const res = await fetch(url);
         if (res.status === 304) return;
         if (!res.ok) return;
@@ -204,15 +209,20 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
         gameModeRef.current = detectedMode;
         if (state.settings?.memeMode) setMemeMode(true);
 
-        // Kicked detection
-        const savedTok = localStorage.getItem("zynqio_session_token") || "";
-        const nameLower = savedName.toLowerCase();
-        const kicked = (state.kickedPlayers || []).some(
-          (k: string) => k.toLowerCase() === nameLower || k === savedTok
+        // Deteksi peserta yang dikeluarkan.
+        //
+        // Sebelumnya keadaan ruangan memuat daftar kickedPlayers berisi
+        // nama, dan tiap peserta mencocokkan namanya sendiri di sana.
+        // Daftar itu berarti setiap orang tahu siapa saja yang pernah
+        // dikeluarkan dari ruangan — hal yang tidak perlu diketahui
+        // siapa pun kecuali host. Sekarang peserta yang dikeluarkan
+        // cukup dikenali dari hilangnya dirinya di daftar peserta aktif.
+        const stillListed = (state.players || []).some(
+          (p: { id: string }) => p.id === playerIdRef.current
         );
-        if (kicked) {
+        if (!stillListed && state.status !== "ended") {
           setIsKicked(true);
-          ["zynqio_nickname", "zynqio_session_token", "zynqio_player_id", "zynqio_room_code"].forEach(k => localStorage.removeItem(k));
+          clearSession();
           setTimeout(() => router.replace("/?kicked=1"), 2000);
           return;
         }
@@ -282,12 +292,13 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
   useEffect(() => {
     const pusher = getPusherClient();
     const channel = pusher.subscribe(`room-${roomCode}`);
-    const onKicked = (data: any) => {
-      const savedName = localStorage.getItem("zynqio_nickname") || "";
-      const nameLower = savedName.toLowerCase();
-      if (data?.playerId?.toLowerCase() === nameLower || data?.playerId === savedName) {
+    const onKicked = (data: { playerId?: string }) => {
+      // Dicocokkan dengan id peserta, bukan namanya. Nama bisa sama
+      // persis antar peserta di ruangan berbeda, dan pencocokan nama
+      // pernah mengeluarkan orang yang salah.
+      if (data?.playerId && data.playerId === playerIdRef.current) {
         setIsKicked(true);
-        ["zynqio_nickname", "zynqio_session_token", "zynqio_player_id", "zynqio_room_code"].forEach(k => localStorage.removeItem(k));
+        clearSession();
         setTimeout(() => router.replace("/?kicked=1"), 2000);
       }
     };
@@ -320,16 +331,17 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       const res = await fetch("/api/answer/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // Cukup token, kode ruangan, dan soal mana. Nilai lain yang dulu
+        // ikut dikirim — quizId, hostId, sessionId, stempel waktu klien —
+        // semuanya sudah diketahui server dari ruangannya sendiri.
+        // Menerimanya dari peserta berarti mempercayai peserta untuk
+        // menyebutkan kuis mana yang sedang ia mainkan dan kapan ia
+        // menjawab, dan keduanya menentukan skor.
         body: JSON.stringify({
-          playerId: playerIdRef.current,
-          questionId: currentQuestion.id,
-          questionIndex: currentQuestion.index,
-          selectedAnswer: isTimeout ? null : answer,
-          clientTimestamp: Date.now(),
           roomCode,
-          quizId: roomState?.quizId,
-          hostId: roomState?.hostId,
-          sessionId: roomState?.sessionId,
+          playerToken: playerTokenRef.current,
+          questionId: currentQuestion.id,
+          selectedAnswer: isTimeout ? null : answer,
         }),
       });
 

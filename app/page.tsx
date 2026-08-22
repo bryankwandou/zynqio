@@ -60,15 +60,15 @@ export default function Home() {
     setIsJoining(true);
 
     try {
-      const res = await fetch(`/api/room/state?code=${code}`);
-      if (res.status === 404) { setJoinError("Game not found. Check your code."); setIsJoining(false); return; }
-      if (!res.ok)             { setJoinError("Failed to check game status."); setIsJoining(false); return; }
+      const res = await fetch(`/api/room/state?roomCode=${code}`);
+      if (res.status === 404) { setJoinError("Ruangan tidak ditemukan. Periksa kodenya."); setIsJoining(false); return; }
+      if (!res.ok)             { setJoinError("Gagal memeriksa status ruangan."); setIsJoining(false); return; }
       const data = await res.json();
-      if (data.status === "ended")   { setJoinError("This game has ended."); setIsJoining(false); return; }
-      if (data.status === "playing") { setJoinError("Game already in progress."); setIsJoining(false); return; }
+      if (data.status === "ended")   { setJoinError("Permainan ini sudah berakhir."); setIsJoining(false); return; }
+      if (data.status === "playing") { setJoinError("Permainan sudah dimulai."); setIsJoining(false); return; }
       router.push(`/join/${code}`);
     } catch {
-      setJoinError("Network error. Please try again.");
+      setJoinError("Sambungan bermasalah. Coba lagi.");
       setIsJoining(false);
     }
   };
