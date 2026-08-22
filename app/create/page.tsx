@@ -541,8 +541,8 @@ export default function CreateQuiz() {
       <div className="border-b border-border bg-card/30 sticky top-16 z-40 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-2 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <button onClick={() => router.back()} className="p-2 hover:bg-accent rounded-lg transition-colors shrink-0">
-              <ArrowLeft size={20} />
+            <button onClick={() => router.back()} aria-label="Kembali ke halaman sebelumnya" className="p-2 hover:bg-accent rounded-lg transition-colors shrink-0">
+              <ArrowLeft size={20} aria-hidden="true" />
             </button>
             <input
               type="text"
@@ -566,10 +566,10 @@ export default function CreateQuiz() {
               className="border-border hover:bg-accent dark:border-white/20 dark:text-white/80 dark:bg-white/5 px-2 md:px-3"
               onClick={() => document.getElementById('csv-import')?.click()}
             >
-              <FileUp size={16} className="md:mr-1" /><span className="hidden md:inline">Import</span>
+              <FileUp size={16} className="md:mr-1" /><span className="hidden md:inline">Impor</span>
             </Button>
             <Button variant="outline" size="sm" className="border-border hover:bg-accent dark:border-white/20 dark:text-white/80 dark:bg-white/5 px-2 md:px-3" onClick={() => setShowSettings(true)}>
-              <Settings size={16} className="md:mr-1" /><span className="hidden md:inline">Settings</span>
+              <Settings size={16} className="md:mr-1" /><span className="hidden md:inline">Pengaturan</span>
             </Button>
             <Button
               size="sm"
@@ -588,7 +588,7 @@ export default function CreateQuiz() {
         
         {/* GLOBAL QUESTION TYPE TOGGLE (ZYNQIO UNIQUE FEATURE) */}
         <div className="bg-card border border-border rounded-2xl p-4 mb-8 md:sticky md:top-[120px] md:z-40 shadow-xl">
-          <div className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Global Question Type Toggle</div>
+          <div className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Ubah jenis semua soal sekaligus</div>
           <div className="flex flex-wrap gap-2">
             {QUESTION_TYPES.map(type => (
               <button
@@ -646,8 +646,8 @@ export default function CreateQuiz() {
                       {[1,2,3,4,5,10].map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </div>
-                  <button onClick={() => removeQuestion(q.id)} className="text-muted-foreground hover:text-red-500 transition-colors">
-                    <Trash2 size={18} />
+                  <button onClick={() => removeQuestion(q.id)} aria-label={`Hapus soal nomor ${index + 1}`} className="text-muted-foreground hover:text-red-500 transition-colors">
+                    <Trash2 size={18} aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -759,7 +759,7 @@ export default function CreateQuiz() {
                               }}
                               className="text-muted-foreground hover:text-red-500 transition-colors"
                             >
-                              <Trash2 size={16} />
+                              <Trash2 size={16} aria-hidden="true" />
                             </button>
                           </div>
                         ))}
@@ -849,16 +849,16 @@ export default function CreateQuiz() {
         <div className="fixed inset-0 z-[110] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-card border border-border rounded-3xl w-full max-w-lg shadow-2xl">
             <div className="flex items-center justify-between px-6 py-5 border-b border-border">
-              <h2 className="text-xl font-black uppercase tracking-wider text-foreground">Quiz Settings</h2>
-              <button onClick={() => setShowSettings(false)} className="p-2 hover:bg-accent rounded-full text-muted-foreground transition-colors">
-                <X size={22} />
+              <h2 className="text-xl font-black uppercase tracking-wider text-foreground">Pengaturan kuis</h2>
+              <button onClick={() => setShowSettings(false)} aria-label="Tutup pengaturan kuis" className="p-2 hover:bg-accent rounded-full text-muted-foreground transition-colors">
+                <X size={22} aria-hidden="true" />
               </button>
             </div>
 
             <div className="p-6 space-y-6">
               {/* Privacy / Visibility */}
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Visibility</p>
+                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Siapa yang bisa melihat</p>
                 <div className="flex gap-3">
                   <button
                     onClick={() => setQuizPrivacy('public')}
@@ -866,7 +866,7 @@ export default function CreateQuiz() {
                   >
                     <Globe size={20} />
                     <div className="text-left">
-                      <div className="font-black text-sm">Public</div>
+                      <div className="font-black text-sm">Umum</div>
                       <div className="text-xs opacity-70">Anyone can find & play</div>
                     </div>
                   </button>
@@ -876,7 +876,7 @@ export default function CreateQuiz() {
                   >
                     <Lock size={20} />
                     <div className="text-left">
-                      <div className="font-black text-sm">Private from Public</div>
+                      <div className="font-black text-sm">Ubah dari umum jadi pribadi</div>
                       <div className="text-xs opacity-70">Hidden from Explore, room-only</div>
                     </div>
                   </button>
@@ -885,13 +885,13 @@ export default function CreateQuiz() {
 
               {/* Hide Answer */}
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Answer Visibility</p>
+                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Tampilan kunci jawaban</p>
                 <button
                   onClick={() => setHideAnswer((v) => !v)}
                   className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 zy-motion text-left ${hideAnswer ? 'border-purple-500 bg-purple-500/10 text-purple-400' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}
                 >
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${hideAnswer ? 'bg-purple-500/20' : 'bg-accent'}`}>
-                    {hideAnswer ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {hideAnswer ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
                   </div>
                   <div>
                     <div className="font-black text-sm">{hideAnswer ? 'Hide Answer Enabled' : 'Show Answer (Default)'}</div>
@@ -909,7 +909,7 @@ export default function CreateQuiz() {
 
               {/* Category */}
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Category</p>
+                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Mata pelajaran</p>
                 <div className="flex flex-wrap gap-2">
                   {CATEGORIES.map(cat => (
                     <button
@@ -925,7 +925,7 @@ export default function CreateQuiz() {
 
               {/* Description */}
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Description</p>
+                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Keterangan</p>
                 <textarea
                   placeholder="Short description of your quiz..."
                   value={quizDescription}
@@ -939,7 +939,7 @@ export default function CreateQuiz() {
 
               {/* Cover Image URL */}
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Cover Image URL</p>
+                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Alamat gambar sampul</p>
                 <div className="flex gap-2">
                   <input
                     type="url"
@@ -949,8 +949,8 @@ export default function CreateQuiz() {
                     className="flex-1 bg-background border border-border rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-primary placeholder:text-muted-foreground/30"
                   />
                   {coverImage && (
-                    <button onClick={() => setCoverImage('')} className="p-2 text-muted-foreground hover:text-red-500 transition-colors">
-                      <X size={18} />
+                    <button onClick={() => setCoverImage('')} aria-label="Hapus gambar sampul" className="p-2 text-muted-foreground hover:text-red-500 transition-colors">
+                      <X size={18} aria-hidden="true" />
                     </button>
                   )}
                 </div>
@@ -963,7 +963,7 @@ export default function CreateQuiz() {
             </div>
 
             <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
-              <Button variant="outline" className="border-border dark:border-white/20 dark:text-white/70" onClick={() => setShowSettings(false)}>Cancel</Button>
+              <Button variant="outline" className="border-border dark:border-white/20 dark:text-white/70" onClick={() => setShowSettings(false)}>Batal</Button>
               <Button className="bg-primary hover:bg-primary text-white font-bold px-6" onClick={() => setShowSettings(false)}>
                 Apply Settings
               </Button>
@@ -981,10 +981,10 @@ export default function CreateQuiz() {
                 <h2 className="text-3xl font-black text-foreground flex items-center gap-3 uppercase">
                   <FileUp className="text-primary" /> Confirm Import
                 </h2>
-                <p className="text-muted-foreground mt-1">Review your questions before adding them to the quiz.</p>
+                <p className="text-muted-foreground mt-1">Periksa soalnya sekali lagi sebelum dimasukkan ke kuis.</p>
               </div>
-              <button onClick={() => setIsImporting(false)} className="p-2 hover:bg-accent rounded-full text-muted-foreground">
-                <X size={32} />
+              <button onClick={() => setIsImporting(false)} aria-label="Tutup pratinjau impor" className="p-2 hover:bg-accent rounded-full text-muted-foreground">
+                <X size={32} aria-hidden="true" />
               </button>
             </div>
 
@@ -994,9 +994,9 @@ export default function CreateQuiz() {
                   <thead className="bg-accent/50 sticky top-0 z-10">
                     <tr>
                       <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border">#</th>
-                      <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Question</th>
-                      <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Type</th>
-                      <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Correct Answer</th>
+                      <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Soal</th>
+                      <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Jenis</th>
+                      <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Jawaban benar</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -1028,7 +1028,7 @@ export default function CreateQuiz() {
                   </div>
                 </div>
                 <div className="flex gap-4">
-                  <Button variant="outline" className="border-border dark:border-white/20 dark:text-white/70" onClick={() => setIsImporting(false)}>Cancel</Button>
+                  <Button variant="outline" className="border-border dark:border-white/20 dark:text-white/70" onClick={() => setIsImporting(false)}>Batal</Button>
                   <Button className="bg-primary hover:bg-primary px-8 py-6 rounded-xl font-bold text-white shadow-lg" onClick={confirmImport}>
                     <CheckCircle2 size={18} className="mr-2" /> Add All Questions
                   </Button>

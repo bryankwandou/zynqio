@@ -477,7 +477,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
     return (
       <div className="min-h-screen bg-[#0f0f1a] flex flex-col items-center justify-center p-8 text-center text-white">
         <div className="text-6xl mb-6">🚫</div>
-        <h2 className="text-2xl font-bold mb-2">You were removed</h2>
+        <h2 className="text-2xl font-bold mb-2">Anda dikeluarkan dari ruangan</h2>
         <p className="text-white/60">The host removed you from this game.</p>
         <p className="text-sm text-white/40 mt-2">Redirecting...</p>
       </div>
@@ -489,10 +489,10 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
     return (
       <div className="min-h-screen bg-[#0f0f1a] flex flex-col items-center justify-center p-8 text-center text-white">
         <div className="text-7xl mb-6 grayscale animate-pulse">💔</div>
-        <h2 className="text-3xl font-black uppercase tracking-widest mb-3">ELIMINATED</h2>
+        <h2 className="text-3xl font-black uppercase tracking-widest mb-3">GUGUR</h2>
         <p className="text-white/60 max-w-xs">You've lost all lives. Watch the battle!</p>
         <div className="mt-10 bg-white/5 border border-white/10 p-6 rounded-2xl">
-          <div className="text-xs text-white/40 uppercase font-bold tracking-widest mb-1">Final Score</div>
+          <div className="text-xs text-white/40 uppercase font-bold tracking-widest mb-1">Skor akhir</div>
           <div className="text-5xl font-black text-blue-400">{score}</div>
         </div>
       </div>
@@ -509,7 +509,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
         <p className="text-white/50 mb-6 text-sm">Loading your results...</p>
         <div className="bg-white/5 border border-white/10 rounded-2xl p-6 w-full max-w-xs">
           <div className="text-4xl font-black text-blue-400 mb-1">{score.toLocaleString()}</div>
-          <div className="text-xs text-white/40 uppercase tracking-widest">Total Score</div>
+          <div className="text-xs text-white/40 uppercase tracking-widest">Skor total</div>
         </div>
         <div className="mt-6 w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
       </div>
