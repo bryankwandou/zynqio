@@ -92,12 +92,30 @@ function SignInForm() {
       {registered && <AuthNotice kind="success">Akun Anda sudah dibuat. Silakan masuk.</AuthNotice>}
       {errorMsg && <AuthNotice kind="error">{errorMsg}</AuthNotice>}
 
+      {/*
+        Masuk lewat Google belum tersedia.
+
+        GOOGLE_CLIENT_ID dan GOOGLE_CLIENT_SECRET belum pernah diisi,
+        sehingga penyedia itu tidak pernah terdaftar di next-auth —
+        /api/auth/providers hanya menyebut "credentials". Tombol yang
+        sebelumnya ada di sini memanggil signIn("google") yang langsung
+        berujung di halaman galat, tanpa penjelasan apa pun bagi orang
+        yang menekannya.
+
+        Tombol dinonaktifkan, bukan disembunyikan, supaya jelas bahwa
+        jalur ini memang direncanakan dan bukan sesuatu yang hilang.
+      */}
       <button
-        onClick={() => signIn("google", { callbackUrl: tujuan })}
+        type="button"
+        disabled
+        aria-disabled="true"
         className="zy-btn zy-btn-secondary"
         style={{ width: "100%" }}
       >
         <GoogleIcon /> Masuk dengan Google
+        <span className="zy-badge" style={{ marginLeft: "var(--sp-1)" }}>
+          Segera
+        </span>
       </button>
 
       <div

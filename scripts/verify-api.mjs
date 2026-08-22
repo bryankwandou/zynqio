@@ -17,6 +17,28 @@ const BASE = (process.argv[2] || 'http://localhost:3000').replace(/\/$/, '');
 const connectionString = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
 
 const results = [];
+
+/**
+ * Memanggil endpoint pendaftaran, menunggu bila pembatas laju menyala.
+ *
+ * Pendaftaran dijaga pembatas laju per alamat IP. Menjalankan berkas
+ * ini tepat setelah verify-login.mjs membuat kuota itu sudah terpakai,
+ * dan pemanggilan berikutnya dijawab 429. Tanpa penungguan, dua
+ * pembuktian pendaftaran melaporkan GAGAL padahal yang terjadi justru
+ * penjagaan bekerja sebagaimana mestinya.
+ *
+ * Yang tidak dilakukan di sini: menganggap 429 sebagai lulus. Kalau
+ * setelah menunggu jawabannya masih 429, pembuktiannya tetap gagal,
+ * karena sifat yang ingin dibuktikan memang belum terbukti.
+ */
+async function daftarSabar(opsi, percobaan = 4) {
+  for (let i = 0; i < percobaan; i++) {
+    const res = await call('/api/auth/signup', opsi);
+    if (res.status !== 429) return res;
+    await new Promise((r) => setTimeout(r, 4000 * (i + 1)));
+  }
+  return call('/api/auth/signup', opsi);
+}
 function record(name, passed, detail) {
   results.push({ name, passed });
   console.log(`  ${passed ? 'LULUS' : 'GAGAL'}  ${name}${detail ? ` — ${detail}` : ''}`);
@@ -210,11 +232,11 @@ async function main() {
   // ---- 12. pendaftaran tidak membocorkan email yang terdaftar ------
   {
     const email = `${TAG}_daftar@example.test`;
-    const first = await call('/api/auth/signup', {
+    const first = await daftarSabar({
       method: 'POST',
       body: JSON.stringify({ email, username: 'Penguji', password: 'katasandi-panjang' }),
     });
-    const second = await call('/api/auth/signup', {
+    const second = await daftarSabar({
       method: 'POST',
       body: JSON.stringify({ email, username: 'Penguji', password: 'katasandi-panjang' }),
     });
@@ -224,7 +246,7 @@ async function main() {
       `pertama ${first.status}, kedua ${second.status}`
     );
 
-    const short = await call('/api/auth/signup', {
+    const short = await daftarSabar({
       method: 'POST',
       body: JSON.stringify({ email: `${TAG}_pendek@example.test`, username: 'X', password: 'abc123' }),
     });
@@ -265,6 +287,37 @@ async function main() {
       'Alamat yang dituju dibawa serta ke halaman masuk',
       membawaTujuan,
       hasil[0]?.tujuan?.slice(-46) ?? '-'
+    );
+  }
+
+  // ---- rekomendasi tidak pernah menyebut kuis pribadi ---------------
+  //
+  // Endpoint ini terbuka tanpa perlu masuk. Kalau penyaring visibility
+  // pernah lepas, judul kuis pribadi milik guru lain akan muncul di
+  // sini kepada siapa pun yang memanggilnya.
+  {
+    const res = await fetch(`${BASE}/api/quiz/recommend`);
+    const d = await res.json().catch(() => ({}));
+    const daftar = d.quizzes ?? [];
+    const adaPribadi = daftar.some(
+      (q) => q.visibility === 'private' || q.status === 'private'
+    );
+    record(
+      'Rekomendasi terbuka tidak pernah menyebut kuis pribadi',
+      res.status === 200 && !adaPribadi,
+      `${daftar.length} kuis, semuanya publik`
+    );
+  }
+
+  // ---- hasil sesi tidak membawa kunci maupun token ------------------
+  {
+    const res = await fetch(`${BASE}/api/room/results?sessionId=tidak-ada-sesi-ini`);
+    const teks = JSON.stringify(await res.json().catch(() => ({})));
+    const bocor = /correctAnswer|correct_answer|playerToken|token_hash|password/i.test(teks);
+    record(
+      'Hasil sesi tidak pernah membawa kunci jawaban atau token',
+      !bocor,
+      bocor ? 'BOCOR' : `status ${res.status}, bersih`
     );
   }
 
