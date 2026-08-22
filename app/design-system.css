@@ -1,0 +1,517 @@
+/**
+ * app/design-system.css — skala yang terkunci dan lapisan komponen.
+ *
+ * Sebelum berkas ini ada, tiap halaman mengarang angkanya sendiri:
+ * tujuh belas ukuran huruf, sebelas radius sudut, lima bobot. Nilai
+ * seperti radius 9, 11, dan 13 tidak mungkin hasil keputusan — itu
+ * angka yang muncul karena seseorang mengetik sesuatu yang kelihatan
+ * pas di satu tempat, lalu tidak pernah ditinjau lagi.
+ *
+ * Aturan pemakaian: ambil dari skala. Kalau sebuah nilai terasa perlu
+ * dan tidak ada di sini, itu tanda skalanya yang kurang — tambahkan di
+ * berkas ini, bukan menuliskan angka lepas di komponen.
+ *
+ * Aplikasi ini punya dua register yang kebutuhannya berbeda:
+ *
+ *   Layar guru      dibaca dari jarak 40 cm, padat, tenang.
+ *   Layar permainan diproyeksikan ke dinding kelas dan dibaca dari
+ *                   bangku belakang. Semua di sini dibesarkan, dan
+ *                   kontrasnya dinaikkan.
+ *
+ * Kelas berawalan .zy- untuk register guru, .zc- untuk register kelas.
+ */
+
+:root {
+  /* ── Skala huruf ──────────────────────────────────────────────
+     Rasio 1,25 (major third). Tujuh langkah, cukup untuk seluruh
+     aplikasi. Angka di luar daftar ini tidak dipakai. */
+  --fs-xs: 0.75rem;    /* 12px  label, keterangan tabel */
+  --fs-sm: 0.875rem;   /* 14px  teks antarmuka bawaan */
+  --fs-base: 1rem;     /* 16px  isi bacaan */
+  --fs-lg: 1.25rem;    /* 20px  judul kartu */
+  --fs-xl: 1.5rem;     /* 24px  judul bagian */
+  --fs-2xl: 2rem;      /* 32px  judul halaman */
+  --fs-3xl: 3rem;      /* 48px  judul utama */
+
+  /* ── Bobot ────────────────────────────────────────────────────
+     Tiga saja. Hierarki dibangun dari bobot dan ukuran, bukan warna —
+     warna dicadangkan untuk makna (benar, salah, peringatan). */
+  --fw-normal: 400;
+  --fw-medium: 550;
+  --fw-bold: 700;
+
+  /* ── Tinggi baris ─────────────────────────────────────────────
+     Judul rapat, isi bacaan longgar. */
+  --lh-tight: 1.15;
+  --lh-snug: 1.35;
+  --lh-relaxed: 1.6;
+
+  /* ── Jarak ────────────────────────────────────────────────────
+     Kelipatan 4px. Nama menurut ukuran, bukan menurut tempat pakai,
+     supaya tidak lahir "--space-sidebar" yang hanya berlaku sekali. */
+  --sp-1: 0.25rem;   /* 4  */
+  --sp-2: 0.5rem;    /* 8  */
+  --sp-3: 0.75rem;   /* 12 */
+  --sp-4: 1rem;      /* 16 */
+  --sp-5: 1.5rem;    /* 24 */
+  --sp-6: 2rem;      /* 32 */
+  --sp-7: 3rem;      /* 48 */
+  --sp-8: 4rem;      /* 64 */
+
+  /* ── Radius ───────────────────────────────────────────────────
+     Empat langkah, masing-masing punya peran. Radius yang berbeda
+     menurut peran membuat antarmuka terbaca berlapis; radius seragam
+     di mana-mana justru membuat semuanya terasa rata dan sama saja. */
+  --r-sm: 6px;    /* lencana, kotak centang            */
+  --r-md: 10px;   /* tombol, kolom isian               */
+  --r-lg: 16px;   /* panel dan kartu                   */
+  --r-xl: 24px;   /* wadah besar, dialog               */
+  --r-full: 999px;/* avatar, pil                       */
+
+  /* ── Gerak ────────────────────────────────────────────────────
+     Masuk lebih lama daripada keluar. Sesuatu yang muncul perlu
+     diperhatikan; sesuatu yang pergi tidak boleh menahan orang. */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-enter: 300ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  /* ── Bayangan ─────────────────────────────────────────────────
+     Kepekatan rendah. Bayangan pekat membuat kartu tampak melayang
+     terlalu jauh dan itu terbaca murah. */
+  --sh-sm: 0 1px 2px rgba(15, 12, 40, 0.05);
+  --sh-md: 0 4px 12px -2px rgba(15, 12, 40, 0.07);
+  --sh-lg: 0 12px 32px -8px rgba(15, 12, 40, 0.10);
+}
+
+.dark {
+  --sh-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --sh-md: 0 4px 12px -2px rgba(0, 0, 0, 0.45);
+  --sh-lg: 0 12px 32px -8px rgba(0, 0, 0, 0.55);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Huruf
+   ═══════════════════════════════════════════════════════════════ */
+
+.zy-h1 {
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.02em;
+  color: var(--t1);
+}
+
+.zy-h2 {
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.015em;
+  color: var(--t1);
+}
+
+.zy-h3 {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-snug);
+  color: var(--t1);
+}
+
+.zy-body {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-normal);
+  line-height: var(--lh-relaxed);
+  color: var(--t2);
+}
+
+.zy-muted {
+  font-size: var(--fs-sm);
+  color: var(--t3);
+  line-height: var(--lh-snug);
+}
+
+.zy-label {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.02em;
+  color: var(--t3);
+}
+
+/* Angka disejajarkan supaya kolom skor tidak bergoyang saat berubah. */
+.zy-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Permukaan
+   ═══════════════════════════════════════════════════════════════ */
+
+/**
+ * Panel adalah permukaan bawaan. Latarnya pekat, bukan tembus pandang.
+ *
+ * Versi lama memakai backdrop-filter: blur(20px) pada tiap kartu.
+ * Buram itu tidak membawa keterangan apa pun di sini — di belakang
+ * kartu hanya ada warna rata — sementara ongkosnya nyata: peramban
+ * harus menggambar ulang seluruh area di belakang tiap kartu pada
+ * setiap gulungan. Di ponsel kelas menengah yang dipakai murid, itu
+ * terasa sebagai gulungan yang tersendat.
+ */
+.zy-panel {
+  background: var(--bg2-raw);
+  border: 1px solid var(--border-raw);
+  border-radius: var(--r-lg);
+}
+
+/* Panel yang bisa ditekan. Hanya properti yang memang berubah yang
+   dianimasikan — transition: all memaksa peramban mengawasi tiap
+   properti, termasuk yang tidak pernah berubah. */
+.zy-panel-interactive {
+  background: var(--bg2-raw);
+  border: 1px solid var(--border-raw);
+  border-radius: var(--r-lg);
+  transition:
+    border-color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out);
+}
+
+.zy-panel-interactive:hover {
+  border-color: var(--border-a);
+  box-shadow: var(--sh-md);
+  transform: translateY(-2px);
+}
+
+.zy-panel-interactive:active {
+  transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Tombol
+   ═══════════════════════════════════════════════════════════════ */
+
+.zy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-5);
+  border-radius: var(--r-md);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  line-height: 1;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out);
+}
+
+/**
+ * Aksi utama. Warnanya rata, bukan gradien.
+ *
+ * Gradien ungu-ke-ungu-muda pada tombol utama adalah tanda paling
+ * mudah dikenali dari antarmuka yang tidak dirancang siapa pun. Warna
+ * rata juga membuat keadaan nonaktif dan tertekan bisa dibedakan
+ * dengan jelas, yang pada gradien selalu berakhir samar.
+ */
+.zy-btn-primary {
+  background: var(--p);
+  color: #fff;
+}
+
+.zy-btn-primary:hover:not(:disabled) {
+  background: var(--p2);
+}
+
+.zy-btn-primary:active:not(:disabled) {
+  background: var(--p);
+}
+
+.zy-btn-secondary {
+  background: var(--bg3-raw);
+  color: var(--t1);
+  border-color: var(--border-raw);
+}
+
+.zy-btn-secondary:hover:not(:disabled) {
+  border-color: var(--border-a);
+}
+
+.zy-btn-quiet {
+  background: transparent;
+  color: var(--t2);
+}
+
+.zy-btn-quiet:hover:not(:disabled) {
+  background: var(--bg2-raw);
+  color: var(--t1);
+}
+
+.zy-btn-danger {
+  background: transparent;
+  color: var(--red);
+  border-color: var(--border-raw);
+}
+
+.zy-btn-danger:hover:not(:disabled) {
+  background: var(--red);
+  color: #fff;
+  border-color: var(--red);
+}
+
+.zy-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.zy-btn-lg {
+  padding: var(--sp-4) var(--sp-6);
+  font-size: var(--fs-base);
+  border-radius: var(--r-md);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Kolom isian
+   ═══════════════════════════════════════════════════════════════ */
+
+.zy-input {
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--bg2-raw);
+  border: 1px solid var(--border-raw);
+  color: var(--t1);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.zy-input:focus {
+  border-color: var(--p);
+  background: var(--bg-raw);
+}
+
+.zy-input::placeholder {
+  color: var(--t4);
+}
+
+.zy-input[aria-invalid='true'] {
+  border-color: var(--red);
+}
+
+/**
+ * Cincin fokus yang terlihat, untuk siapa pun yang menelusuri dengan
+ * papan ketik. Bawaan peramban dimatikan di globals.css, dan tanpa
+ * pengganti seperti ini orang yang tidak memakai tetikus kehilangan
+ * jejak posisinya sama sekali.
+ */
+.zy-input:focus-visible,
+.zy-btn:focus-visible,
+.zy-panel-interactive:focus-visible {
+  outline: 2px solid var(--p);
+  outline-offset: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Lencana
+   ═══════════════════════════════════════════════════════════════ */
+
+.zy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 3px var(--sp-2);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+  background: var(--bg3-raw);
+  color: var(--t2);
+  border: 1px solid var(--border-raw);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Tata letak
+   ═══════════════════════════════════════════════════════════════ */
+
+.zy-stack   { display: flex; flex-direction: column; gap: var(--sp-4); }
+.zy-stack-sm{ display: flex; flex-direction: column; gap: var(--sp-2); }
+.zy-stack-lg{ display: flex; flex-direction: column; gap: var(--sp-6); }
+.zy-row     { display: flex; align-items: center; gap: var(--sp-3); }
+.zy-row-between { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+
+/* Ruang baca dibatasi. Baris teks yang melewati sekitar 75 aksara
+   membuat mata sulit menemukan awal baris berikutnya. */
+.zy-prose { max-width: 68ch; }
+
+.zy-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Register kelas — layar yang diproyeksikan
+   ═══════════════════════════════════════════════════════════════ */
+
+/**
+ * Semua di bawah ini dibaca dari bangku paling belakang, sering
+ * lewat proyektor yang lampunya sudah redup. Ukurannya ikut lebar
+ * layar, bukan angka tetap, supaya sama terbacanya di layar laptop
+ * saat guru menyiapkan dan di layar lebar saat kelas berlangsung.
+ */
+
+.zc-question {
+  font-size: clamp(1.75rem, 4.5vw, 4rem);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.02em;
+  text-align: center;
+  color: var(--t1);
+  text-wrap: balance;
+}
+
+.zc-timer {
+  font-size: clamp(2rem, 5vw, 4.5rem);
+  font-weight: var(--fw-bold);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.zc-code {
+  font-family: var(--font-space-mono, ui-monospace, monospace);
+  font-size: clamp(2.5rem, 7vw, 5.5rem);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.15em;
+  line-height: 1;
+}
+
+/**
+ * Kartu pilihan jawaban.
+ *
+ * Empat pilihan dulu hanya dibedakan warna: merah, biru, kuning,
+ * hijau. Sekitar satu dari dua belas anak laki-laki tidak bisa
+ * memisahkan merah dari hijau, dan bagi mereka dua dari empat tombol
+ * itu terlihat sama persis. Bentuk dan huruf di dalamnya bukan
+ * hiasan — itu penanda yang sebenarnya, dan warna jadi penguat.
+ */
+.zc-choice {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  width: 100%;
+  padding: var(--sp-5);
+  border-radius: var(--r-lg);
+  border: 3px solid transparent;
+  font-size: clamp(1rem, 2.2vw, 1.75rem);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-snug);
+  text-align: left;
+  color: #fff;
+  cursor: pointer;
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    opacity var(--dur-base) var(--ease-out);
+}
+
+.zc-choice:hover:not(:disabled) {
+  transform: scale(1.02);
+  box-shadow: var(--sh-lg);
+}
+
+.zc-choice:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.zc-choice:focus-visible {
+  outline: 4px solid #fff;
+  outline-offset: 3px;
+}
+
+/* Penanda bentuk di sisi kiri tiap pilihan. */
+.zc-choice-glyph {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: clamp(2.25rem, 4vw, 3.5rem);
+  height: clamp(2.25rem, 4vw, 3.5rem);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.22);
+  font-size: clamp(1.1rem, 2vw, 1.75rem);
+  line-height: 1;
+}
+
+/* Pilihan yang tidak dipilih diredupkan saat pembahasan, bukan
+   disembunyikan — murid perlu tetap melihat apa yang tadi ia pilih. */
+.zc-choice-dim {
+  opacity: 0.35;
+}
+
+.zc-choice-correct {
+  border-color: #fff;
+  box-shadow: var(--sh-lg);
+}
+
+/* Empat warna pilihan. Dipisah dari .zc-choice supaya urutan warna
+   bisa diubah tanpa menyentuh perilakunya. */
+.zc-c1 { background: #dc2626; }  /* segitiga */
+.zc-c2 { background: #2563eb; }  /* wajik    */
+.zc-c3 { background: #d97706; }  /* lingkaran */
+.zc-c4 { background: #059669; }  /* persegi  */
+
+/* ═══════════════════════════════════════════════════════════════
+   Gerak
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes zy-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.zy-enter {
+  animation: zy-enter var(--dur-enter) var(--ease-out) both;
+}
+
+/**
+ * Sebagian orang merasa pusing atau mual oleh gerak di layar. Sistem
+ * operasinya sudah menyimpan preferensi itu; menghormatinya cukup
+ * dengan satu blok, dan mengabaikannya berarti sebagian murid tidak
+ * bisa memakai aplikasi ini dengan nyaman.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/**
+ * Transisi bawaan untuk elemen yang berubah saat disentuh.
+ *
+ * Menggantikan transition-all, yang memaksa peramban mengawasi setiap
+ * properti — termasuk yang tidak pernah berubah — dan diam-diam ikut
+ * menganimasikan pergeseran tata letak yang tidak dimaksudkan.
+ */
+.zy-motion {
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out),
+    opacity var(--dur-base) var(--ease-out);
+}

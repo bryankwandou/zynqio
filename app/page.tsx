@@ -98,16 +98,16 @@ export default function Home() {
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button
-              className="zy-btn-ghost"
+              className="zy-btn zy-btn-secondary"
               style={{ padding: "8px 10px" }}
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             >
               {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
-            <Link href="/auth/signin" className="zy-btn-ghost" style={{ textDecoration: "none", fontSize: 14 }}>
+            <Link href="/auth/signin" className="zy-btn zy-btn-secondary" style={{ textDecoration: "none", fontSize: 14 }}>
               Sign in
             </Link>
-            <Link href="/auth/signup" className="zy-btn-primary" style={{ textDecoration: "none", fontSize: 14 }}>
+            <Link href="/auth/signup" className="zy-btn zy-btn-primary" style={{ textDecoration: "none", fontSize: 14 }}>
               Get started
             </Link>
           </div>
@@ -151,7 +151,7 @@ export default function Home() {
           Play Smart.{" "}
           <br />
           <span
-            className="gradient-text"
+            className=""
             style={{
               fontStyle: "italic",
               fontFamily: "Georgia, serif",
@@ -219,7 +219,7 @@ export default function Home() {
           <button
             type="submit"
             disabled={roomCode.length !== 6 || isJoining}
-            className="zy-btn-primary"
+            className="zy-btn zy-btn-primary"
             style={{ padding: "0 22px", fontSize: 15, borderRadius: 10, opacity: roomCode.length !== 6 ? 0.5 : 1 }}
           >
             {isJoining ? "…" : <>Join <ArrowRight size={16} /></>}
@@ -249,7 +249,7 @@ export default function Home() {
           {MODES.map((m, i) => (
             <div
               key={m.label}
-              className="zy-card"
+              className="zy-panel-interactive"
               style={{
                 padding: 18,
                 textAlign: "center",
@@ -268,11 +268,11 @@ export default function Home() {
       <section style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px", position: "relative", zIndex: 2 }}>
         <h2 style={{ fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 800, letterSpacing: "-0.03em", maxWidth: 600, lineHeight: 1.1, color: "var(--t1)" }}>
           Everything you need to{" "}
-          <span className="gradient-text">run better quizzes</span>
+          <span className="">run better quizzes</span>
         </h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, marginTop: 40 }}>
           {FEATURES.map((f) => (
-            <div key={f.title} className="zy-card" style={{ padding: 24 }}>
+            <div key={f.title} className="zy-panel-interactive" style={{ padding: 24 }}>
               <div
                 style={{
                   width: 42,
@@ -317,7 +317,7 @@ export default function Home() {
         </p>
         <Link
           href="/auth/signup"
-          className="zy-btn-primary"
+          className="zy-btn zy-btn-primary"
           style={{ display: "inline-flex", marginTop: 28, padding: "14px 26px", fontSize: 15, textDecoration: "none" }}
         >
           Create free account <ArrowRight size={16} />

@@ -441,7 +441,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
       {/* ── Timer bar ─────────────────────────────────────────────── */}
       <div className="h-1.5 w-full bg-white/5 shrink-0">
         <div
-          className={`h-full ${timerColor} transition-all ease-linear duration-1000`}
+          className={`h-full ${timerColor} transition-[width] ease-linear duration-1000`}
           style={{ width: `${timerPct}%` }}
         />
       </div>
@@ -456,7 +456,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
           <div className="flex items-center px-4 pt-4 pb-3 gap-2 shrink-0">
             <div className="flex-1 h-4 bg-green-900/30 rounded-l-full overflow-hidden">
               <div
-                className="h-full bg-green-500 rounded-l-full transition-all duration-700"
+                className="h-full bg-green-500 rounded-l-full transition-[width] duration-700"
                 style={{ width: `${classAccuracyPct ?? 0}%` }}
               />
             </div>
@@ -470,7 +470,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
             </div>
             <div className="flex-1 h-4 bg-red-900/30 rounded-r-full overflow-hidden">
               <div
-                className="h-full bg-red-500 rounded-r-full transition-all duration-700"
+                className="h-full bg-red-500 rounded-r-full transition-[width] duration-700"
                 style={{ width: `${classAccuracyPct !== null ? 100 - classAccuracyPct : 0}%` }}
               />
             </div>
@@ -524,7 +524,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
               return (
                 <div
                   key={p.id || p.name}
-                  className={`flex flex-col gap-1.5 px-2.5 py-2.5 rounded-xl border transition-all ${rankBg}`}
+                  className={`flex flex-col gap-1.5 px-2.5 py-2.5 rounded-xl border zy-motion ${rankBg}`}
                 >
                   {/* Top row: rank + avatar + name + score */}
                   <div className="flex items-center gap-2">
@@ -573,7 +573,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                           <div
                             key={qi}
                             title={`Q${qi + 1}: ${status || "not answered yet"}`}
-                            className={`h-3 flex-1 min-w-[6px] max-w-[14px] rounded-sm ${cellColor} transition-all`}
+                            className={`h-3 flex-1 min-w-[6px] max-w-[14px] rounded-sm ${cellColor} zy-motion`}
                           />
                         );
                       })}
@@ -625,7 +625,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                     return (
                       <div
                         key={i}
-                        className={`rounded-2xl overflow-hidden border-2 transition-all duration-500 ${
+                        className={`rounded-2xl overflow-hidden border-2 zy-motion duration-500 ${
                           isRevealed
                             ? isCorrect
                               ? "border-green-400 shadow-[0_0_24px_rgba(74,222,128,0.25)]"
@@ -639,7 +639,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                           {isRevealed && isCorrect && (
                             <span className="bg-white/25 rounded-full w-7 h-7 flex items-center justify-center text-white font-black">✓</span>
                           )}
-                          <span className="text-white/80 font-black text-base shrink-0">{pct}%</span>
+                          <span className="text-white font-black text-xl md:text-2xl shrink-0 zy-num">{pct}%</span>
                         </div>
                         <div className="bg-black/40 px-4 py-2.5">
                           <div className="flex justify-between text-xs font-bold mb-1.5 text-white/50">
@@ -647,7 +647,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                           </div>
                           <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
                             <div
-                              className={`h-full ${col.bar} rounded-full transition-all duration-700`}
+                              className={`h-full ${col.bar} rounded-full transition-[width] duration-700`}
                               style={{ width: isRevealed ? `${pct}%` : "0%" }}
                             />
                           </div>
@@ -742,7 +742,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                     return (
                       <div
                         key={p.id || p.name}
-                        className={`flex items-center gap-3 px-3 py-3 rounded-2xl border transition-all ${
+                        className={`flex items-center gap-3 px-3 py-3 rounded-2xl border zy-motion ${
                           isDone
                             ? "bg-green-500/10 border-green-500/30"
                             : "bg-white/[0.03] border-white/5"
@@ -784,7 +784,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                                 <div
                                   key={qi}
                                   title={`Q${qi + 1}: ${status || "not yet"}`}
-                                  className={`h-3.5 flex-1 min-w-[8px] rounded-sm ${cellColor} transition-all`}
+                                  className={`h-3.5 flex-1 min-w-[8px] rounded-sm ${cellColor} zy-motion`}
                                 />
                               );
                             })}

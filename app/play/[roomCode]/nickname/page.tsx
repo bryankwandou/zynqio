@@ -134,7 +134,7 @@ export default function NicknamePage({ params }: { params: Promise<{ roomCode: s
                     key={avatar.id}
                     type="button"
                     onClick={() => setSelectedAvatar(avatar.id)}
-                    className={`relative flex flex-col items-center justify-center rounded-xl p-2 transition-all duration-200 ${
+                    className={`relative flex flex-col items-center justify-center rounded-xl p-2 zy-motion duration-200 ${
                       isSelected
                         ? "ring-2 ring-white ring-offset-2 ring-offset-[#16162a] scale-110 shadow-lg"
                         : "hover:scale-105 opacity-70 hover:opacity-100"
@@ -173,7 +173,7 @@ export default function NicknamePage({ params }: { params: Promise<{ roomCode: s
                   placeholder="Enter your nickname..."
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
-                  className="w-full text-center text-xl bg-white/5 border-2 border-white/10 text-white rounded-xl py-4 focus:border-blue-500 focus:bg-white/8 outline-none transition-all placeholder:text-white/20"
+                  className="w-full text-center text-xl bg-white/5 border-2 border-white/10 text-white rounded-xl py-4 focus:border-blue-500 focus:bg-white/8 outline-none zy-motion placeholder:text-white/20"
                   maxLength={50}
                   required
                 />
@@ -188,7 +188,7 @@ export default function NicknamePage({ params }: { params: Promise<{ roomCode: s
               <Button
                 type="submit"
                 disabled={!nickname.trim() || isLoading}
-                className="w-full py-6 text-lg font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-xl disabled:opacity-40 transition-all"
+                className="w-full py-6 text-lg font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-xl disabled:opacity-40 zy-motion"
               >
                 {isLoading ? (
                   <span className="flex items-center gap-2">

@@ -194,13 +194,13 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
             <div className="flex gap-2 mt-4 w-full">
               <button
                 onClick={() => copyText(joinUrl, "Link copied!")}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold bg-primary hover:bg-primary/90 rounded-xl transition-all"
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold bg-primary hover:bg-primary/90 rounded-xl zy-motion"
               >
                 <Copy size={12} /> Copy Link
               </button>
               <button
                 onClick={() => copyText(roomCode, "Code copied!")}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold bg-white/10 hover:bg-white/15 rounded-xl border border-white/10 transition-all"
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold bg-white/10 hover:bg-white/15 rounded-xl border border-white/10 zy-motion"
               >
                 <Copy size={12} /> Copy Code
               </button>
@@ -255,7 +255,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                       <span className="text-sm font-medium text-white/80">{p.name.slice(0, 16)}{p.name.length > 16 ? "…" : ""}</span>
                       <button
                         onClick={() => handleKickPlayer(p.id, p.name)}
-                        className="ml-1 opacity-0 group-hover:opacity-100 text-white/30 hover:text-red-400 transition-all"
+                        className="ml-1 opacity-0 group-hover:opacity-100 text-white/30 hover:text-red-400 zy-motion"
                       >
                         <X size={13} />
                       </button>
@@ -282,8 +282,8 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
           <div className="bg-white p-6 rounded-3xl mb-8">
             <QRCode value={joinUrl} size={360} />
           </div>
-          <p className="text-white/40 text-sm uppercase tracking-widest mb-2">or enter code</p>
-          <p className="text-white text-7xl font-black tracking-[0.2em]">{roomCode}</p>
+          <p className="text-white/50 text-base uppercase tracking-widest mb-3">atau ketik kode</p>
+          <p className="text-white zc-code">{roomCode}</p>
         </div>
       )}
 
@@ -313,7 +313,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                     <button
                       key={mode.id}
                       onClick={() => setGameMode(mode.id)}
-                      className={`p-3 rounded-xl border text-left transition-all ${
+                      className={`p-3 rounded-xl border text-left zy-motion ${
                         gameMode === mode.id
                           ? "border-primary bg-primary/90/15 shadow-lg shadow-primary/30"
                           : "border-white/10 bg-white/5 hover:bg-white/10"
@@ -358,7 +358,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                     <button
                       key={t}
                       onClick={() => setGlobalTimer(t)}
-                      className={`px-4 py-2 rounded-xl font-bold text-sm border transition-all ${
+                      className={`px-4 py-2 rounded-xl font-bold text-sm border zy-motion ${
                         globalTimer === t ? "bg-primary border-primary text-white" : "bg-white/5 border-white/10 text-white/50 hover:text-white"
                       }`}
                     >
@@ -380,10 +380,10 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                       <button
                         key={n}
                         onClick={() => setWinnerCount(n)}
-                        className={`flex flex-col items-center gap-1 transition-all ${winnerCount >= n ? "opacity-100" : "opacity-25"}`}
+                        className={`flex flex-col items-center gap-1 zy-motion ${winnerCount >= n ? "opacity-100" : "opacity-25"}`}
                       >
                         <div
-                          className={`w-10 rounded-t-lg flex items-end justify-center pb-1 text-xs font-black transition-all ${
+                          className={`w-10 rounded-t-lg flex items-end justify-center pb-1 text-xs font-black zy-motion ${
                             winnerCount >= n
                               ? n === 1 ? "bg-yellow-400 text-yellow-900" : n === 2 ? "bg-slate-400 text-white" : n === 3 ? "bg-amber-700 text-white" : "bg-primary text-white"
                               : "bg-white/10 text-white/30"
@@ -430,7 +430,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
               <Button
                 onClick={handleLaunch}
                 disabled={isLaunching}
-                className="w-full bg-green-500 hover:bg-green-400 text-black font-black text-lg py-7 rounded-2xl shadow-2xl shadow-green-900/30 transition-all"
+                className="w-full bg-green-500 hover:bg-green-400 text-black font-black text-lg py-7 rounded-2xl shadow-2xl shadow-green-900/30 zy-motion"
               >
                 {isLaunching ? (
                   <span className="flex items-center gap-2"><div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" /> Launching...</span>

@@ -9,7 +9,7 @@ import { Plus, Play, Edit, Trash2, Book, Zap, Users, Target, Loader2 } from "luc
 
 function StatCard({ label, value, icon: Icon, color }: { label: string; value: string | number; icon: any; color: string }) {
   return (
-    <div className="zy-card" style={{ padding: 18 }}>
+    <div className="zy-panel-interactive" style={{ padding: 18 }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
         <div style={{ fontSize: 11, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>{label}</div>
         <div style={{ width: 32, height: 32, borderRadius: 9, background: "var(--bg2-raw)", display: "flex", alignItems: "center", justifyContent: "center", color }}>
@@ -84,7 +84,7 @@ export default function Dashboard() {
             Welcome back, {session.user?.name?.split(" ")[0] || "Host"}
           </p>
         </div>
-        <Link href="/create" className="zy-btn-primary" style={{ textDecoration: "none", fontSize: 14 }}>
+        <Link href="/create" className="zy-btn zy-btn-primary" style={{ textDecoration: "none", fontSize: 14 }}>
           <Plus size={16} /> New quiz
         </Link>
       </div>
@@ -104,7 +104,7 @@ export default function Dashboard() {
         {loading ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
             {[1, 2, 3].map(i => (
-              <div key={i} className="zy-card" style={{ height: 180, animation: "pulse 1.5s infinite" }} />
+              <div key={i} className="zy-panel-interactive" style={{ height: 180, animation: "pulse 1.5s infinite" }} />
             ))}
           </div>
         ) : quizzes.length === 0 ? (
@@ -118,14 +118,14 @@ export default function Dashboard() {
                 Create your first quiz to start hosting real-time sessions.
               </p>
             </div>
-            <Link href="/create" className="zy-btn-primary" style={{ textDecoration: "none", marginTop: 6, fontSize: 14 }}>
+            <Link href="/create" className="zy-btn zy-btn-primary" style={{ textDecoration: "none", marginTop: 6, fontSize: 14 }}>
               <Plus size={15} /> Create quiz
             </Link>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
             {quizzes.map(quiz => (
-              <div key={quiz.id} className="zy-card" style={{ padding: 18, display: "flex", flexDirection: "column" }}>
+              <div key={quiz.id} className="zy-panel-interactive" style={{ padding: 18, display: "flex", flexDirection: "column" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
                   <div style={{ width: 44, height: 44, borderRadius: 11, background: "var(--bg2-raw)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>
                     📚
@@ -145,13 +145,13 @@ export default function Dashboard() {
                   {quiz.questionCount} questions · {new Date(quiz.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
-                  <button onClick={() => handleHost(quiz.id)} className="zy-btn-primary" style={{ flex: 1, padding: "9px", fontSize: 13 }}>
+                  <button onClick={() => handleHost(quiz.id)} className="zy-btn zy-btn-primary" style={{ flex: 1, padding: "9px", fontSize: 13 }}>
                     <Play size={14} /> Host
                   </button>
-                  <Link href={`/create?quizId=${encodeURIComponent(quiz.id)}`} className="zy-btn-ghost" style={{ padding: "9px 12px", textDecoration: "none", fontSize: 13 }}>
+                  <Link href={`/create?quizId=${encodeURIComponent(quiz.id)}`} className="zy-btn zy-btn-secondary" style={{ padding: "9px 12px", textDecoration: "none", fontSize: 13 }}>
                     <Edit size={14} />
                   </Link>
-                  <button onClick={() => handleDelete(quiz.id)} className="zy-btn-ghost" style={{ padding: "9px 12px", color: "var(--red)" }}>
+                  <button onClick={() => handleDelete(quiz.id)} className="zy-btn zy-btn-secondary" style={{ padding: "9px 12px", color: "var(--red)" }}>
                     <Trash2 size={14} />
                   </button>
                 </div>

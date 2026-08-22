@@ -45,7 +45,7 @@ export function Navbar() {
             <Link href="/history" style={{ fontSize: 13, fontWeight: 500, color: "var(--t2)", textDecoration: "none", padding: "6px 12px", borderRadius: 8 }}>Analytics</Link>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
-              className="zy-btn-ghost"
+              className="zy-btn zy-btn-secondary"
               style={{ padding: "7px 10px", gap: 6, fontSize: 13 }}
               aria-label="Sign out"
             >
@@ -54,13 +54,13 @@ export function Navbar() {
           </>
         ) : (
           <>
-            <Link href="/auth/signin" className="zy-btn-ghost" style={{ textDecoration: "none", fontSize: 13, padding: "7px 14px" }}>Sign in</Link>
-            <Link href="/auth/signup" className="zy-btn-primary" style={{ textDecoration: "none", fontSize: 13, padding: "7px 14px" }}>Get started</Link>
+            <Link href="/auth/signin" className="zy-btn zy-btn-secondary" style={{ textDecoration: "none", fontSize: 13, padding: "7px 14px" }}>Sign in</Link>
+            <Link href="/auth/signup" className="zy-btn zy-btn-primary" style={{ textDecoration: "none", fontSize: 13, padding: "7px 14px" }}>Get started</Link>
           </>
         )}
 
         <button
-          className="zy-btn-ghost"
+          className="zy-btn zy-btn-secondary"
           style={{ padding: "7px 9px", marginLeft: 4 }}
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
         >

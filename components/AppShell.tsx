@@ -113,7 +113,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               color: active ? "var(--t1)" : "var(--t2)",
               background: active ? "var(--bg2-raw)" : "transparent",
               textDecoration: "none",
-              transition: "all 0.15s",
+              transition: "color 0.15s, background-color 0.15s, border-color 0.15s, opacity 0.15s",
               border: active ? "1px solid var(--border-raw)" : "1px solid transparent",
             }}
           >
@@ -145,7 +145,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="zy-btn-ghost"
+          className="zy-btn zy-btn-secondary"
           style={{ flex: 1, padding: "8px", fontSize: 12, justifyContent: "center" }}
         >
           {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
@@ -153,7 +153,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </button>
         <button
           onClick={() => signOut({ callbackUrl: "/auth/signin" })}
-          className="zy-btn-ghost"
+          className="zy-btn zy-btn-secondary"
           style={{ padding: "8px 10px", color: "var(--red)" }}
           title="Sign out"
         >

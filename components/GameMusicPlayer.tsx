@@ -286,7 +286,7 @@ export default function GameMusicPlayer({ autoPlay = true, defaultVolume = 0.18 
     <button
       onClick={toggleMute}
       title={muted ? "Unmute lo-fi jazz" : started ? "Mute music" : "Play lo-fi jazz"}
-      className="w-8 h-8 rounded-full flex items-center justify-center text-xs border border-white/10 bg-white/5 hover:bg-white/10 transition-all shrink-0"
+      className="w-8 h-8 rounded-full flex items-center justify-center text-xs border border-white/10 bg-white/5 hover:bg-white/10 zy-motion shrink-0"
       style={{ fontSize: "14px" }}
     >
       {!started ? "🎵" : muted ? "🔇" : "🎷"}

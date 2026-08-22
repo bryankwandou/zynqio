@@ -63,7 +63,7 @@ export default function ExplorePage() {
               background: active ? "var(--p)" : "var(--bg2-raw)",
               color: active ? "#fff" : "var(--t2)",
               border: `1px solid ${active ? "var(--p)" : "var(--border-raw)"}`,
-              transition: "all 0.15s",
+              transition: "color 0.15s, background-color 0.15s, border-color 0.15s, opacity 0.15s",
             }}>
               {cat}
             </button>
@@ -75,7 +75,7 @@ export default function ExplorePage() {
       {loading ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="zy-card" style={{ height: 200, animation: "pulse 1.5s infinite" }} />
+            <div key={i} className="zy-panel-interactive" style={{ height: 200, animation: "pulse 1.5s infinite" }} />
           ))}
         </div>
       ) : quizzes.length === 0 ? (
@@ -85,14 +85,14 @@ export default function ExplorePage() {
             <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--t1)" }}>No quizzes found</h3>
             <p style={{ fontSize: 13, color: "var(--t3)", marginTop: 6 }}>Try a different search term or category.</p>
           </div>
-          <button onClick={() => { setSearch(""); setCategory(""); }} className="zy-btn-ghost" style={{ fontSize: 13 }}>
+          <button onClick={() => { setSearch(""); setCategory(""); }} className="zy-btn zy-btn-secondary" style={{ fontSize: 13 }}>
             Reset filters
           </button>
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
           {quizzes.map((quiz, i) => (
-            <div key={i} className="zy-card" style={{ padding: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div key={i} className="zy-panel-interactive" style={{ padding: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
               {/* Cover */}
               <div style={{ height: 120, background: "linear-gradient(135deg, var(--bg2-raw), var(--bg3-raw))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, position: "relative" }}>
                 {EMOJI[quiz.category] ?? "📚"}
@@ -113,7 +113,7 @@ export default function ExplorePage() {
                   <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 700, color: "var(--gold)" }}>
                     <Star size={12} fill="currentColor" /> {quiz.rating || "NEW"}
                   </div>
-                  <Link href={`/quiz/${quiz.hostId}/${quiz.id}`} className="zy-btn-primary" style={{ padding: "7px 14px", fontSize: 12, textDecoration: "none" }}>
+                  <Link href={`/quiz/${quiz.hostId}/${quiz.id}`} className="zy-btn zy-btn-primary" style={{ padding: "7px 14px", fontSize: 12, textDecoration: "none" }}>
                     <Play size={12} /> Open
                   </Link>
                 </div>

@@ -216,7 +216,7 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
                   return (
                     <div
                       key={p.id}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border zy-motion ${
                         isMe
                           ? "border-blue-500 bg-blue-500/10 ring-1 ring-blue-500/30"
                           : "border-border bg-accent/20"

@@ -31,6 +31,22 @@ const OPTION_COLORS = [
 
 const OPTION_SHAPES = ["▲", "◆", "●", "■"];
 
+/**
+ * Huruf pendamping tiap pilihan.
+ *
+ * Empat pilihan sebelumnya hanya dibedakan warna. Sekitar satu dari
+ * dua belas anak laki-laki tidak dapat memisahkan merah dari hijau,
+ * dan bagi mereka dua dari empat tombol itu terlihat sama persis.
+ *
+ * Hurufnya juga berguna bagi seluruh kelas: guru bisa berkata
+ * "jawabannya B" tanpa perlu menyebut warna yang mungkin tampak
+ * berbeda di proyektor yang lampunya sudah pudar.
+ */
+const OPTION_LETTERS = ["A", "B", "C", "D"];
+
+/** Nama warna untuk pembaca layar, supaya tidak hanya terdengar teksnya. */
+const OPTION_COLOR_NAMES = ["merah", "biru", "kuning", "hijau"];
+
 export default function PlayerGame({ params }: { params: Promise<{ roomCode: string }> }) {
   const router = useRouter();
   const { roomCode } = use(params);
@@ -547,7 +563,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
 
       {/* Streak Badge */}
       {correctStreak >= 3 && !showCountdown && (
-        <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 transition-all ${streakAnimation ? "scale-125" : "scale-100"}`}>
+        <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 zy-motion ${streakAnimation ? "scale-125" : "scale-100"}`}>
           <div className={`px-4 py-1.5 rounded-full font-black text-sm flex items-center gap-1.5 shadow-lg ${correctStreak >= 5 ? "bg-purple-500 animate-pulse" : "bg-orange-500"}`}>
             🔥 {correctStreak}x Streak!
           </div>
@@ -605,7 +621,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       {/* Timer bar */}
       <div className={`h-1.5 shrink-0 ${isWayground ? "bg-blue-900/30" : "bg-white/5"}`}>
         <div
-          className={`h-full transition-all duration-500 ${isWayground ? "bg-blue-500" : timerPct > 60 ? "bg-green-500" : timerPct > 30 ? "bg-amber-500" : "bg-red-500"}`}
+          className={`h-full transition-[width] duration-500 ${isWayground ? "bg-blue-500" : timerPct > 60 ? "bg-green-500" : timerPct > 30 ? "bg-amber-500" : "bg-red-500"}`}
           style={{ width: `${timerPct}%` }}
         />
       </div>
@@ -662,14 +678,24 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
                   key={i}
                   disabled={isSubmitted}
                   onClick={() => handleSubmit(i.toString())}
-                  className={`w-full p-3 sm:p-4 rounded-2xl text-white font-bold text-sm sm:text-base shadow-lg transform transition-all active:scale-95 border-b-4 flex items-center gap-2 ${
+                  aria-label={`Pilihan ${OPTION_LETTERS[i % 4]}, ${OPTION_COLOR_NAMES[i % 4]}: ${opt}`}
+                  aria-pressed={isSelected}
+                  className={`w-full p-3 sm:p-4 rounded-2xl text-white font-bold text-sm sm:text-base shadow-lg transform zy-motion active:scale-95 border-b-4 flex items-center gap-2 ${
                     OPTION_COLORS[i % OPTION_COLORS.length]
                   } ${isSubmitted && !isSelected ? "opacity-40 grayscale" : ""} ${
                     isSelected ? "ring-2 ring-white/50 scale-[1.02]" : "hover:scale-[1.02]"
                   }`}
                 >
-                  <span className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center text-xs font-black shrink-0">
-                    {OPTION_SHAPES[i % OPTION_SHAPES.length]}
+                  <span
+                    aria-hidden="true"
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/25 flex flex-col items-center justify-center shrink-0 leading-none"
+                  >
+                    <span className="text-sm sm:text-base">
+                      {OPTION_SHAPES[i % OPTION_SHAPES.length]}
+                    </span>
+                    <span className="text-[10px] sm:text-xs font-black tracking-wider">
+                      {OPTION_LETTERS[i % OPTION_LETTERS.length]}
+                    </span>
                   </span>
                   <span className="text-left leading-tight">{opt}</span>
                 </button>
@@ -684,7 +710,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
                 <button
                   key={i}
                   onClick={() => usePowerup(p)}
-                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold uppercase transition-all ${
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold uppercase zy-motion ${
                     activePowerup === p
                       ? "bg-blue-600 border-blue-400 text-white animate-pulse"
                       : "bg-white/5 border-white/10 text-white/50 hover:border-white/30"
@@ -774,7 +800,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
                 key={i}
                 onClick={() => handleChestSelect(i)}
                 disabled={selectedChest !== null}
-                className={`w-28 h-28 rounded-2xl flex items-center justify-center text-5xl shadow-2xl transition-all ${
+                className={`w-28 h-28 rounded-2xl flex items-center justify-center text-5xl shadow-2xl zy-motion ${
                   selectedChest === i ? "bg-yellow-500 scale-110" :
                   selectedChest !== null ? "bg-white/5 opacity-50" :
                   "bg-white/5 border border-white/10 hover:bg-white/10 hover:scale-105"
