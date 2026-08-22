@@ -402,7 +402,7 @@ export default function ImportQuiz() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-3xl font-black text-foreground mb-1 uppercase tracking-tight">Import Quiz</h1>
+            <h1 className="text-3xl font-black text-foreground mb-1 uppercase tracking-tight">Impor kuis</h1>
             <p className="text-muted-foreground text-sm">
               Auto-detects: <span className="text-blue-400 font-bold">Quizizz · Kahoot · Blooket · CSV · XLSX · XLS</span>
             </p>
@@ -502,11 +502,11 @@ export default function ImportQuiz() {
                 <thead className="bg-accent/50 text-muted-foreground border-b border-border">
                   <tr>
                     <th className="p-4 font-black uppercase tracking-widest text-xs w-8">#</th>
-                    <th className="p-4 font-black uppercase tracking-widest text-xs">Type</th>
-                    <th className="p-4 font-black uppercase tracking-widest text-xs">Question</th>
-                    <th className="p-4 font-black uppercase tracking-widest text-xs">Options</th>
-                    <th className="p-4 font-black uppercase tracking-widest text-xs">Answer</th>
-                    <th className="p-4 font-black uppercase tracking-widest text-xs">Pts</th>
+                    <th className="p-4 font-black uppercase tracking-widest text-xs">Jenis</th>
+                    <th className="p-4 font-black uppercase tracking-widest text-xs">Soal</th>
+                    <th className="p-4 font-black uppercase tracking-widest text-xs">Pilihan jawaban</th>
+                    <th className="p-4 font-black uppercase tracking-widest text-xs">Kunci</th>
+                    <th className="p-4 font-black uppercase tracking-widest text-xs">Poin</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">

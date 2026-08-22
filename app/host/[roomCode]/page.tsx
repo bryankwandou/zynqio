@@ -155,7 +155,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
       <header className="px-6 py-4 border-b border-white/10 bg-[#16162a] flex justify-between items-center shadow-lg">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center font-black text-lg">Z</div>
-          <span className="font-bold text-white/80">Host Control</span>
+          <span className="font-bold text-white/80">Kendali pengajar</span>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-sm text-white/50 flex items-center gap-1.5">
@@ -175,10 +175,10 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
         {/* Left: Join Info */}
         <div className="w-full md:w-80 shrink-0 flex flex-col gap-4">
           <div className="bg-[#16162a] border border-white/10 rounded-2xl p-6 flex flex-col items-center shadow-xl">
-            <div className="text-white/50 text-sm font-medium mb-1">Join at</div>
+            <div className="text-white/50 text-sm font-medium mb-1">Buka alamat</div>
             <div className="text-blue-400 font-bold text-base mb-4">zynqio.vercel.app</div>
 
-            <div className="text-white/40 text-xs uppercase tracking-widest mb-2">Game Code</div>
+            <div className="text-white/40 text-xs uppercase tracking-widest mb-2">Kode ruangan</div>
             <div className="text-5xl font-black tracking-[0.2em] text-white mb-6 bg-white/5 px-6 py-3 rounded-2xl border border-white/10 w-full text-center">
               {roomCode}
             </div>
@@ -189,7 +189,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
             >
               <QRCode value={joinUrl} size={160} />
             </div>
-            <p className="mt-2 text-xs text-white/30">Tap to enlarge</p>
+            <p className="mt-2 text-xs text-white/30">Ketuk untuk memperbesar</p>
 
             <div className="flex gap-2 mt-4 w-full">
               <button
@@ -211,11 +211,11 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
           {/* Game info preview */}
           <div className="bg-[#16162a] border border-white/10 rounded-2xl p-4 space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-white/40">Mode</span>
+              <span className="text-white/40">Ragam</span>
               <span className="font-bold text-blue-400">{GAME_MODES.find((m) => m.id === gameMode)?.name || "Classic"}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-white/40">Timer</span>
+              <span className="text-white/40">Waktu per soal</span>
               <span className="font-bold text-white">{globalTimer}s / question</span>
             </div>
             <div className="flex justify-between">
@@ -277,7 +277,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
           >
             <X size={28} />
           </button>
-          <p className="text-white/50 text-lg mb-2">Join at</p>
+          <p className="text-white/50 text-lg mb-2">Buka alamat</p>
           <p className="text-blue-400 text-2xl font-bold mb-8">zynqio.vercel.app</p>
           <div className="bg-white p-6 rounded-3xl mb-8">
             <QRCode value={joinUrl} size={360} />
@@ -297,9 +297,9 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                 <h2 className="text-xl font-black flex items-center gap-2">
                   <Rocket className="text-green-400" size={20} /> Launch Settings
                 </h2>
-                <p className="text-white/40 text-sm mt-0.5">{players.length} players ready</p>
+                <p className="text-white/40 text-sm mt-0.5">{players.length} peserta siap</p>
               </div>
-              <button onClick={() => setShowLaunchModal(false)} className="text-white/40 hover:text-white">
+              <button onClick={() => setShowLaunchModal(false)} aria-label="Tutup pengaturan mulai" className="text-white/40 hover:text-white">
                 <X size={24} />
               </button>
             </div>
@@ -307,7 +307,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
             <div className="p-6 space-y-8">
               {/* Game Mode */}
               <div>
-                <label className="text-xs font-black text-white/40 uppercase tracking-widest block mb-3">Game Mode</label>
+                <label className="text-xs font-black text-white/40 uppercase tracking-widest block mb-3">Ragam permainan</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {GAME_MODES.map((mode) => (
                     <button
@@ -401,7 +401,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
 
               {/* Toggles */}
               <div>
-                <label className="text-xs font-black text-white/40 uppercase tracking-widest block mb-3">Options</label>
+                <label className="text-xs font-black text-white/40 uppercase tracking-widest block mb-3">Pilihan</label>
                 <div className="space-y-2">
                   {[
                     { icon: <Eye size={15} />, label: "Show answer after reveal", sub: "Players see correct answer when timer ends", val: showAnswerAfter, set: () => setShowAnswerAfter((v) => !v) },

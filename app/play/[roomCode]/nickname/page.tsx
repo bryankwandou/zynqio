@@ -120,7 +120,7 @@ export default function NicknamePage({ params }: { params: Promise<{ roomCode: s
         <div className="bg-[#16162a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-center">
-            <h1 className="text-2xl font-black text-white">Choose Your Avatar</h1>
+            <h1 className="text-2xl font-black text-white">Pilih avatar Anda</h1>
             <p className="text-blue-200 text-sm mt-1">Pick a character and enter your name</p>
           </div>
 

@@ -217,7 +217,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
       return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-5 px-6 text-center">
           <div className="text-5xl">😕</div>
-          <h2 className="text-xl font-black text-foreground">Results Not Found</h2>
+          <h2 className="text-xl font-black text-foreground">Hasil tidak ditemukan</h2>
           <p className="text-muted-foreground text-sm max-w-xs">
             The session may have expired or is not ready yet.
           </p>
@@ -283,7 +283,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
                 variant="outline"
                 className="gap-2 border-border dark:border-white/20 dark:text-white/80 dark:bg-white/5 dark:hover:bg-white/10"
               >
-                <Copy size={15} /> Copy Join Link
+                <Copy size={15} aria-hidden="true" /> Salin tautan ruangan
               </Button>
             )}
           </div>
@@ -294,7 +294,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
           <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm">
             <div className="bg-card border border-border p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl mx-4">
               <div className="text-4xl mb-3">🌟</div>
-              <h2 className="text-xl font-black mb-1">Rate this Quiz</h2>
+              <h2 className="text-xl font-black mb-1">Beri nilai kuis ini</h2>
               <p className="text-muted-foreground text-sm mb-5">Help the host improve!</p>
               <div className="flex justify-center gap-2 mb-5">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -318,8 +318,8 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
                 onChange={(e) => setReviewText(e.target.value)}
               />
               <div className="flex gap-3">
-                <Button onClick={() => setShowRating(false)} variant="outline" className="flex-1 border-border dark:border-white/20 dark:text-white/70">Skip</Button>
-                <Button onClick={submitRating} disabled={rating === 0} className="flex-1 bg-primary hover:bg-primary/90 text-white">Submit</Button>
+                <Button onClick={() => setShowRating(false)} variant="outline" className="flex-1 border-border dark:border-white/20 dark:text-white/70">Lewati</Button>
+                <Button onClick={submitRating} disabled={rating === 0} className="flex-1 bg-primary hover:bg-primary/90 text-white">Kirim</Button>
               </div>
             </div>
           </div>
@@ -375,10 +375,10 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
             )}
 
             <div className="flex justify-between items-center mb-3">
-              <h2 className="font-bold text-lg">Individual Rankings</h2>
+              <h2 className="font-bold text-lg">Peringkat peserta</h2>
               {isHost && (
                 <Button onClick={exportCSV} variant="outline" size="sm" className="gap-2 border-border dark:border-white/20 dark:text-white/80 dark:bg-white/5">
-                  <Download size={14} /> Export CSV
+                  <Download size={14} aria-hidden="true" /> Unduh CSV
                 </Button>
               )}
             </div>
@@ -467,10 +467,10 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
               <table className="w-full text-sm min-w-[500px]">
                 <thead>
                   <tr className="text-muted-foreground text-xs uppercase tracking-widest border-b border-border">
-                    <th className="py-2 text-left font-black">Player</th>
-                    <th className="py-2 text-right font-black">Score</th>
-                    <th className="py-2 text-right font-black">Correct</th>
-                    <th className="py-2 text-right font-black">Accuracy</th>
+                    <th className="py-2 text-left font-black">Peserta</th>
+                    <th className="py-2 text-right font-black">Skor</th>
+                    <th className="py-2 text-right font-black">Benar</th>
+                    <th className="py-2 text-right font-black">Ketepatan</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">

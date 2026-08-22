@@ -486,9 +486,9 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
 
           {/* Legend: status colors (Wayground-style) */}
           <div className="px-3 pb-2 flex items-center gap-2 flex-wrap shrink-0 text-[8px] font-bold uppercase tracking-wider">
-            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 bg-green-500 rounded-sm" /><span className="text-white/40">Correct</span></div>
-            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 bg-red-500 rounded-sm" /><span className="text-white/40">Wrong</span></div>
-            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 bg-amber-500 rounded-sm" /><span className="text-white/40">Partial</span></div>
+            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 bg-green-500 rounded-sm" /><span className="text-white/40">Benar</span></div>
+            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 bg-red-500 rounded-sm" /><span className="text-white/40">Salah</span></div>
+            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 bg-amber-500 rounded-sm" /><span className="text-white/40">Sebagian benar</span></div>
             <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 bg-white/10 rounded-sm" /><span className="text-white/40">N/A</span></div>
           </div>
 
@@ -592,7 +592,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
               </div>
             )}
             {leaderboard.length === 0 && (
-              <div className="text-center py-10 text-white/20 text-xs">No players yet</div>
+              <div className="text-center py-10 text-white/20 text-xs">Belum ada peserta</div>
             )}
           </div>
         </div>
@@ -712,10 +712,10 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
 
               {/* Legend */}
               <div className="px-5 pb-2 flex items-center gap-3 flex-wrap shrink-0 text-[9px] font-bold uppercase tracking-wider">
-                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-green-500 rounded-sm" /><span className="text-white/40">Correct</span></div>
-                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-red-500 rounded-sm" /><span className="text-white/40">Wrong</span></div>
-                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-red-900/50 rounded-sm" /><span className="text-white/40">No answer</span></div>
-                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-white/10 rounded-sm" /><span className="text-white/40">Unattempted</span></div>
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-green-500 rounded-sm" /><span className="text-white/40">Benar</span></div>
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-red-500 rounded-sm" /><span className="text-white/40">Salah</span></div>
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-red-900/50 rounded-sm" /><span className="text-white/40">Belum menjawab</span></div>
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-white/10 rounded-sm" /><span className="text-white/40">Belum dijawab</span></div>
               </div>
 
               {/* Player progress rows */}
@@ -833,7 +833,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
       <div className="shrink-0 bg-[#16162a] border-t border-white/10 px-4 py-2.5 flex items-center gap-6 text-xs">
         {/* Class accuracy */}
         <div className="flex items-center gap-1.5">
-          <span className="text-white/30 font-black uppercase tracking-widest">Class Acc</span>
+          <span className="text-white/30 font-black uppercase tracking-widest">Ketepatan kelas</span>
           <span className={`font-black ${
             classAccuracyPct === null ? "text-white/40" :
             classAccuracyPct >= 70 ? "text-green-400" :
@@ -862,7 +862,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         {/* Correct count */}
         <div className="flex items-center gap-1.5">
           <Flame size={11} className="text-orange-400" />
-          <span className="text-white/30 font-black uppercase tracking-widest">Correct</span>
+          <span className="text-white/30 font-black uppercase tracking-widest">Benar</span>
           <span className="font-black text-green-400">{answerStats.correct || 0}</span>
         </div>
 
