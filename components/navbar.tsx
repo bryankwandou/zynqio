@@ -1,13 +1,42 @@
 "use client";
 
+/**
+ * components/navbar.tsx — bilah navigasi utama.
+ *
+ * Tiga hal yang diperbaiki dari versi sebelumnya:
+ *
+ * 1. Tanda ZYNQIO tidak lagi digambar ulang di sini. Sebelumnya
+ *    huruf Z di atas conic-gradient ditulis lagi di berkas ini dan di
+ *    empat halaman autentikasi — lima salinan yang harus diubah
+ *    bersamaan setiap kali tandanya bergeser sedikit.
+ *
+ * 2. Halaman yang sedang dibuka ditandai. Sebelumnya semua tautan
+ *    tampak sama, jadi tidak ada cara mengetahui posisi kita selain
+ *    membaca alamat di bilah peramban.
+ *
+ * 3. Di layar sempit, tautan teks disembunyikan dan digantikan ikon.
+ *    Sebelumnya lima tautan berjejalan sampai keluar layar ponsel —
+ *    dan ponsel justru perangkat yang dipakai peserta.
+ */
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
-import { Sun, Moon, LogOut } from "lucide-react";
+import { Sun, Moon, LogOut, Compass, LayoutGrid, History } from "lucide-react";
+import { Logo } from "./Logo";
+
+const TAUTAN = [
+  { href: "/explore", label: "Jelajahi", Icon: Compass, perluMasuk: false },
+  { href: "/dashboard", label: "Kuis saya", Icon: LayoutGrid, perluMasuk: true },
+  // Dulu tertulis "Analytics" padahal isinya riwayat permainan.
+  { href: "/history", label: "Riwayat", Icon: History, perluMasuk: true },
+];
 
 export function Navbar() {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
+  const pathname = usePathname();
 
   return (
     <header
@@ -15,56 +44,89 @@ export function Navbar() {
         position: "sticky",
         top: 0,
         zIndex: 50,
-        padding: "12px 24px",
+        padding: "var(--sp-3) var(--sp-5)",
         background: "var(--nav-bg)",
+        // Buram di sini punya alasan: isi halaman menggulung di
+        // belakangnya, dan tanpa buram teksnya saling menembus.
         WebkitBackdropFilter: "blur(20px)",
         backdropFilter: "blur(20px)",
         borderBottom: "1px solid var(--border-raw)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
+        gap: "var(--sp-3)",
       }}
     >
-      <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-        <div style={{
-          width: 28, height: 28, borderRadius: 8,
-          background: "conic-gradient(from 0deg, var(--p), var(--p2), var(--acc), var(--p))",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          color: "#fff", fontWeight: 800, fontSize: 15,
-          boxShadow: "0 2px 8px rgba(124,111,253,0.3)",
-        }}>Z</div>
-        <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.02em", color: "var(--t1)" }}>zynqio</span>
+      <Link href="/" className="zy-row" style={{ gap: "var(--sp-2)" }} aria-label="ZYNQIO, ke beranda">
+        <Logo size={28} />
+        <span
+          style={{
+            fontSize: "var(--fs-base)",
+            fontWeight: "var(--fw-bold)",
+            letterSpacing: "0.03em",
+            color: "var(--t1)",
+          }}
+        >
+          ZYNQIO
+        </span>
       </Link>
 
-      <nav style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <Link href="/explore" style={{ fontSize: 13, fontWeight: 500, color: "var(--t2)", textDecoration: "none", padding: "6px 12px", borderRadius: 8, transition: "color 0.15s" }}>Explore</Link>
+      <nav className="zy-row" style={{ gap: "var(--sp-1)" }}>
+        {TAUTAN.filter((t) => !t.perluMasuk || session).map(({ href, label, Icon }) => {
+          const aktif = pathname === href || pathname.startsWith(href + "/");
+          return (
+            <Link
+              key={href}
+              href={href}
+              // Diumumkan pembaca layar sebagai halaman saat ini,
+              // bukan sekadar diberi warna berbeda.
+              aria-current={aktif ? "page" : undefined}
+              className="zy-motion"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--sp-2)",
+                fontSize: "var(--fs-sm)",
+                fontWeight: aktif ? "var(--fw-medium)" : "var(--fw-normal)",
+                color: aktif ? "var(--t1)" : "var(--t3)",
+                padding: "var(--sp-2) var(--sp-3)",
+                borderRadius: "var(--r-md)",
+                background: aktif ? "var(--bg3-raw)" : "transparent",
+              }}
+            >
+              <Icon size={15} aria-hidden="true" />
+              <span className="hidden sm:inline">{label}</span>
+            </Link>
+          );
+        })}
 
         {session ? (
-          <>
-            <Link href="/dashboard" style={{ fontSize: 13, fontWeight: 500, color: "var(--t2)", textDecoration: "none", padding: "6px 12px", borderRadius: 8 }}>Dashboard</Link>
-            <Link href="/history" style={{ fontSize: 13, fontWeight: 500, color: "var(--t2)", textDecoration: "none", padding: "6px 12px", borderRadius: 8 }}>Analytics</Link>
-            <button
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="zy-btn zy-btn-secondary"
-              style={{ padding: "7px 10px", gap: 6, fontSize: 13 }}
-              aria-label="Sign out"
-            >
-              <LogOut size={14} />
-            </button>
-          </>
+          <button
+            onClick={() => signOut({ callbackUrl: "/" })}
+            className="zy-btn zy-btn-quiet"
+            style={{ padding: "var(--sp-2)" }}
+            aria-label="Keluar dari akun"
+          >
+            <LogOut size={15} aria-hidden="true" />
+          </button>
         ) : (
           <>
-            <Link href="/auth/signin" className="zy-btn zy-btn-secondary" style={{ textDecoration: "none", fontSize: 13, padding: "7px 14px" }}>Sign in</Link>
-            <Link href="/auth/signup" className="zy-btn zy-btn-primary" style={{ textDecoration: "none", fontSize: 13, padding: "7px 14px" }}>Get started</Link>
+            <Link href="/auth/signin" className="zy-btn zy-btn-quiet">
+              Masuk
+            </Link>
+            <Link href="/auth/signup" className="zy-btn zy-btn-primary">
+              Mulai
+            </Link>
           </>
         )}
 
         <button
-          className="zy-btn zy-btn-secondary"
-          style={{ padding: "7px 9px", marginLeft: 4 }}
+          className="zy-btn zy-btn-quiet"
+          style={{ padding: "var(--sp-2)" }}
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          aria-label={theme === "dark" ? "Beralih ke tampilan terang" : "Beralih ke tampilan gelap"}
         >
-          {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+          {theme === "dark" ? <Sun size={15} aria-hidden="true" /> : <Moon size={15} aria-hidden="true" />}
         </button>
       </nav>
     </header>
