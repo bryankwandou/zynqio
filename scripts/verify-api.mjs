@@ -233,6 +233,41 @@ async function main() {
     if (pool) await pool.query(`DELETE FROM users WHERE email = $1`, [email]);
   }
 
+  // ---- halaman terlindungi mengalihkan, bukan runtuh ----------------
+  //
+  // Ditambahkan setelah menemukan bahwa withAuth dari next-auth v4
+  // runtuh di runtime edge Next.js 16 dengan "_server is not defined".
+  // Akibatnya /dashboard, /create, dan /host menjawab 500 kepada siapa
+  // pun — bukan menolak masuk, melainkan galat peladen — dan tidak ada
+  // satu pun pembuktian yang menangkapnya karena semuanya menguji API,
+  // bukan halaman.
+  {
+    const terlindungi = ['/dashboard', '/create', '/host/ZZZZZZ'];
+    const hasil = [];
+    for (const lintasan of terlindungi) {
+      const res = await fetch(`${BASE}${lintasan}`, { redirect: 'manual' });
+      hasil.push({ lintasan, status: res.status, tujuan: res.headers.get('location') ?? '' });
+    }
+
+    const semuaMengalihkan = hasil.every(
+      (h) => h.status >= 300 && h.status < 400 && h.tujuan.includes('/auth/signin')
+    );
+    record(
+      'Halaman terlindungi mengalihkan ke masuk, bukan menjawab galat',
+      semuaMengalihkan,
+      hasil.map((h) => `${h.lintasan} ${h.status}`).join(', ')
+    );
+
+    // Alamat asal ikut dibawa, supaya orang kembali ke tempat yang
+    // tadi ia tuju setelah berhasil masuk.
+    const membawaTujuan = hasil.every((h) => h.tujuan.includes('callbackUrl='));
+    record(
+      'Alamat yang dituju dibawa serta ke halaman masuk',
+      membawaTujuan,
+      hasil[0]?.tujuan?.slice(-46) ?? '-'
+    );
+  }
+
   // ---- ringkasan ---------------------------------------------------
   const lulus = results.filter((r) => r.passed).length;
   console.log(`\n${lulus}/${results.length} pembuktian lulus.\n`);

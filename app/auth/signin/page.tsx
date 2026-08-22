@@ -26,6 +26,23 @@ function SignInForm() {
   const registered = searchParams.get("registered");
   const router = useRouter();
 
+  /**
+   * Alamat tujuan setelah berhasil masuk.
+   *
+   * Middleware menitipkannya saat mengalihkan orang yang belum masuk,
+   * supaya guru yang menekan tautan ruangan langsung kembali ke sana
+   * dan tidak dilempar ke daftar kuis lalu harus menelusuri ulang.
+   *
+   * Hanya lintasan internal yang diterima. Tanpa pemeriksaan ini,
+   * seseorang bisa mengirimkan tautan masuk yang berujung memantulkan
+   * korbannya ke situs lain begitu ia berhasil masuk — dan pantulan itu
+   * terlihat sah karena berangkat dari alamat ZYNQIO yang benar.
+   */
+  const tujuanMentah = searchParams.get("callbackUrl") ?? "/dashboard";
+  const tujuan = tujuanMentah.startsWith("/") && !tujuanMentah.startsWith("//")
+    ? tujuanMentah
+    : "/dashboard";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -55,7 +72,7 @@ function SignInForm() {
       );
       setIsLoading(false);
     } else {
-      router.push("/dashboard");
+      router.push(tujuan);
     }
   };
 
@@ -76,7 +93,7 @@ function SignInForm() {
       {errorMsg && <AuthNotice kind="error">{errorMsg}</AuthNotice>}
 
       <button
-        onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+        onClick={() => signIn("google", { callbackUrl: tujuan })}
         className="zy-btn zy-btn-secondary"
         style={{ width: "100%" }}
       >
