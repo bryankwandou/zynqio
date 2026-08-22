@@ -92,7 +92,15 @@ export async function submitAnswer(params: {
     gameMode: (room.game_mode ?? 'classic') as GameMode,
     timeLeft,
     totalTime,
-    pointsWeight: question.points || 1,
+    // Kolom points menyimpan bobot soal dengan 100 sebagai bobot normal,
+    // dan calculateScore mengharapkan pengali — 1 untuk soal biasa, 2
+    // untuk soal berbobot ganda.
+    //
+    // Sebelumnya nilai itu diteruskan mentah-mentah, sehingga soal biasa
+    // dihitung sebagai 600 × 100. Satu soal menghasilkan hampir seratus
+    // ribu poin, dan papan peringkat penuh angka yang tidak berarti apa-apa
+    // bagi siapa pun yang melihatnya.
+    pointsWeight: (question.points || 100) / 100,
     streak: player.streak,
   });
 
