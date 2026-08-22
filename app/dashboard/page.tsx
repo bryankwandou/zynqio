@@ -3,20 +3,46 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AppShell } from "@/components/AppShell";
 import Link from "next/link";
-import { Plus, Play, Edit, Trash2, Book, Zap, Users, Target, Loader2 } from "lucide-react";
+import { AppShell } from "@/components/AppShell";
+import { Plus, Play, Edit, Trash2, Loader2, BookOpen } from "lucide-react";
 
-function StatCard({ label, value, icon: Icon, color }: { label: string; value: string | number; icon: any; color: string }) {
+interface Quiz {
+  id: string;
+  title: string;
+  questionCount: number;
+  status?: string;
+  createdAt: string;
+}
+
+/**
+ * Kartu ringkasan.
+ *
+ * Warnanya sengaja satu untuk semua. Versi sebelumnya memberi tiap
+ * kartu warna aksen sendiri — ungu, sian, hijau, jingga — sehingga
+ * tidak ada yang menonjol dan tidak ada yang bisa dibaca sebagai lebih
+ * penting. Warna sebanyak itu tanpa urutan justru membuat mata tidak
+ * tahu harus berhenti di mana.
+ */
+function Ringkasan({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="zy-panel-interactive" style={{ padding: 18 }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
-        <div style={{ fontSize: 11, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>{label}</div>
-        <div style={{ width: 32, height: 32, borderRadius: 9, background: "var(--bg2-raw)", display: "flex", alignItems: "center", justifyContent: "center", color }}>
-          <Icon size={16} />
-        </div>
+    <div className="zy-panel" style={{ padding: "var(--sp-5)" }}>
+      <div className="zy-label" style={{ textTransform: "uppercase", letterSpacing: "0.08em" }}>
+        {label}
       </div>
-      <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.02em", color: "var(--t1)" }}>{value}</div>
+      <div
+        className="zy-num"
+        style={{
+          fontSize: "var(--fs-2xl)",
+          fontWeight: "var(--fw-bold)",
+          letterSpacing: "-0.02em",
+          color: "var(--t1)",
+          marginTop: "var(--sp-2)",
+          lineHeight: 1,
+        }}
+      >
+        {value}
+      </div>
     </div>
   );
 }
@@ -24,8 +50,9 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: s
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [quizzes, setQuizzes] = useState<any[]>([]);
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
+  const [menghapus, setMenghapus] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/signin");
@@ -34,8 +61,8 @@ export default function Dashboard() {
   useEffect(() => {
     if (!session) return;
     fetch("/api/quiz/list")
-      .then(r => r.ok ? r.json() : { quizzes: [] })
-      .then(data => setQuizzes(data.quizzes ?? []))
+      .then((r) => (r.ok ? r.json() : { quizzes: [] }))
+      .then((data) => setQuizzes(data.quizzes ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [session]);
@@ -52,114 +79,194 @@ export default function Dashboard() {
     }
   };
 
-  const handleDelete = async (quizId: string) => {
-    if (!confirm("Hapus kuis ini? Tindakan ini tidak bisa dibatalkan.")) return;
-    // Penghapusan lewat POST, bukan DELETE dengan id di querystring.
-    // Alamat lengkap beserta querystring ikut tercatat di log peladen
-    // dan riwayat peramban; badan permintaan tidak.
+  const handleDelete = async (quizId: string, judul: string) => {
+    // Judulnya disebut dalam pertanyaan. "Hapus kuis ini?" tidak
+    // menolong siapa pun yang punya belasan kuis dengan nama mirip.
+    if (!confirm(`Hapus "${judul}"? Soal di dalamnya ikut terhapus dan tidak bisa dikembalikan.`)) {
+      return;
+    }
+    setMenghapus(quizId);
     const res = await fetch("/api/quiz/delete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ quizId }),
     });
-    if (res.ok) setQuizzes(p => p.filter(q => q.id !== quizId));
+    if (res.ok) setQuizzes((p) => p.filter((q) => q.id !== quizId));
+    setMenghapus(null);
   };
 
   if (status === "loading") {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Loader2 size={32} className="animate-spin" style={{ color: "var(--p)" }} />
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
+        <Loader2 size={28} className="animate-spin" style={{ color: "var(--p)" }} aria-label="Memuat" />
       </div>
     );
   }
 
   if (!session) return null;
 
+  const totalSoal = quizzes.reduce((s, q) => s + (q.questionCount || 0), 0);
+  const jumlahPublik = quizzes.filter((q) => q.status !== "private").length;
+
   return (
     <AppShell>
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, marginBottom: 28, flexWrap: "wrap" }}>
+      <div className="zy-row-between" style={{ alignItems: "flex-end", marginBottom: "var(--sp-6)", flexWrap: "wrap" }}>
         <div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.025em", color: "var(--t1)" }}>Dashboard</h1>
-          <p style={{ fontSize: 14, color: "var(--t3)", marginTop: 4 }}>
-            Welcome back, {session.user?.name?.split(" ")[0] || "Host"}
+          <h1 className="zy-h1">Kuis saya</h1>
+          <p className="zy-muted" style={{ marginTop: "var(--sp-1)" }}>
+            Selamat datang kembali, {session.user?.name?.split(" ")[0] || "Pengajar"}
           </p>
         </div>
-        <Link href="/create" className="zy-btn zy-btn-primary" style={{ textDecoration: "none", fontSize: 14 }}>
-          <Plus size={16} /> New quiz
+        <Link href="/create" className="zy-btn zy-btn-primary">
+          <Plus size={16} aria-hidden="true" /> Kuis baru
         </Link>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 28 }}>
-        <StatCard label="Quizzes" value={quizzes.length} icon={Book} color="var(--p)" />
-        <StatCard label="Questions" value={quizzes.reduce((s, q) => s + (q.questionCount || 0), 0)} icon={Zap} color="var(--acc)" />
-        <StatCard label="Public" value={quizzes.filter(q => q.status !== "private").length} icon={Users} color="var(--green)" />
-        <StatCard label="Total plays" value="—" icon={Target} color="var(--orange)" />
+      {/*
+        Tiga angka, bukan empat. Kartu "Total plays" dulu selalu
+        menampilkan tanda hubung karena datanya memang belum pernah
+        dihitung — kotak yang tidak pernah berisi apa pun hanya
+        menambah yang harus dilewati mata.
+      */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: "var(--sp-3)",
+          marginBottom: "var(--sp-6)",
+        }}
+      >
+        <Ringkasan label="Kuis" value={quizzes.length} />
+        <Ringkasan label="Soal" value={totalSoal} />
+        <Ringkasan label="Terbuka untuk umum" value={jumlahPublik} />
       </div>
 
-      <div>
-        <h2 style={{ fontSize: 13, fontWeight: 700, color: "var(--t2)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 14 }}>
-          My Quizzes
-        </h2>
-
-        {loading ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
-            {[1, 2, 3].map(i => (
-              <div key={i} className="zy-panel-interactive" style={{ height: 180, animation: "pulse 1.5s infinite" }} />
-            ))}
+      {loading ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "var(--sp-3)" }}>
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="zy-panel"
+              style={{ height: 176, animation: "pulse 1.5s infinite" }}
+              aria-hidden="true"
+            />
+          ))}
+        </div>
+      ) : quizzes.length === 0 ? (
+        <div
+          className="zy-stack"
+          style={{
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "var(--sp-8) var(--sp-5)",
+            border: "1.5px dashed var(--border-raw)",
+            borderRadius: "var(--r-lg)",
+            textAlign: "center",
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              display: "grid",
+              placeItems: "center",
+              width: 56,
+              height: 56,
+              borderRadius: "var(--r-lg)",
+              background: "var(--bg3-raw)",
+              color: "var(--t3)",
+            }}
+          >
+            <BookOpen size={24} />
+          </span>
+          <div>
+            <h2 className="zy-h3">Belum ada kuis</h2>
+            <p className="zy-body zy-prose" style={{ marginTop: "var(--sp-2)", maxWidth: "36ch" }}>
+              Susun kuis pertama Anda, atau ambil salah satu dari katalog umum lalu ubah sesuai
+              kebutuhan kelas.
+            </p>
           </div>
-        ) : quizzes.length === 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 24px", border: "1.5px dashed var(--border-raw)", borderRadius: 16, background: "var(--card-raw)", textAlign: "center", gap: 14 }}>
-            <div style={{ width: 60, height: 60, borderRadius: 18, background: "var(--bg2-raw)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--t3)" }}>
-              <Book size={26} />
-            </div>
-            <div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--t1)" }}>No quizzes yet</h3>
-              <p style={{ fontSize: 13, color: "var(--t3)", marginTop: 6, maxWidth: 320, lineHeight: 1.6 }}>
-                Create your first quiz to start hosting real-time sessions.
-              </p>
-            </div>
-            <Link href="/create" className="zy-btn zy-btn-primary" style={{ textDecoration: "none", marginTop: 6, fontSize: 14 }}>
-              <Plus size={15} /> Create quiz
+          <div className="zy-row">
+            <Link href="/create" className="zy-btn zy-btn-primary">
+              <Plus size={15} aria-hidden="true" /> Susun kuis
+            </Link>
+            <Link href="/explore" className="zy-btn zy-btn-secondary">
+              Lihat katalog
             </Link>
           </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
-            {quizzes.map(quiz => (
-              <div key={quiz.id} className="zy-panel-interactive" style={{ padding: 18, display: "flex", flexDirection: "column" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 11, background: "var(--bg2-raw)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>
-                    📚
-                  </div>
-                  <span style={{
-                    padding: "3px 9px", borderRadius: 8, fontSize: 11, fontWeight: 600,
-                    background: quiz.status !== "private" ? "rgba(52,211,153,0.15)" : "var(--bg2-raw)",
-                    color: quiz.status !== "private" ? "var(--green)" : "var(--t3)",
-                  }}>
-                    {quiz.status !== "private" ? "● PUBLIC" : "PRIVATE"}
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "var(--sp-3)" }}>
+          {quizzes.map((quiz) => {
+            const publik = quiz.status !== "private";
+            return (
+              <div
+                key={quiz.id}
+                className="zy-panel-interactive"
+                style={{ padding: "var(--sp-5)", display: "flex", flexDirection: "column" }}
+              >
+                <div className="zy-row-between" style={{ alignItems: "flex-start", marginBottom: "var(--sp-3)" }}>
+                  <span className="zy-badge">{publik ? "Umum" : "Pribadi"}</span>
+                  <span className="zy-label zy-num">
+                    {new Date(quiz.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
                   </span>
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--t1)", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+
+                <h2
+                  className="zy-h3"
+                  style={{
+                    marginBottom: "var(--sp-1)",
+                    // Judul panjang dipotong dua baris, bukan satu.
+                    // Satu baris memotong terlalu dini pada judul
+                    // seperti "Sejarah Indonesia: Dari Kerajaan…".
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
                   {quiz.title}
-                </div>
-                <div style={{ fontSize: 12, color: "var(--t3)", marginBottom: 16 }}>
-                  {quiz.questionCount} questions · {new Date(quiz.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
-                </div>
-                <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
-                  <button onClick={() => handleHost(quiz.id)} className="zy-btn zy-btn-primary" style={{ flex: 1, padding: "9px", fontSize: 13 }}>
-                    <Play size={14} /> Host
+                </h2>
+
+                <p className="zy-label zy-num" style={{ marginBottom: "var(--sp-4)" }}>
+                  {quiz.questionCount} soal
+                </p>
+
+                <div className="zy-row" style={{ marginTop: "auto", gap: "var(--sp-2)" }}>
+                  <button onClick={() => handleHost(quiz.id)} className="zy-btn zy-btn-primary" style={{ flex: 1 }}>
+                    <Play size={14} aria-hidden="true" /> Mulai
                   </button>
-                  <Link href={`/create?quizId=${encodeURIComponent(quiz.id)}`} className="zy-btn zy-btn-secondary" style={{ padding: "9px 12px", textDecoration: "none", fontSize: 13 }}>
-                    <Edit size={14} />
+
+                  {/* Tombol berikut hanya berisi ikon, jadi namanya
+                      harus dititipkan lewat aria-label — tanpa itu
+                      pembaca layar hanya menyebutnya "tombol". */}
+                  <Link
+                    href={`/create?quizId=${encodeURIComponent(quiz.id)}`}
+                    className="zy-btn zy-btn-secondary"
+                    aria-label={`Ubah kuis ${quiz.title}`}
+                    style={{ padding: "var(--sp-3)" }}
+                  >
+                    <Edit size={14} aria-hidden="true" />
                   </Link>
-                  <button onClick={() => handleDelete(quiz.id)} className="zy-btn zy-btn-secondary" style={{ padding: "9px 12px", color: "var(--red)" }}>
-                    <Trash2 size={14} />
+
+                  <button
+                    onClick={() => handleDelete(quiz.id, quiz.title)}
+                    disabled={menghapus === quiz.id}
+                    className="zy-btn zy-btn-danger"
+                    aria-label={`Hapus kuis ${quiz.title}`}
+                    style={{ padding: "var(--sp-3)" }}
+                  >
+                    {menghapus === quiz.id ? (
+                      <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Trash2 size={14} aria-hidden="true" />
+                    )}
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </AppShell>
   );
 }

@@ -2,18 +2,50 @@
 
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { Search, Play, Star, Users, Clock, Loader2 } from "lucide-react";
+import { Search, Play, Star, User, FileQuestion } from "lucide-react";
 import Link from "next/link";
 
-const CATEGORIES = ["All", "General", "Math", "Science", "History", "Tech", "Language", "Gaming", "Geography", "Entertainment", "Sports", "Indonesia"];
+/**
+ * Kategori yang bisa disaring.
+ *
+ * Daftarnya harus sama persis dengan nilai kolom category di basis
+ * data. Versi sebelumnya berisi "Math", "Science", "History" dan
+ * seterusnya dalam bahasa Inggris, sementara seluruh isi katalog
+ * berkategori Indonesia — sehingga menekan chip mana pun selalu
+ * menghasilkan daftar kosong, dan tidak ada pesan galat yang muncul
+ * karena secara teknis tidak ada yang gagal.
+ */
+const KATEGORI = [
+  "Matematika",
+  "Fisika",
+  "Kimia",
+  "Biologi",
+  "Sains",
+  "Sejarah",
+  "Geografi",
+  "PPKn",
+  "Ekonomi",
+  "Bahasa Indonesia",
+  "Bahasa Inggris",
+  "Teknologi",
+  "Seni Budaya",
+  "Olahraga",
+  "Karakter",
+  "Umum",
+];
 
-const EMOJI: Record<string, string> = {
-  General: "🌍", Math: "📐", Science: "🧪", History: "🏛️", Tech: "💻",
-  Language: "🗣️", Gaming: "🎮", Geography: "🗺️", Entertainment: "🎬", Sports: "⚽", Indonesia: "🇮🇩",
-};
+interface Quiz {
+  id: string;
+  hostId: string;
+  title: string;
+  author?: string;
+  category?: string;
+  questionCount?: number;
+  rating?: number;
+}
 
 export default function ExplorePage() {
-  const [quizzes, setQuizzes] = useState<any[]>([]);
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [loading, setLoading] = useState(true);
@@ -23,105 +55,201 @@ export default function ExplorePage() {
     const params = new URLSearchParams();
     if (search) params.append("q", search);
     if (category) params.append("category", category);
+
+    // Ditunda sebentar supaya tiap ketukan papan ketik tidak menjadi
+    // satu permintaan tersendiri ke peladen.
     const timeout = setTimeout(() => {
       fetch(`/api/quiz/explore?${params.toString()}`)
-        .then(r => r.ok ? r.json() : [])
-        .then(data => setQuizzes(data))
+        .then((r) => (r.ok ? r.json() : []))
+        .then((data) => setQuizzes(Array.isArray(data) ? data : (data.quizzes ?? [])))
         .catch(() => {})
         .finally(() => setLoading(false));
     }, 300);
+
     return () => clearTimeout(timeout);
   }, [search, category]);
 
+  const adaSaringan = Boolean(search || category);
+
   return (
     <AppShell>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.025em", color: "var(--t1)" }}>Explore</h1>
-        <p style={{ fontSize: 14, color: "var(--t3)", marginTop: 4 }}>Discover community-created quizzes</p>
+      <div style={{ marginBottom: "var(--sp-5)" }}>
+        <h1 className="zy-h1">Jelajahi</h1>
+        <p className="zy-muted" style={{ marginTop: "var(--sp-1)" }}>
+          Kuis siap pakai yang bisa langsung dibawakan atau disalin lalu diubah
+        </p>
       </div>
 
-      {/* Search */}
-      <div style={{ position: "relative", marginBottom: 20 }}>
-        <Search size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--t3)", pointerEvents: "none" }} />
+      <div style={{ position: "relative", marginBottom: "var(--sp-4)" }}>
+        <label htmlFor="cari" className="sr-only">
+          Cari kuis
+        </label>
+        <Search
+          size={16}
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            left: "var(--sp-4)",
+            top: "50%",
+            transform: "translateY(-50%)",
+            color: "var(--t3)",
+            pointerEvents: "none",
+          }}
+        />
         <input
-          type="text"
-          placeholder="Search quizzes..."
+          id="cari"
+          type="search"
+          placeholder="Cari judul kuis"
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e) => setSearch(e.target.value)}
           className="zy-input"
-          style={{ paddingLeft: 40 }}
+          style={{ paddingLeft: "var(--sp-8)" }}
         />
       </div>
 
-      {/* Category chips */}
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 24 }}>
-        {CATEGORIES.map(cat => {
-          const active = cat === "All" ? !category : category === cat;
-          return (
-            <button key={cat} onClick={() => setCategory(cat === "All" ? "" : cat)} style={{
-              padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
-              background: active ? "var(--p)" : "var(--bg2-raw)",
-              color: active ? "#fff" : "var(--t2)",
-              border: `1px solid ${active ? "var(--p)" : "var(--border-raw)"}`,
-              transition: "color 0.15s, background-color 0.15s, border-color 0.15s, opacity 0.15s",
-            }}>
-              {cat}
-            </button>
-          );
-        })}
+      {/*
+        Chip penyaring. Kelompoknya diberi label supaya pembaca layar
+        menyebutkannya sebagai satu himpunan pilihan, bukan deretan
+        tombol lepas tanpa hubungan.
+      */}
+      <div
+        role="group"
+        aria-label="Saring menurut mata pelajaran"
+        className="zy-row"
+        style={{ flexWrap: "wrap", gap: "var(--sp-2)", marginBottom: "var(--sp-5)" }}
+      >
+        <button
+          onClick={() => setCategory("")}
+          aria-pressed={!category}
+          className="zy-motion"
+          style={chipStyle(!category)}
+        >
+          Semua
+        </button>
+        {KATEGORI.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setCategory(category === cat ? "" : cat)}
+            aria-pressed={category === cat}
+            className="zy-motion"
+            style={chipStyle(category === cat)}
+          >
+            {cat}
+          </button>
+        ))}
       </div>
 
-      {/* Results */}
       {loading ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="zy-panel-interactive" style={{ height: 200, animation: "pulse 1.5s infinite" }} />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "var(--sp-3)" }}>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="zy-panel" style={{ height: 168, animation: "pulse 1.5s infinite" }} aria-hidden="true" />
           ))}
         </div>
       ) : quizzes.length === 0 ? (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 24px", border: "1.5px dashed var(--border-raw)", borderRadius: 16, background: "var(--card-raw)", textAlign: "center", gap: 14 }}>
-          <div style={{ fontSize: 40, opacity: 0.3 }}>🔍</div>
-          <div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--t1)" }}>No quizzes found</h3>
-            <p style={{ fontSize: 13, color: "var(--t3)", marginTop: 6 }}>Try a different search term or category.</p>
-          </div>
-          <button onClick={() => { setSearch(""); setCategory(""); }} className="zy-btn zy-btn-secondary" style={{ fontSize: 13 }}>
-            Reset filters
-          </button>
+        <div
+          className="zy-stack"
+          style={{
+            alignItems: "center",
+            padding: "var(--sp-8) var(--sp-5)",
+            border: "1.5px dashed var(--border-raw)",
+            borderRadius: "var(--r-lg)",
+            textAlign: "center",
+          }}
+        >
+          <h2 className="zy-h3">Tidak ada yang cocok</h2>
+          <p className="zy-body" style={{ maxWidth: "40ch" }}>
+            {adaSaringan
+              ? "Coba kata kunci lain, atau lepas saringan mata pelajarannya."
+              : "Katalog umum masih kosong."}
+          </p>
+          {adaSaringan && (
+            <button
+              onClick={() => {
+                setSearch("");
+                setCategory("");
+              }}
+              className="zy-btn zy-btn-secondary"
+            >
+              Tampilkan semua
+            </button>
+          )}
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
-          {quizzes.map((quiz, i) => (
-            <div key={i} className="zy-panel-interactive" style={{ padding: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-              {/* Cover */}
-              <div style={{ height: 120, background: "linear-gradient(135deg, var(--bg2-raw), var(--bg3-raw))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, position: "relative" }}>
-                {EMOJI[quiz.category] ?? "📚"}
-                <div style={{ position: "absolute", top: 10, left: 10, padding: "3px 9px", borderRadius: 8, background: "var(--p)", color: "#fff", fontSize: 10, fontWeight: 700, letterSpacing: "0.04em" }}>
-                  {quiz.category}
-                </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "var(--sp-3)" }}>
+          {quizzes.map((quiz) => (
+            <article
+              key={quiz.id}
+              className="zy-panel-interactive"
+              style={{ padding: "var(--sp-5)", display: "flex", flexDirection: "column" }}
+            >
+              {/*
+                Gambar sampul emoji raksasa dihapus. Seratus dua puluh
+                piksel tinggi yang hanya berisi satu emoji mendorong
+                judul dan jumlah soal — dua hal yang benar-benar dipakai
+                orang untuk memilih — turun ke bawah lipatan layar.
+              */}
+              <div className="zy-row-between" style={{ alignItems: "flex-start", marginBottom: "var(--sp-3)" }}>
+                <span className="zy-badge">{quiz.category ?? "Umum"}</span>
+                {quiz.rating ? (
+                  <span
+                    className="zy-row zy-num"
+                    style={{ gap: "var(--sp-1)", fontSize: "var(--fs-xs)", color: "var(--gold)", fontWeight: "var(--fw-medium)" }}
+                  >
+                    <Star size={12} fill="currentColor" aria-hidden="true" />
+                    {quiz.rating}
+                  </span>
+                ) : (
+                  <span className="zy-label">Baru</span>
+                )}
               </div>
 
-              <div style={{ padding: 16, display: "flex", flexDirection: "column", flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)", marginBottom: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {quiz.title}
-                </div>
-                <div style={{ display: "flex", gap: 12, fontSize: 11, color: "var(--t3)", marginBottom: 14 }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Users size={11}/> {quiz.author}</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Clock size={11}/> {quiz.questionCount} Qs</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto", paddingTop: 12, borderTop: "1px solid var(--border-raw)" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 700, color: "var(--gold)" }}>
-                    <Star size={12} fill="currentColor" /> {quiz.rating || "NEW"}
-                  </div>
-                  <Link href={`/quiz/${quiz.hostId}/${quiz.id}`} className="zy-btn zy-btn-primary" style={{ padding: "7px 14px", fontSize: 12, textDecoration: "none" }}>
-                    <Play size={12} /> Open
-                  </Link>
-                </div>
+              <h2
+                className="zy-h3"
+                style={{
+                  marginBottom: "var(--sp-3)",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }}
+              >
+                {quiz.title}
+              </h2>
+
+              <div className="zy-row" style={{ gap: "var(--sp-4)", marginBottom: "var(--sp-4)" }}>
+                <span className="zy-label zy-row" style={{ gap: "var(--sp-1)" }}>
+                  <User size={12} aria-hidden="true" /> {quiz.author ?? "Anonim"}
+                </span>
+                <span className="zy-label zy-row zy-num" style={{ gap: "var(--sp-1)" }}>
+                  <FileQuestion size={12} aria-hidden="true" /> {quiz.questionCount ?? 0} soal
+                </span>
               </div>
-            </div>
+
+              <Link
+                href={`/quiz/${quiz.hostId}/${quiz.id}`}
+                className="zy-btn zy-btn-primary"
+                style={{ marginTop: "auto" }}
+                aria-label={`Buka kuis ${quiz.title}`}
+              >
+                <Play size={13} aria-hidden="true" /> Buka
+              </Link>
+            </article>
           ))}
         </div>
       )}
     </AppShell>
   );
+}
+
+function chipStyle(aktif: boolean): React.CSSProperties {
+  return {
+    padding: "var(--sp-2) var(--sp-4)",
+    borderRadius: "var(--r-full)",
+    fontSize: "var(--fs-xs)",
+    fontWeight: "var(--fw-medium)",
+    cursor: "pointer",
+    background: aktif ? "var(--p)" : "var(--bg2-raw)",
+    color: aktif ? "#fff" : "var(--t2)",
+    border: `1px solid ${aktif ? "var(--p)" : "var(--border-raw)"}`,
+  };
 }
