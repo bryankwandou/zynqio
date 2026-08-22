@@ -10,7 +10,6 @@ import {
   Compass,
   Clock,
   BarChart2,
-  Settings,
   LogOut,
   Sun,
   Moon,
@@ -18,39 +17,23 @@ import {
   X,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import { Logo } from "./Logo";
 
+/**
+ * Menu samping.
+ *
+ * Butir "Settings" dibuang: app/settings/page.tsx tidak pernah ada di
+ * proyek ini, sehingga tautannya selalu berujung di halaman "tidak
+ * ditemukan". Menu yang menjanjikan halaman yang tidak ada lebih buruk
+ * daripada menu yang lebih pendek.
+ */
 const NAV_ITEMS = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/create",    icon: Plus,            label: "Create"    },
-  { href: "/explore",   icon: Compass,         label: "Explore"   },
-  { href: "/history",   icon: Clock,           label: "History"   },
-  { href: "/analytics", icon: BarChart2,        label: "Analytics" },
-  { href: "/settings",  icon: Settings,         label: "Settings"  },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Kuis saya" },
+  { href: "/create",    icon: Plus,            label: "Susun kuis" },
+  { href: "/explore",   icon: Compass,         label: "Jelajahi" },
+  { href: "/history",   icon: Clock,           label: "Riwayat" },
+  { href: "/analytics", icon: BarChart2,       label: "Laporan" },
 ];
-
-function LogoMark({ size = 32 }: { size?: number }) {
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size * 0.28,
-        background: "conic-gradient(from 0deg, var(--p), var(--p2), var(--acc), var(--p))",
-        boxShadow: "0 4px 16px rgba(124,111,253,0.35)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "#fff",
-        fontWeight: 800,
-        fontSize: size * 0.55,
-        flexShrink: 0,
-        fontFamily: "var(--font-space-grotesk)",
-      }}
-    >
-      Z
-    </div>
-  );
-}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -81,16 +64,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           textDecoration: "none",
         }}
       >
-        <LogoMark size={32} />
+        <Logo size={30} />
         <span
           style={{
-            fontSize: 18,
-            fontWeight: 800,
-            letterSpacing: "-0.02em",
+            fontSize: "var(--fs-lg)",
+            fontWeight: "var(--fw-bold)",
+            letterSpacing: "0.03em",
             color: "var(--t1)",
           }}
         >
-          zynqio
+          ZYNQIO
         </span>
       </Link>
 
@@ -102,14 +85,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Link
             key={item.href}
             href={item.href}
+            aria-current={active ? "page" : undefined}
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 12,
-              padding: "10px 12px",
-              borderRadius: 10,
-              fontSize: 14,
-              fontWeight: active ? 600 : 500,
+              gap: "var(--sp-3)",
+              padding: "var(--sp-3)",
+              borderRadius: "var(--r-md)",
+              fontSize: "var(--fs-sm)",
+              fontWeight: active ? "var(--fw-medium)" : "var(--fw-normal)",
               color: active ? "var(--t1)" : "var(--t2)",
               background: active ? "var(--bg2-raw)" : "transparent",
               textDecoration: "none",
@@ -136,7 +120,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             }}
           >
             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {session.user?.name || "Host"}
+              {session.user?.name || "Pengajar"}
             </div>
             <div style={{ fontSize: 11, color: "var(--t3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>
               {session.user?.email}
@@ -149,13 +133,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           style={{ flex: 1, padding: "8px", fontSize: 12, justifyContent: "center" }}
         >
           {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
-          {theme === "dark" ? "Light" : "Dark"}
+          {theme === "dark" ? "Terang" : "Gelap"}
         </button>
         <button
           onClick={() => signOut({ callbackUrl: "/auth/signin" })}
-          className="zy-btn zy-btn-secondary"
-          style={{ padding: "8px 10px", color: "var(--red)" }}
-          title="Sign out"
+          className="zy-btn zy-btn-danger"
+          style={{ padding: "var(--sp-2) var(--sp-3)" }}
+          aria-label="Keluar dari akun"
         >
           <LogOut size={14} />
         </button>
@@ -190,12 +174,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }}
       >
         <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
-          <LogoMark size={28} />
-          <span style={{ fontSize: 16, fontWeight: 800, color: "var(--t1)" }}>zynqio</span>
+          <Logo size={26} />
+          <span style={{ fontSize: "var(--fs-base)", fontWeight: "var(--fw-bold)", letterSpacing: "0.03em", color: "var(--t1)" }}>ZYNQIO</span>
         </Link>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          style={{ color: "var(--t1)", padding: 4 }}
+          aria-expanded={mobileOpen}
+          aria-label={mobileOpen ? "Tutup menu" : "Buka menu"}
+          style={{ color: "var(--t1)", padding: "var(--sp-1)" }}
         >
           {mobileOpen ? <X size={22} /> : <Menu size={22} />}
         </button>

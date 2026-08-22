@@ -4,44 +4,23 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { ArrowRight, Zap, Shield, Compass, Sun, Moon } from "lucide-react";
+import { Sun, Moon, ArrowRight, Loader2 } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
-function LogoMark() {
-  return (
-    <div
-      style={{
-        width: 32,
-        height: 32,
-        borderRadius: 9,
-        background: "conic-gradient(from 0deg, var(--p), var(--p2), var(--acc), var(--p))",
-        boxShadow: "0 4px 16px rgba(124,111,253,0.35)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "#fff",
-        fontWeight: 800,
-        fontSize: 18,
-        flexShrink: 0,
-      }}
-    >
-      Z
-    </div>
-  );
-}
-
-const MODES = [
-  { icon: "⚡", label: "Classic",    desc: "Points for speed & accuracy" },
-  { icon: "🚀", label: "Speed",      desc: "Fastest answer wins all" },
-  { icon: "💰", label: "Gold Hunt",  desc: "Grab treasure chests" },
-  { icon: "⚔️", label: "Battle",     desc: "Last player standing" },
-  { icon: "🤝", label: "Team Play",  desc: "Collaborate to win" },
-  { icon: "💀", label: "Survival",   desc: "One wrong = eliminated" },
-];
-
-const FEATURES = [
-  { icon: <Zap size={20} />,    title: "Real-time Play",       desc: "Sub-second answer sync across hundreds of players." },
-  { icon: <Shield size={20} />, title: "Scored Insights",      desc: "Accuracy, speed, and class-level breakdowns live." },
-  { icon: <Compass size={20} />,title: "6 Game Modes",         desc: "From casual fun to competitive elimination rounds." },
+/**
+ * Ragam permainan.
+ *
+ * Keterangannya menyebut aturan yang berlaku, bukan janji suasana.
+ * "Grab treasure chests" tidak memberi tahu guru apa pun tentang cara
+ * skor dihitung; "peti berisi poin muncul di sela soal" memberi tahu.
+ */
+const RAGAM = [
+  { label: "Klasik", desc: "Poin dari benar dan cepatnya menjawab" },
+  { label: "Adu cepat", desc: "Penjawab tercepat mengambil seluruh poin soal" },
+  { label: "Buru harta", desc: "Peti berisi poin muncul di sela soal" },
+  { label: "Sisa satu", desc: "Salah sekali, gugur dari babak" },
+  { label: "Beregu", desc: "Skor dijumlahkan per kelompok" },
+  { label: "Bertahan", desc: "Skor kembali nol setiap kali salah" },
 ];
 
 export default function Home() {
@@ -61,153 +40,176 @@ export default function Home() {
 
     try {
       const res = await fetch(`/api/room/state?roomCode=${code}`);
-      if (res.status === 404) { setJoinError("Ruangan tidak ditemukan. Periksa kodenya."); setIsJoining(false); return; }
-      if (!res.ok)             { setJoinError("Gagal memeriksa status ruangan."); setIsJoining(false); return; }
+      if (res.status === 404) {
+        setJoinError("Ruangan tidak ditemukan. Periksa lagi kodenya.");
+        setIsJoining(false);
+        return;
+      }
+      if (!res.ok) {
+        setJoinError("Gagal memeriksa status ruangan. Coba lagi sebentar lagi.");
+        setIsJoining(false);
+        return;
+      }
       const data = await res.json();
-      if (data.status === "ended")   { setJoinError("Permainan ini sudah berakhir."); setIsJoining(false); return; }
-      if (data.status === "playing") { setJoinError("Permainan sudah dimulai."); setIsJoining(false); return; }
+      if (data.status === "ended") {
+        setJoinError("Permainan di ruangan ini sudah selesai.");
+        setIsJoining(false);
+        return;
+      }
+      if (data.status === "playing") {
+        setJoinError("Permainan sudah dimulai, jadi ruangannya tertutup.");
+        setIsJoining(false);
+        return;
+      }
       router.push(`/join/${code}`);
     } catch {
-      setJoinError("Sambungan bermasalah. Coba lagi.");
+      setJoinError("Sambungan bermasalah. Periksa jaringan Anda lalu coba lagi.");
       setIsJoining(false);
     }
   };
 
+  const kodeLengkap = roomCode.length === 6;
+
   return (
     <div style={{ position: "relative", minHeight: "100vh", overflowX: "hidden" }}>
-      {/* Ambient background */}
       <div className="ambient" />
 
-      {/* Top nav */}
       <header
         style={{
           position: "sticky",
           top: 0,
           zIndex: 20,
-          padding: "14px 24px",
+          padding: "var(--sp-3) var(--sp-5)",
           background: "var(--nav-bg)",
           WebkitBackdropFilter: "blur(20px)",
           backdropFilter: "blur(20px)",
           borderBottom: "1px solid var(--border-raw)",
         }}
       >
-        <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <LogoMark />
-            <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.02em", color: "var(--t1)" }}>zynqio</span>
-          </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <button
-              className="zy-btn zy-btn-secondary"
-              style={{ padding: "8px 10px" }}
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        <div
+          className="zy-row-between"
+          style={{ maxWidth: 1120, margin: "0 auto" }}
+        >
+          <span className="zy-row" style={{ gap: "var(--sp-2)" }}>
+            <Logo size={30} />
+            <span
+              style={{
+                fontSize: "var(--fs-lg)",
+                fontWeight: "var(--fw-bold)",
+                letterSpacing: "0.03em",
+                color: "var(--t1)",
+              }}
             >
-              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+              ZYNQIO
+            </span>
+          </span>
+
+          <span className="zy-row" style={{ gap: "var(--sp-2)" }}>
+            <button
+              className="zy-btn zy-btn-quiet"
+              style={{ padding: "var(--sp-2)" }}
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              aria-label={theme === "dark" ? "Beralih ke tampilan terang" : "Beralih ke tampilan gelap"}
+            >
+              {theme === "dark" ? <Sun size={16} aria-hidden="true" /> : <Moon size={16} aria-hidden="true" />}
             </button>
-            <Link href="/auth/signin" className="zy-btn zy-btn-secondary" style={{ textDecoration: "none", fontSize: 14 }}>
-              Sign in
+            <Link href="/auth/signin" className="zy-btn zy-btn-quiet">
+              Masuk
             </Link>
-            <Link href="/auth/signup" className="zy-btn zy-btn-primary" style={{ textDecoration: "none", fontSize: 14 }}>
-              Get started
+            <Link href="/auth/signup" className="zy-btn zy-btn-primary">
+              Daftar
             </Link>
-          </div>
+          </span>
         </div>
       </header>
 
-      {/* Hero */}
-      <section style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px 60px", textAlign: "center", position: "relative", zIndex: 2 }}>
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "6px 14px",
-            borderRadius: 99,
-            border: "1px solid var(--border-a)",
-            background: "var(--card-raw)",
-            fontSize: 12,
-            fontWeight: 600,
-            color: "var(--t2)",
-            marginBottom: 32,
-            animation: "fadeUp 0.5s ease both",
-          }}
-        >
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green)", display: "inline-block", animation: "pulse 1.5s infinite" }} />
-          Live multiplayer quiz platform
-        </div>
+      {/*
+        Bagian pembuka.
 
+        Yang paling sering dilakukan orang di halaman ini adalah
+        memasukkan kode ruangan dari layar di depan kelas — bukan
+        membaca ajakan. Karena itu kolom kodenya diletakkan tinggi dan
+        diberi ukuran besar, dan sisanya menyusul di bawahnya.
+
+        Judulnya menyebut hal yang benar-benar terjadi. Versi sebelumnya
+        berbunyi "Think Fast. Play Smart. Quiz Harder." — kalimat yang
+        bisa ditempelkan ke produk apa pun tanpa berubah maknanya.
+      */}
+      <section
+        className="zy-enter"
+        style={{
+          maxWidth: 720,
+          margin: "0 auto",
+          padding: "var(--sp-8) var(--sp-5) var(--sp-7)",
+          textAlign: "center",
+          position: "relative",
+          zIndex: 2,
+        }}
+      >
         <h1
           style={{
-            fontSize: "clamp(48px, 8vw, 90px)",
-            fontWeight: 800,
-            lineHeight: 1.02,
-            letterSpacing: "-0.04em",
-            animation: "fadeUp 0.6s ease both",
+            fontSize: "clamp(2.25rem, 6vw, 4rem)",
+            fontWeight: "var(--fw-bold)",
+            lineHeight: "var(--lh-tight)",
+            letterSpacing: "-0.03em",
             color: "var(--t1)",
+            textWrap: "balance",
           }}
         >
-          Think Fast.{" "}
-          <br />
-          Play Smart.{" "}
-          <br />
-          <span
-            className=""
-            style={{
-              fontStyle: "italic",
-              fontFamily: "Georgia, serif",
-              fontWeight: 400,
-              fontSize: "1.1em",
-            }}
-          >
-            Quiz Harder.
-          </span>
+          Kuis langsung untuk satu kelas penuh
         </h1>
 
         <p
+          className="zy-prose"
           style={{
-            fontSize: 18,
+            fontSize: "var(--fs-base)",
             color: "var(--t2)",
-            marginTop: 28,
-            maxWidth: 600,
+            marginTop: "var(--sp-4)",
             marginInline: "auto",
-            lineHeight: 1.55,
-            animation: "fadeUp 0.7s ease both",
+            lineHeight: "var(--lh-relaxed)",
           }}
         >
-          Host live quiz battles for your class, team, or audience — with
-          real-time leaderboards, 6 game modes, and zero setup.
+          Tampilkan soal di proyektor, murid menjawab dari ponsel masing-masing, dan peringkatnya
+          bergerak seketika. Tidak perlu memasang apa pun.
         </p>
 
-        {/* Join code input */}
         <form
           onSubmit={handleJoin}
           style={{
-            marginTop: 48,
+            marginTop: "var(--sp-7)",
             display: "flex",
-            gap: 8,
-            maxWidth: 460,
+            gap: "var(--sp-2)",
+            maxWidth: 440,
             marginInline: "auto",
-            padding: 8,
-            background: "var(--card-raw)",
-            WebkitBackdropFilter: "blur(20px)",
-            backdropFilter: "blur(20px)",
+            padding: "var(--sp-2)",
+            background: "var(--bg2-raw)",
             border: "1px solid var(--border-raw)",
-            borderRadius: 16,
-            boxShadow: "var(--shadow)",
-            animation: "fadeUp 0.8s ease both",
+            borderRadius: "var(--r-lg)",
           }}
         >
+          <label htmlFor="kode" className="sr-only">
+            Kode ruangan, enam karakter
+          </label>
           <input
+            id="kode"
             value={roomCode}
-            onChange={(e) => { setRoomCode(e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase()); setJoinError(""); }}
-            placeholder="GAME CODE"
+            onChange={(e) => {
+              setRoomCode(e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase());
+              setJoinError("");
+            }}
+            placeholder="KODE"
             maxLength={6}
             autoCapitalize="characters"
+            autoComplete="off"
+            inputMode="text"
+            aria-describedby={joinError ? "galat-gabung" : undefined}
+            aria-invalid={joinError ? true : undefined}
             style={{
               flex: 1,
-              padding: "14px 18px",
-              fontSize: 20,
-              fontWeight: 700,
+              minWidth: 0,
+              padding: "var(--sp-4)",
+              fontSize: "var(--fs-xl)",
+              fontWeight: "var(--fw-bold)",
               letterSpacing: "0.2em",
               background: "transparent",
               border: "none",
@@ -218,137 +220,155 @@ export default function Home() {
           />
           <button
             type="submit"
-            disabled={roomCode.length !== 6 || isJoining}
-            className="zy-btn zy-btn-primary"
-            style={{ padding: "0 22px", fontSize: 15, borderRadius: 10, opacity: roomCode.length !== 6 ? 0.5 : 1 }}
+            disabled={!kodeLengkap || isJoining}
+            className="zy-btn zy-btn-primary zy-btn-lg"
           >
-            {isJoining ? "…" : <>Join <ArrowRight size={16} /></>}
+            {isJoining ? (
+              <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+            ) : (
+              <>
+                Gabung <ArrowRight size={16} aria-hidden="true" />
+              </>
+            )}
           </button>
         </form>
 
+        {/*
+          Galat diumumkan pembaca layar tanpa menunggu fokus berpindah.
+          Tanpa role="alert", orang yang memakai pembaca layar menekan
+          Gabung lalu tidak mendengar apa-apa sama sekali.
+        */}
         {joinError && (
-          <p style={{ color: "var(--red)", fontSize: 13, fontWeight: 600, marginTop: 12, animation: "fadeUp 0.2s ease both" }}>
+          <p
+            id="galat-gabung"
+            role="alert"
+            style={{
+              color: "var(--red)",
+              fontSize: "var(--fs-sm)",
+              fontWeight: "var(--fw-medium)",
+              marginTop: "var(--sp-3)",
+            }}
+          >
             {joinError}
           </p>
         )}
 
-        <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 14, animation: "fadeUp 0.9s ease both" }}>
-          No account needed to join ·{" "}
-          <Link href="/auth/signup" style={{ color: "var(--p2)", fontWeight: 600, textDecoration: "underline" }}>
-            Host a quiz for free
+        <p className="zy-muted" style={{ marginTop: "var(--sp-4)" }}>
+          Murid tidak perlu punya akun untuk ikut.{" "}
+          <Link href="/auth/signup" style={{ color: "var(--p2)", fontWeight: "var(--fw-medium)" }}>
+            Buat akun pengajar
           </Link>
-        </div>
+        </p>
       </section>
 
-      {/* Game modes */}
-      <section style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 24px", position: "relative", zIndex: 2 }}>
-        <div style={{ fontSize: 11, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.15em", fontWeight: 700, textAlign: "center", marginBottom: 24 }}>
-          6 GAME MODES
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
-          {MODES.map((m, i) => (
-            <div
-              key={m.label}
-              className="zy-panel-interactive"
-              style={{
-                padding: 18,
-                textAlign: "center",
-                animation: `fadeUp 0.4s ease ${0.3 + i * 0.05}s both`,
-              }}
-            >
-              <div style={{ fontSize: 30, marginBottom: 10 }}>{m.icon}</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)" }}>{m.label}</div>
-              <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 4 }}>{m.desc}</div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/*
+        Angka nyata, bukan janji.
 
-      {/* Features */}
-      <section style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px", position: "relative", zIndex: 2 }}>
-        <h2 style={{ fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 800, letterSpacing: "-0.03em", maxWidth: 600, lineHeight: 1.1, color: "var(--t1)" }}>
-          Everything you need to{" "}
-          <span className="">run better quizzes</span>
-        </h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, marginTop: 40 }}>
-          {FEATURES.map((f) => (
-            <div key={f.title} className="zy-panel-interactive" style={{ padding: 24 }}>
-              <div
-                style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 11,
-                  background: "var(--bg2-raw)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "var(--p2)",
-                  marginBottom: 16,
-                }}
-              >
-                {f.icon}
-              </div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--t1)", marginBottom: 6 }}>{f.title}</div>
-              <div style={{ fontSize: 13, color: "var(--t3)", lineHeight: 1.6 }}>{f.desc}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA banner */}
+        Ketiganya diambil dari isi basis data yang sebenarnya. Baris
+        seperti "sub-second answer sync across hundreds of players"
+        yang dulu ada di sini tidak pernah diukur siapa pun.
+      */}
       <section
         style={{
-          maxWidth: 880,
-          margin: "0 auto 80px",
-          padding: "48px 32px",
-          borderRadius: 24,
-          background: "linear-gradient(135deg, var(--bg2-raw), var(--bg3-raw))",
-          border: "1px solid var(--border-a)",
-          textAlign: "center",
+          maxWidth: 720,
+          margin: "0 auto",
+          padding: "0 var(--sp-5) var(--sp-7)",
           position: "relative",
           zIndex: 2,
         }}
       >
-        <h3 style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 800, letterSpacing: "-0.025em", color: "var(--t1)" }}>
-          Ready to host your first quiz?
-        </h3>
-        <p style={{ color: "var(--t3)", marginTop: 14, fontSize: 15, maxWidth: 480, marginInline: "auto" }}>
-          Free forever for educators. No credit card required.
-        </p>
-        <Link
-          href="/auth/signup"
-          className="zy-btn zy-btn-primary"
-          style={{ display: "inline-flex", marginTop: 28, padding: "14px 26px", fontSize: 15, textDecoration: "none" }}
+        <div
+          className="zy-panel"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+            padding: "var(--sp-5)",
+            gap: "var(--sp-4)",
+            textAlign: "center",
+          }}
         >
-          Create free account <ArrowRight size={16} />
-        </Link>
+          {[
+            { angka: "520", label: "soal siap pakai" },
+            { angka: "20", label: "kuis dari 16 mata pelajaran" },
+            { angka: "6", label: "ragam permainan" },
+          ].map((s) => (
+            <div key={s.label}>
+              <div
+                className="zy-num"
+                style={{
+                  fontSize: "var(--fs-2xl)",
+                  fontWeight: "var(--fw-bold)",
+                  color: "var(--t1)",
+                  lineHeight: 1,
+                }}
+              >
+                {s.angka}
+              </div>
+              <div className="zy-label" style={{ marginTop: "var(--sp-2)" }}>
+                {s.label}
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
-      {/* Footer */}
-      <footer
+      <section
         style={{
-          padding: "30px 24px",
-          borderTop: "1px solid var(--border-raw)",
-          textAlign: "center",
-          color: "var(--t3)",
-          fontSize: 12,
+          maxWidth: 1120,
+          margin: "0 auto",
+          padding: "0 var(--sp-5) var(--sp-8)",
           position: "relative",
           zIndex: 2,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 10,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <LogoMark />
-          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--t2)" }}>zynqio</span>
+        <h2 className="zy-h2" style={{ marginBottom: "var(--sp-5)" }}>
+          Enam cara membawakannya
+        </h2>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: "var(--sp-3)",
+          }}
+        >
+          {RAGAM.map((m) => (
+            <div key={m.label} className="zy-panel" style={{ padding: "var(--sp-5)" }}>
+              <h3 className="zy-h3" style={{ fontSize: "var(--fs-base)" }}>
+                {m.label}
+              </h3>
+              <p className="zy-muted" style={{ marginTop: "var(--sp-2)" }}>
+                {m.desc}
+              </p>
+            </div>
+          ))}
         </div>
-        <div>© 2026 Zynqio · Think Fast. Play Smart. Quiz Harder.</div>
-        <div style={{ display: "flex", gap: 16 }}>
-          <Link href="/explore" style={{ color: "var(--t3)", textDecoration: "none" }}>Explore</Link>
-          <Link href="/auth/signin" style={{ color: "var(--t3)", textDecoration: "none" }}>Sign in</Link>
-          <Link href="/auth/signup" style={{ color: "var(--t3)", textDecoration: "none" }}>Sign up</Link>
+      </section>
+
+      <footer
+        style={{
+          borderTop: "1px solid var(--border-raw)",
+          padding: "var(--sp-6) var(--sp-5)",
+          position: "relative",
+          zIndex: 2,
+        }}
+      >
+        <div
+          className="zy-row-between"
+          style={{ maxWidth: 1120, margin: "0 auto", flexWrap: "wrap", gap: "var(--sp-4)" }}
+        >
+          <span className="zy-row" style={{ gap: "var(--sp-2)" }}>
+            <Logo size={22} />
+            <span className="zy-label">ZYNQIO</span>
+          </span>
+          <span className="zy-row" style={{ gap: "var(--sp-5)" }}>
+            <Link href="/explore" className="zy-label">
+              Jelajahi kuis
+            </Link>
+            <Link href="/auth/signin" className="zy-label">
+              Masuk
+            </Link>
+          </span>
         </div>
       </footer>
     </div>
