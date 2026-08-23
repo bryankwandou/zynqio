@@ -333,7 +333,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                 variant="outline"
                 className="flex-1 border-white/20 text-white/60"
               >
-                Cancel
+                Tahan dulu
               </Button>
               <Button
                 onClick={() => { setShowEndConfirm(false); handleEndGame(); }}
@@ -381,7 +381,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
               </div>
               {advanceCountdown !== null && (
                 <div className="text-[10px] px-2 py-0.5 bg-amber-500/20 rounded-full text-amber-400 font-black uppercase tracking-widest animate-pulse">
-                  Next in {advanceCountdown}s…
+                  Lanjut dalam {advanceCountdown} detik…
                 </div>
               )}
             </>
@@ -421,7 +421,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
               onClick={handleNextQuestion}
               className="bg-blue-600 hover:bg-blue-500 font-bold text-sm"
             >
-              Next <SkipForward size={15} className="ml-1" />
+              Lanjut <SkipForward size={15} className="ml-1" aria-hidden="true" />
             </Button>
           )}
           {/* Music player */}

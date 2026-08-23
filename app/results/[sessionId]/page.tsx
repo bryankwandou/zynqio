@@ -295,7 +295,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
             <div className="bg-card border border-border p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl mx-4">
               <div className="text-4xl mb-3">🌟</div>
               <h2 className="text-xl font-black mb-1">Beri nilai kuis ini</h2>
-              <p className="text-muted-foreground text-sm mb-5">Help the host improve!</p>
+              <p className="text-muted-foreground text-sm mb-5">Masukan Anda membantu pengajar menyusun kuis berikutnya</p>
               <div className="flex justify-center gap-2 mb-5">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
@@ -311,7 +311,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
               </div>
               <textarea
                 className="w-full bg-background border border-border rounded-xl p-3 text-sm text-foreground mb-4 outline-none resize-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Leave a short review (optional)"
+                placeholder="Tulis komentar singkat (boleh dikosongkan)"
                 rows={2}
                 maxLength={120}
                 value={reviewText}
@@ -328,7 +328,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
           <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm">
             <div className="bg-card border border-border p-8 rounded-3xl text-center">
               <div className="text-5xl mb-3">🙏</div>
-              <h2 className="text-xl font-black">Thanks for rating!</h2>
+              <h2 className="text-xl font-black">Terima kasih atas penilaiannya</h2>
             </div>
           </div>
         )}
@@ -437,7 +437,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
 
             <div className="bg-card border border-border rounded-2xl p-6 shadow-lg">
               <h3 className="font-black mb-5 flex items-center gap-2">
-                <BarChart2 size={16} className="text-primary" /> Question Difficulty
+                <BarChart2 size={16} className="text-primary" aria-hidden="true" /> Tingkat kesulitan tiap soal
               </h3>
               <div className="space-y-4">
                 {results.questions?.map((q: any, i: number) => (
@@ -462,7 +462,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
             {/* Per-player grid */}
             <div className="bg-card border border-border rounded-2xl p-6 shadow-lg overflow-x-auto">
               <h3 className="font-black mb-5 flex items-center gap-2">
-                <Trophy size={16} className="text-yellow-500" /> Player Breakdown
+                <Trophy size={16} className="text-yellow-500" aria-hidden="true" /> Rincian per peserta
               </h3>
               <table className="w-full text-sm min-w-[500px]">
                 <thead>

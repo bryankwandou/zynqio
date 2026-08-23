@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import Link from "next/link";
@@ -116,7 +116,14 @@ function Ringkasan({ label, value }: { label: string; value: string | number }) 
 export default function HistoryPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [tab, setTab] = useState<"sesi" | "kuis">("sesi");
+  const paramCari = useSearchParams();
+
+  // Tab awal diambil dari alamat, supaya "Riwayat" dan "Laporan"
+  // di menu samping membuka bagian yang berbeda. Nilai yang tidak
+  // dikenali jatuh ke "sesi" — alamat yang diketik tangan tidak
+  // boleh membuat halamannya kosong.
+  const tabAwal = paramCari.get("tab") === "kuis" ? "kuis" : "sesi";
+  const [tab, setTab] = useState<"sesi" | "kuis">(tabAwal);
   const [sesi, setSesi] = useState<Sesi[]>([]);
   const [kuis, setKuis] = useState<Kuis[]>([]);
   const [rekomendasi, setRekomendasi] = useState<Rekomendasi[]>([]);

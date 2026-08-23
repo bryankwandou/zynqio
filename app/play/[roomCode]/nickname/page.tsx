@@ -2,7 +2,7 @@
 
 import { useState, use, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { Loader2, ArrowRight } from "lucide-react";
 import { AVATARS, getAvatar } from "@/lib/avatars";
 import { saveSession, readSession, clearSession, verifySession } from "@/lib/player-session";
 
@@ -98,109 +98,171 @@ export default function NicknamePage({ params }: { params: Promise<{ roomCode: s
 
   if (redirecting) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0f0f1a]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-white/60 font-medium">Reconnecting to room...</p>
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg-raw)" }}>
+        <div className="zy-stack" style={{ alignItems: "center", gap: "var(--sp-4)" }}>
+          <Loader2 size={30} className="animate-spin" style={{ color: "var(--p)" }} aria-hidden="true" />
+          <p className="zy-muted" role="status">Menyambungkan kembali ke ruangan…</p>
         </div>
       </div>
     );
   }
 
+  const avatarTerpilih = getAvatar(selectedAvatar);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0f0f1a] p-4">
-      <div className="w-full max-w-lg">
-        {/* Room code badge */}
-        <div className="text-center mb-6">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 text-sm font-bold tracking-widest uppercase">
-            Room: {roomCode}
-          </span>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        padding: "var(--sp-5)",
+        background: "var(--bg-raw)",
+      }}
+    >
+      <div className="zy-berurut" style={{ width: "100%", maxWidth: 520 }}>
+        {/*
+          Kode ruangan diletakkan paling atas dan dibiarkan besar.
+          Murid membacanya dari layar di depan kelas lalu mencocokkannya
+          dengan yang di tangannya; kalau kodenya kecil, pencocokan itu
+          jadi pekerjaan tersendiri di tengah kelas yang ramai.
+        */}
+        <div style={{ textAlign: "center", marginBottom: "var(--sp-5)" }}>
+          <div className="zy-label">Kode ruangan</div>
+          <div
+            className="zy-num"
+            style={{
+              fontSize: "var(--fs-2xl)",
+              fontWeight: "var(--fw-bold)",
+              letterSpacing: "0.18em",
+              color: "var(--t1)",
+              marginTop: "var(--sp-1)",
+            }}
+          >
+            {roomCode}
+          </div>
         </div>
 
-        <div className="bg-[#16162a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-center">
-            <h1 className="text-2xl font-black text-white">Pilih avatar Anda</h1>
-            <p className="text-blue-200 text-sm mt-1">Pick a character and enter your name</p>
+        <div className="zy-panel" style={{ padding: "var(--sp-6)" }}>
+          <h1 className="zy-h2" style={{ textAlign: "center" }}>
+            Pilih avatar dan tulis nama
+          </h1>
+          <p className="zy-muted" style={{ textAlign: "center", marginTop: "var(--sp-2)" }}>
+            Nama ini yang muncul di papan peringkat
+          </p>
+
+          {/*
+            Pemilihan avatar adalah kelompok radio, bukan sekumpulan
+            tombol lepas. Sebelumnya tiap avatar berupa <button> tanpa
+            keterangan apa pun, sehingga pembaca layar hanya mengumumkan
+            "tombol" sepuluh kali berturut-turut tanpa memberi tahu
+            avatar mana yang sedang terpilih.
+          */}
+          <div
+            role="radiogroup"
+            aria-label="Pilihan avatar"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(5, 1fr)",
+              gap: "var(--sp-2)",
+              marginTop: "var(--sp-5)",
+            }}
+          >
+            {AVATARS.map((avatar) => {
+              const terpilih = selectedAvatar === avatar.id;
+              return (
+                <button
+                  key={avatar.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={terpilih}
+                  aria-label={avatar.id}
+                  onClick={() => setSelectedAvatar(avatar.id)}
+                  className="zy-motion"
+                  style={{
+                    display: "grid",
+                    placeItems: "center",
+                    aspectRatio: "1",
+                    borderRadius: "var(--r-md)",
+                    fontSize: "var(--fs-xl)",
+                    background: terpilih ? "var(--p-soft)" : "var(--bg2-raw)",
+                    // Terpilih ditandai tepi tebal DAN latar berbeda,
+                    // bukan warna saja. Sekitar satu dari dua belas
+                    // murid laki-laki sulit membedakan warna, dan
+                    // pilihan yang hanya ditandai warna tidak terbaca
+                    // oleh mereka.
+                    border: terpilih
+                      ? "2px solid var(--p)"
+                      : "2px solid transparent",
+                    cursor: "pointer",
+                  }}
+                >
+                  {avatar.emoji}
+                </button>
+              );
+            })}
           </div>
 
-          <div className="p-6 space-y-6">
-            {/* Avatar Grid */}
-            <div className="grid grid-cols-5 gap-2">
-              {AVATARS.map((avatar) => {
-                const isSelected = selectedAvatar === avatar.id;
-                return (
-                  <button
-                    key={avatar.id}
-                    type="button"
-                    onClick={() => setSelectedAvatar(avatar.id)}
-                    className={`relative flex flex-col items-center justify-center rounded-xl p-2 zy-motion duration-200 ${
-                      isSelected
-                        ? "ring-2 ring-white ring-offset-2 ring-offset-[#16162a] scale-110 shadow-lg"
-                        : "hover:scale-105 opacity-70 hover:opacity-100"
-                    }`}
-                  >
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${avatar.bg} flex items-center justify-center text-2xl shadow`}>
-                      {avatar.emoji}
-                    </div>
-                    {isSelected && (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-[#16162a]" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+          <form onSubmit={handleJoin} style={{ marginTop: "var(--sp-5)" }}>
+            <label htmlFor="nama" className="zy-label" style={{ display: "block", marginBottom: "var(--sp-2)" }}>
+              Nama panggilan
+            </label>
+            <input
+              id="nama"
+              ref={inputRef}
+              type="text"
+              placeholder={`Nama kamu, mis. ${avatarTerpilih.id}`}
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              maxLength={50}
+              required
+              autoComplete="off"
+              aria-describedby={errorMsg ? "galat-gabung" : undefined}
+              aria-invalid={errorMsg ? true : undefined}
+              className="zy-input"
+              style={{
+                width: "100%",
+                textAlign: "center",
+                fontSize: "var(--fs-lg)",
+                padding: "var(--sp-4)",
+              }}
+            />
 
-            {/* Selected avatar display */}
-            <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
-              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getAvatar(selectedAvatar).bg} flex items-center justify-center text-xl`}>
-                {getAvatar(selectedAvatar).emoji}
-              </div>
-              <span className="text-sm text-white/50">
-                Selected: <span className="font-bold text-white capitalize">{selectedAvatar}</span>
-              </span>
-            </div>
-
-            {/* Nickname input */}
-            <form onSubmit={handleJoin} className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-white/40 uppercase tracking-wider block mb-2">
-                  Your Nickname
-                </label>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  placeholder="Enter your nickname..."
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                  className="w-full text-center text-xl bg-white/5 border-2 border-white/10 text-white rounded-xl py-4 focus:border-blue-500 focus:bg-white/8 outline-none zy-motion placeholder:text-white/20"
-                  maxLength={50}
-                  required
-                />
-              </div>
-
-              {errorMsg && (
-                <div className="text-red-400 text-sm text-center font-medium bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-                  {errorMsg}
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                disabled={!nickname.trim() || isLoading}
-                className="w-full py-6 text-lg font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-xl disabled:opacity-40 zy-motion"
+            {errorMsg && (
+              <p
+                id="galat-gabung"
+                role="alert"
+                className="zy-naik"
+                style={{
+                  color: "var(--red)",
+                  fontSize: "var(--fs-sm)",
+                  fontWeight: "var(--fw-medium)",
+                  textAlign: "center",
+                  marginTop: "var(--sp-3)",
+                }}
               >
-                {isLoading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    Joining...
-                  </span>
-                ) : (
-                  "Enter Game →"
-                )}
-              </Button>
-            </form>
-          </div>
+                {errorMsg}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={!nickname.trim() || isLoading}
+              className="zy-btn zy-btn-primary zy-btn-lg"
+              style={{ width: "100%", marginTop: "var(--sp-5)", justifyContent: "center" }}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+                  Menggabungkan…
+                </>
+              ) : (
+                <>
+                  Masuk ke permainan
+                  <ArrowRight size={16} aria-hidden="true" />
+                </>
+              )}
+            </button>
+          </form>
         </div>
       </div>
     </div>

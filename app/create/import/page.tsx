@@ -482,7 +482,7 @@ export default function ImportQuiz() {
               </div>
               <div className="flex gap-3">
                 <Button variant="ghost" className="text-muted-foreground" onClick={() => { setPreview([]); setErrors([]); }}>
-                  Cancel
+                  Batal
                 </Button>
                 <Button className="bg-green-600 hover:bg-green-700 text-white font-black py-5 px-8 rounded-2xl shadow-lg" onClick={importToBuilder}>
                   Import to Builder
