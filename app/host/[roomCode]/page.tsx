@@ -166,7 +166,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
             onClick={() => setShowLaunchModal(true)}
             className="bg-green-500 hover:bg-green-400 text-black font-black px-6 rounded-xl shadow-lg shadow-green-900/30"
           >
-            <Rocket size={16} className="mr-2" /> Start Game
+            <Rocket size={16} className="mr-2" aria-hidden="true" /> Mulai permainan
           </Button>
         </div>
       </header>
@@ -196,13 +196,13 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                 onClick={() => copyText(joinUrl, "Link copied!")}
                 className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold bg-primary hover:bg-primary/90 rounded-xl zy-motion"
               >
-                <Copy size={12} /> Copy Link
+                <Copy size={12} aria-hidden="true" /> Salin tautan
               </button>
               <button
                 onClick={() => copyText(roomCode, "Code copied!")}
                 className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold bg-white/10 hover:bg-white/15 rounded-xl border border-white/10 zy-motion"
               >
-                <Copy size={12} /> Copy Code
+                <Copy size={12} aria-hidden="true" /> Salin kode
               </button>
             </div>
             {copySuccess && <div className="mt-2 text-xs text-green-400 font-bold">{copySuccess}</div>}
@@ -295,7 +295,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
             <div className="p-6 border-b border-white/10 flex justify-between items-center sticky top-0 bg-[#16162a] z-10">
               <div>
                 <h2 className="text-xl font-black flex items-center gap-2">
-                  <Rocket className="text-green-400" size={20} /> Launch Settings
+                  <Rocket className="text-green-400" size={20} aria-hidden="true" /> Pengaturan sebelum mulai
                 </h2>
                 <p className="text-white/40 text-sm mt-0.5">{players.length} peserta siap</p>
               </div>
@@ -351,7 +351,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
               {/* Timer */}
               <div>
                 <label className="text-xs font-black text-white/40 uppercase tracking-widest block mb-3">
-                  <Clock size={12} className="inline mr-1" /> Timer per Question
+                  <Clock size={12} className="inline mr-1" aria-hidden="true" /> Waktu tiap soal
                 </label>
                 <div className="flex gap-2 flex-wrap">
                   {TIMERS.map((t) => (

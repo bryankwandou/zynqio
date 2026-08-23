@@ -615,7 +615,7 @@ export default function CreateQuiz() {
               className="bg-primary hover:bg-primary text-white font-bold py-6 px-8 rounded-xl shadow-lg hover:shadow-primary/20 zy-motion md:scale-105"
             >
               <Plus size={20} className="mr-2" />
-              Add Question
+              Tambah soal
             </Button>
           </div>
         </div>
@@ -838,7 +838,7 @@ export default function CreateQuiz() {
           {questions.length === 0 && (
             <div className="text-center py-20 text-muted-foreground">
               <p className="mb-2">Your quiz is empty.</p>
-              <p>Select a question type above and click Add Question.</p>
+              <p>Pilih jenis soal di atas, lalu tekan Tambah soal.</p>
             </div>
           )}
         </div>
@@ -965,7 +965,7 @@ export default function CreateQuiz() {
             <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
               <Button variant="outline" className="border-border dark:border-white/20 dark:text-white/70" onClick={() => setShowSettings(false)}>Batal</Button>
               <Button className="bg-primary hover:bg-primary text-white font-bold px-6" onClick={() => setShowSettings(false)}>
-                Apply Settings
+                Terapkan pengaturan
               </Button>
             </div>
           </div>

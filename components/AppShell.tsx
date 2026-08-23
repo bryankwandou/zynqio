@@ -33,7 +33,7 @@ const NAV_ITEMS = [
   { href: "/create",    icon: Plus,            label: "Susun kuis" },
   { href: "/explore",   icon: Compass,         label: "Jelajahi" },
   { href: "/history",   icon: Clock,           label: "Riwayat" },
-  { href: "/analytics", icon: BarChart2,       label: "Laporan" },
+  { href: "/analytics", icon: BarChart2,       label: "Kuis tersusun" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

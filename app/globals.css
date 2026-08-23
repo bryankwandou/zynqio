@@ -78,6 +78,7 @@
 
   /* Extended palette */
   --p: #5e50dc;
+  --p-soft: #ebe8fd;   /* latar keadaan terpilih, mode terang */
   --p2: #8b75e8;
   --acc: #0891b2;
   --gold: #d97706;
@@ -142,6 +143,7 @@
 
   /* Extended palette */
   --p: #7c6ffd;
+  --p-soft: #241f4d;   /* latar keadaan terpilih, mode gelap  */
   --p2: #a78bfa;
   --acc: #22d3ee;
   --gold: #fbbf24;

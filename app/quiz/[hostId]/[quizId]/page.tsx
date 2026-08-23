@@ -167,7 +167,7 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
                 </div>
               </div>
               <Button variant="outline" className="w-full rounded-xl py-5 group border-border dark:border-white/20 dark:text-white/80 dark:bg-white/5 hover:bg-accent dark:hover:bg-white/10">
-                <Copy size={18} className="mr-2" /> Copy to My Library
+                <Copy size={18} className="mr-2" aria-hidden="true" /> Salin ke kuis saya
               </Button>
             </div>
           </div>

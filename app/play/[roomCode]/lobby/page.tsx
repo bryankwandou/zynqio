@@ -133,124 +133,232 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
 
   if (isKicked) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <div className="text-6xl">😔</div>
-          <h2 className="text-2xl font-bold text-foreground">You were removed</h2>
-          <p className="text-muted-foreground">The host removed you from this room.</p>
-          <p className="text-sm text-muted-foreground">Redirecting to home...</p>
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: "var(--sp-5)", background: "var(--bg-raw)" }}>
+        <div className="zy-stack" style={{ alignItems: "center", textAlign: "center", gap: "var(--sp-3)", maxWidth: 380 }}>
+          <h2 className="zy-h2">Anda dikeluarkan dari ruangan</h2>
+          <p className="zy-muted">
+            Pengajar mengeluarkan Anda dari ruangan ini. Bila ini keliru, mintalah kode ruangannya lagi.
+          </p>
+          <p className="zy-label" role="status">Kembali ke halaman depan…</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground overflow-hidden">
-      {/* Background gradient */}
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-500/10 via-background to-background pointer-events-none" />
+  const namaPendek = nickname.length > 20 ? nickname.slice(0, 20) + "…" : nickname;
 
-      {/* Connection error banner */}
+  return (
+    <div style={{ minHeight: "100vh", background: "var(--bg-raw)", position: "relative" }}>
+      {/*
+        Putusnya sambungan diumumkan pembaca layar tanpa menunggu fokus
+        berpindah. Di ruang kelas, murid yang sambungannya putus perlu
+        tahu segera — kalau tidak, ia mengira permainannya belum mulai
+        padahal soalnya sudah berjalan.
+      */}
       {connectionError && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white text-center text-sm font-bold py-2">
-          Connection lost — retrying...
+        <div
+          role="alert"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 50,
+            background: "var(--red)",
+            color: "#ffffff",
+            textAlign: "center",
+            fontSize: "var(--fs-sm)",
+            fontWeight: "var(--fw-medium)",
+            padding: "var(--sp-2)",
+          }}
+        >
+          Sambungan terputus — sedang mencoba lagi…
         </div>
       )}
 
-
-<div className="relative z-10 flex flex-col items-center flex-1 p-4 pt-8">
-        {/* Room code pill */}
-        <div className="inline-block px-5 py-2 rounded-full bg-card border border-border text-sm font-bold mb-8 text-muted-foreground">
-          Room: <span className="text-foreground tracking-widest ml-1">{roomCode}</span>
+      <div
+        className="zy-berurut"
+        style={{
+          maxWidth: 680,
+          margin: "0 auto",
+          padding: "var(--sp-7) var(--sp-5)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
+          <div className="zy-label">Kode ruangan</div>
+          <div
+            className="zy-num"
+            style={{
+              fontSize: "var(--fs-xl)",
+              fontWeight: "var(--fw-bold)",
+              letterSpacing: "0.18em",
+              color: "var(--t1)",
+              marginTop: "var(--sp-1)",
+            }}
+          >
+            {roomCode}
+          </div>
         </div>
 
-        {/* Player identity */}
-        <div className="flex flex-col items-center mb-8">
-          <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${avatarInfo.bg} flex items-center justify-center text-4xl shadow-2xl mb-3 ring-4 ring-white/20`}>
+        <div
+          className="zy-stack"
+          style={{ alignItems: "center", gap: "var(--sp-3)", marginTop: "var(--sp-6)" }}
+        >
+          <div
+            className={`bg-gradient-to-br ${avatarInfo.bg}`}
+            aria-hidden="true"
+            style={{
+              width: 76,
+              height: 76,
+              borderRadius: "var(--r-lg)",
+              display: "grid",
+              placeItems: "center",
+              fontSize: "2.25rem",
+            }}
+          >
             {avatarInfo.emoji}
           </div>
-          <h1 className="text-3xl font-black text-foreground">
-            You&apos;re in,{" "}
-            <span className="text-blue-400">
-              {nickname.slice(0, 20)}{nickname.length > 20 ? "..." : ""}
-            </span>
-            !
+
+          <h1 className="zy-h1" style={{ textAlign: "center", fontSize: "var(--fs-2xl)" }}>
+            Kamu sudah masuk, {namaPendek}
           </h1>
+
           {quizTitle && (
-            <p className="text-muted-foreground mt-2 text-sm">
-              Quiz: <span className="font-semibold text-foreground">{quizTitle}</span>
+            <p className="zy-muted" style={{ textAlign: "center" }}>
+              Kuis: <span style={{ color: "var(--t1)", fontWeight: "var(--fw-medium)" }}>{quizTitle}</span>
             </p>
           )}
         </div>
 
-        {/* Team badge */}
+        {/*
+          Regu ditandai warna sekaligus namanya dieja. Versi sebelumnya
+          hanya membedakan merah dan biru lewat warna, dan itu justru
+          pasangan warna yang paling sering tertukar bagi murid dengan
+          buta warna merah-hijau.
+        */}
         {gameMode === "team" && team && (
-          <div className={`mb-6 px-8 py-4 rounded-2xl border-2 ${
-            team === "Red Team"
-              ? "bg-red-500/20 border-red-500 text-red-400"
-              : "bg-blue-500/20 border-blue-500 text-blue-400"
-          }`}>
-            <span className="text-xs font-black uppercase tracking-widest block mb-1">Your Team</span>
-            <span className="text-2xl font-black">{team}</span>
+          <div
+            className="zy-panel"
+            style={{
+              marginTop: "var(--sp-5)",
+              padding: "var(--sp-4) var(--sp-6)",
+              textAlign: "center",
+              borderColor: team === "Red Team" ? "var(--red)" : "var(--p)",
+              borderWidth: 2,
+            }}
+          >
+            <div className="zy-label">Regu Anda</div>
+            <div
+              style={{
+                fontSize: "var(--fs-xl)",
+                fontWeight: "var(--fw-bold)",
+                color: team === "Red Team" ? "var(--red)" : "var(--p2)",
+                marginTop: "var(--sp-1)",
+              }}
+            >
+              {team === "Red Team" ? "Regu Merah" : "Regu Biru"}
+            </div>
           </div>
         )}
 
-        {/* Players grid */}
-        <div className="w-full max-w-2xl bg-card border border-border rounded-2xl overflow-hidden shadow-xl mb-8">
-          <div className="px-5 py-3 border-b border-border flex items-center justify-between bg-accent/30">
-            <span className="font-bold text-sm text-foreground">Players in lobby</span>
-            <span className="bg-blue-600 text-white text-xs font-black px-2.5 py-1 rounded-full">
+        <div className="zy-panel" style={{ width: "100%", marginTop: "var(--sp-6)", padding: 0, overflow: "hidden" }}>
+          <div
+            className="zy-row-between"
+            style={{
+              padding: "var(--sp-3) var(--sp-4)",
+              borderBottom: "1px solid var(--border-raw)",
+            }}
+          >
+            <span className="zy-label">Peserta di ruangan</span>
+            <span
+              className="zy-badge zy-num"
+              // Jumlahnya berubah saat orang lain masuk. aria-live
+              // membuat perubahannya diumumkan tanpa memindahkan fokus.
+              aria-live="polite"
+            >
               {players.length}
             </span>
           </div>
 
-          <div className="p-4">
+          <div style={{ padding: "var(--sp-4)" }}>
             {players.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground text-sm">
-                No players yet...
-              </div>
+              <p className="zy-muted" style={{ textAlign: "center", padding: "var(--sp-4) 0" }}>
+                Belum ada yang bergabung
+              </p>
             ) : (
-              <div className="flex flex-wrap gap-3">
-                {players.map((p) => {
-                  const av = getAvatar(p.avatarId);
-                  const isMe = p.name === nickname;
+              <ul
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "var(--sp-2)",
+                  listStyle: "none",
+                  margin: 0,
+                  padding: 0,
+                }}
+              >
+                {players.map((pemain) => {
+                  const av = getAvatar(pemain.avatarId);
+                  const sayaSendiri = pemain.name === nickname;
+                  const nama = pemain.name.length > 16 ? pemain.name.slice(0, 16) + "…" : pemain.name;
                   return (
-                    <div
-                      key={p.id}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border zy-motion ${
-                        isMe
-                          ? "border-blue-500 bg-blue-500/10 ring-1 ring-blue-500/30"
-                          : "border-border bg-accent/20"
-                      }`}
+                    <li
+                      key={pemain.id}
+                      className="zy-row zy-motion"
+                      style={{
+                        gap: "var(--sp-2)",
+                        padding: "var(--sp-2) var(--sp-3)",
+                        borderRadius: "var(--r-md)",
+                        background: sayaSendiri ? "var(--p-soft)" : "var(--bg2-raw)",
+                        border: sayaSendiri ? "1px solid var(--p)" : "1px solid var(--border-raw)",
+                      }}
                     >
-                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${av.bg} flex items-center justify-center text-base`}>
-                        {av.emoji}
-                      </div>
-                      <span className={`text-sm font-medium ${isMe ? "text-blue-400 font-bold" : "text-foreground"}`}>
-                        {p.name.slice(0, 16)}{p.name.length > 16 ? "..." : ""}
-                        {isMe && <span className="ml-1 text-[10px] text-blue-300">(you)</span>}
+                      <span aria-hidden="true" style={{ fontSize: "var(--fs-base)" }}>{av.emoji}</span>
+                      <span
+                        style={{
+                          fontSize: "var(--fs-sm)",
+                          fontWeight: sayaSendiri ? "var(--fw-medium)" : "var(--fw-normal)",
+                          color: "var(--t1)",
+                        }}
+                      >
+                        {nama}
+                        {sayaSendiri && <span className="zy-label" style={{ marginLeft: "var(--sp-1)" }}>(Anda)</span>}
                       </span>
-                    </div>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             )}
           </div>
         </div>
 
-        {/* Waiting animation */}
-        <div className="flex flex-col items-center">
-          <div className="flex gap-1.5 mb-4">
+        {/*
+          Tiga titik yang berdenyut. Fungsinya bukan hiasan: layar ini
+          bisa diam berpuluh detik sementara pengajar menunggu kelas
+          lengkap, dan tanpa sesuatu yang bergerak murid mengira
+          ponselnya membeku lalu memuat ulang halaman — yang berarti
+          keluar dari ruangan.
+        */}
+        <div className="zy-stack" style={{ alignItems: "center", marginTop: "var(--sp-6)", gap: "var(--sp-3)" }}>
+          <div className="zy-row" style={{ gap: "var(--sp-1)" }} aria-hidden="true">
             {[0, 1, 2].map((i) => (
-              <div
+              <span
                 key={i}
-                className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-bounce"
-                style={{ animationDelay: `${i * 0.15}s` }}
+                className="zy-denyut"
+                style={{
+                  width: 9,
+                  height: 9,
+                  borderRadius: "var(--r-full)",
+                  background: "var(--p)",
+                  display: "inline-block",
+                  animationDelay: `${i * 0.2}s`,
+                }}
               />
             ))}
           </div>
-          <p className="text-muted-foreground font-medium text-sm">
-            Host will start soon...
-          </p>
+          <p className="zy-muted" role="status">Menunggu pengajar memulai</p>
         </div>
       </div>
     </div>
