@@ -179,7 +179,7 @@ export default function ExplorePage() {
           {quizzes.map((quiz) => (
             <article
               key={quiz.id}
-              className="zy-panel-interactive"
+              className="zy-panel-interactive zy-angkat"
               style={{ padding: "var(--sp-5)", display: "flex", flexDirection: "column" }}
             >
               {/*

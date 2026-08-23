@@ -1,22 +1,31 @@
 /**
  * components/Logo.tsx — tanda ZYNQIO.
  *
- * Versi sebelumnya adalah huruf Z di atas gumpalan conic-gradient,
- * disalin apa adanya ke empat halaman. Bentuk itu tidak mengatakan
- * apa pun tentang produknya, dan gradien kerucut ungu ke sian adalah
- * hal pertama yang dihasilkan mesin ketika diminta membuat logo.
+ * Riwayat dua kali ganti, dan alasan keduanya perlu dicatat.
  *
- * Tanda ini diambil dari produknya sendiri: empat bentuk pilihan
- * jawaban — segitiga, wajik, lingkaran, persegi — yang dilihat setiap
- * murid di layar mereka pada setiap soal. Menyusunnya dalam satu bidang
- * membuat tandanya berarti sesuatu bagi orang yang pernah memakai
- * aplikasi ini, dan tetap terbaca sebagai bentuk utuh bagi yang belum.
+ * Versi pertama: huruf Z di atas gumpalan conic-gradient, disalin apa
+ * adanya ke empat halaman. Gradien kerucut ungu-ke-sian adalah hal
+ * pertama yang dihasilkan mesin ketika diminta membuat logo.
  *
- * Dibuat agar bertahan di ukuran kecil: tidak ada garis tipis, tidak
- * ada gradien, dan bentuknya tetap terbedakan pada 16 piksel di tab
- * peramban. Warnanya boleh diwarisi dari induk (currentColor) supaya
- * bisa dipakai satu warna di tempat yang menuntutnya — kop surat,
- * stempel, atau latar gelap.
+ * Versi kedua: empat bentuk jawaban (segitiga, wajik, lingkaran,
+ * persegi) tersebar di satu bidang. Gagasannya benar — tanda yang
+ * diambil dari produknya sendiri — tapi pelaksanaannya keliru dan
+ * kekeliruannya bisa dihitung. Lima unsur terpisah dalam bidang 48
+ * piksel membuat tiap bentuk hanya sekitar 9 piksel. Dipasang di bilah
+ * navigasi pada 30 piksel, tiap bentuk tinggal 5,6 piksel — di bawah
+ * ambang mata bisa membedakan segitiga dari wajik. Hasilnya terbaca
+ * sebagai gumpalan titik, bukan sebagai tanda.
+ *
+ * Versi ini bertolak dari batas itu: pada 16 piksel, mata hanya sanggup
+ * memisahkan tiga sampai empat bidang. Maka tandanya dibangun dari tiga
+ * bidang besar yang membentuk huruf Z — dua palang dan satu diagonal.
+ * Masing-masing selebar 8 dari 48, jadi tetap sekitar 2,7 piksel pada
+ * 16 piksel: tipis, tapi utuh sebagai bentuk, karena yang dibaca mata
+ * adalah siluet Z-nya, bukan tiap palang satu per satu.
+ *
+ * Warna jawaban tidak dibuang, hanya dipindah ke tempat yang muat:
+ * tombol pilihan di layar murid, tempat tiap bentuk mendapat ruang
+ * puluhan piksel dan memang bisa dibedakan.
  */
 
 interface LogoProps {
@@ -28,12 +37,6 @@ interface LogoProps {
 }
 
 export function Logo({ size = 40, mono = false, className }: LogoProps) {
-  // Warna yang sama dengan tombol jawaban, supaya tandanya dan
-  // permainannya terbaca sebagai satu hal.
-  const warna = mono
-    ? { a: 'currentColor', b: 'currentColor', c: 'currentColor', d: 'currentColor' }
-    : { a: '#dc2626', b: '#2563eb', c: '#d97706', d: '#059669' };
-
   return (
     <svg
       width={size}
@@ -45,25 +48,26 @@ export function Logo({ size = 40, mono = false, className }: LogoProps) {
       aria-label="ZYNQIO"
     >
       {/* Bidang dasar. Radius 12 dari 48 menjaga sudutnya tetap tegas
-          pada ukuran kecil — radius yang lebih besar membuatnya luruh
-          jadi lingkaran dan kehilangan ciri. */}
-      <rect width="48" height="48" rx="12" fill={mono ? 'none' : '#15131f'} />
+          pada ukuran kecil — radius lebih besar meluruhkannya jadi
+          lingkaran dan tandanya kehilangan ciri. */}
+      <rect
+        width="48"
+        height="48"
+        rx="12"
+        fill={mono ? 'none' : '#6d5efc'}
+        stroke={mono ? 'currentColor' : 'none'}
+        strokeWidth={mono ? 3 : 0}
+      />
 
-      {/* Segitiga, kiri atas. */}
-      <path d="M14 20 L9.5 27.5 L18.5 27.5 Z" fill={warna.a} opacity={mono ? 0.9 : 1} />
-
-      {/* Wajik, kanan atas. */}
-      <path d="M34 15.5 L38.5 20 L34 24.5 L29.5 20 Z" fill={warna.b} opacity={mono ? 0.7 : 1} />
-
-      {/* Lingkaran, kiri bawah. */}
-      <circle cx="14" cy="34" r="4.5" fill={warna.c} opacity={mono ? 0.5 : 1} />
-
-      {/* Persegi, kanan bawah. */}
-      <rect x="29.5" y="29.5" width="9" height="9" rx="1.5" fill={warna.d} opacity={mono ? 0.85 : 1} />
-
-      {/* Titik tengah. Satu-satunya unsur yang bukan bentuk jawaban —
-          menandai layar yang dilihat bersama, tempat keempatnya bertemu. */}
-      <circle cx="24" cy="27" r="2" fill={mono ? 'currentColor' : '#fafaf9'} opacity="0.9" />
+      {/* Huruf Z, tiga bidang. Palang atas dan bawah adalah persegi
+          panjang; diagonalnya jajaran genjang yang ujung-ujungnya
+          bertemu dengan kedua palang, sehingga ketiganya terbaca
+          sebagai satu goresan utuh dan bukan tiga potongan lepas. */}
+      <g fill={mono ? 'currentColor' : '#ffffff'}>
+        <rect x="12" y="12" width="24" height="8" rx="1.5" />
+        <path d="M36 12 L36 20 L12 36 L12 28 Z" />
+        <rect x="12" y="28" width="24" height="8" rx="1.5" />
+      </g>
     </svg>
   );
 }
