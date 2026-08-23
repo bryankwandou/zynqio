@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
+/* @import "shadcn/tailwind.css" dibuang: berkasnya tidak ada di
+   node_modules, jadi impor ini selalu gagal. Impor CSS yang gagal
+   membuat sisa berkasnya berisiko tidak ikut diproses. */
 @import "./design-system.css";
 
 @custom-variant dark (&:is(.dark *));

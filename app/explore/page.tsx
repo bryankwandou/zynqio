@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Search, Play, Star, User, FileQuestion } from "lucide-react";
 import Link from "next/link";
+import { SampulKuis } from "@/components/SampulKuis";
 
 /**
  * Kategori yang bisa disaring.
@@ -183,11 +184,13 @@ export default function ExplorePage() {
               style={{ padding: "var(--sp-5)", display: "flex", flexDirection: "column" }}
             >
               {/*
-                Gambar sampul emoji raksasa dihapus. Seratus dua puluh
-                piksel tinggi yang hanya berisi satu emoji mendorong
-                judul dan jumlah soal — dua hal yang benar-benar dipakai
-                orang untuk memilih — turun ke bawah lipatan layar.
+                Sampul emoji setinggi 120 piksel dulu ada di sini dan
+                dibuang karena mendorong judul turun ke bawah lipatan
+                layar. Penggantinya 64 piksel dan rupanya diturunkan
+                dari mata pelajaran, jadi kartunya punya ciri tanpa
+                mengusir isi yang dibaca orang saat memilih.
               */}
+              <SampulKuis kategori={quiz.category ?? null} judul={quiz.title} />
               <div className="zy-row-between" style={{ alignItems: "flex-start", marginBottom: "var(--sp-3)" }}>
                 <span className="zy-badge">{quiz.category ?? "Umum"}</span>
                 {quiz.rating ? (

@@ -4,8 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { Sun, Moon, ArrowRight, Loader2 } from "lucide-react";
+import { Sun, Moon, ArrowRight, Loader2, Compass } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { useBahasa, TombolBahasa } from "@/lib/bahasa";
 
 /**
  * Ragam permainan.
@@ -15,13 +16,13 @@ import { Logo } from "@/components/Logo";
  * skor dihitung; "peti berisi poin muncul di sela soal" memberi tahu.
  */
 const RAGAM = [
-  { label: "Klasik", desc: "Poin dari benar dan cepatnya menjawab" },
-  { label: "Adu cepat", desc: "Penjawab tercepat mengambil seluruh poin soal" },
-  { label: "Buru harta", desc: "Peti berisi poin muncul di sela soal" },
-  { label: "Sisa satu", desc: "Salah sekali, gugur dari babak" },
-  { label: "Beregu", desc: "Skor dijumlahkan per kelompok" },
-  { label: "Bertahan", desc: "Skor kembali nol setiap kali salah" },
-];
+  { nama: "klasik",    ket: "klasikKet" },
+  { nama: "aduCepat",  ket: "aduCepatKet" },
+  { nama: "buruHarta", ket: "buruHartaKet" },
+  { nama: "sisaSatu",  ket: "sisaSatuKet" },
+  { nama: "beregu",    ket: "bereguKet" },
+  { nama: "bertahan",  ket: "bertahanKet" },
+] as const;
 
 /**
  * Angka yang menghitung naik saat pertama terlihat.
@@ -85,6 +86,19 @@ export default function Home() {
   const [isJoining, setIsJoining] = useState(false);
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const { t } = useBahasa();
+
+  // Angka isi produk diambil dari basis data. Sebelumnya ketiganya
+  // ditulis mati (520 soal, 20 kuis) dan dua di antaranya sudah
+  // keliru — isinya 558 soal dan 26 kuis — serta akan makin keliru
+  // tiap kali seseorang menambah kuis.
+  const [angka, setAngka] = useState<{ soal: number; kuis: number; mapel: number; ragam: number } | null>(null);
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setAngka(d))
+      .catch(() => {});
+  }, []);
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,29 +111,29 @@ export default function Home() {
     try {
       const res = await fetch(`/api/room/state?roomCode=${code}`);
       if (res.status === 404) {
-        setJoinError("Ruangan tidak ditemukan. Periksa lagi kodenya.");
+        setJoinError(t("ruangTakAda"));
         setIsJoining(false);
         return;
       }
       if (!res.ok) {
-        setJoinError("Gagal memeriksa status ruangan. Coba lagi sebentar lagi.");
+        setJoinError(t("ruangGagalPeriksa"));
         setIsJoining(false);
         return;
       }
       const data = await res.json();
       if (data.status === "ended") {
-        setJoinError("Permainan di ruangan ini sudah selesai.");
+        setJoinError(t("ruangSelesai"));
         setIsJoining(false);
         return;
       }
       if (data.status === "playing") {
-        setJoinError("Permainan sudah dimulai, jadi ruangannya tertutup.");
+        setJoinError(t("ruangSudahMulai"));
         setIsJoining(false);
         return;
       }
       router.push(`/join/${code}`);
     } catch {
-      setJoinError("Sambungan bermasalah. Periksa jaringan Anda lalu coba lagi.");
+      setJoinError(t("sambunganBermasalah"));
       setIsJoining(false);
     }
   };
@@ -198,20 +212,25 @@ export default function Home() {
             </span>
           </span>
 
-          <span className="zy-row" style={{ gap: "var(--sp-2)" }}>
+          <span className="zy-row" style={{ gap: "var(--sp-1)" }}>
+            <Link href="/explore" className="zy-btn zy-btn-quiet" aria-label={t("jelajahiKuis")}>
+              <Compass size={16} aria-hidden="true" />
+              <span className="zy-sempit-sembunyi">{t("jelajahi")}</span>
+            </Link>
+            <TombolBahasa />
             <button
               className="zy-btn zy-btn-quiet"
               style={{ padding: "var(--sp-2)" }}
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              aria-label={theme === "dark" ? "Beralih ke tampilan terang" : "Beralih ke tampilan gelap"}
+              aria-label={theme === "dark" ? t("keTerang") : t("keGelap")}
             >
               {theme === "dark" ? <Sun size={16} aria-hidden="true" /> : <Moon size={16} aria-hidden="true" />}
             </button>
             <Link href="/auth/signin" className="zy-btn zy-btn-quiet">
-              Masuk
+              {t("masuk")}
             </Link>
             <Link href="/auth/signup" className="zy-btn zy-btn-primary">
-              Daftar
+              {t("daftar")}
             </Link>
           </span>
         </div>
@@ -263,7 +282,7 @@ export default function Home() {
                 display: "inline-block",
               }}
             />
-            520 soal siap dibawakan
+            {angka ? angka.soal + " " + t("soalSiap") : t("soalSiap")}
           </span>
         </div>
 
@@ -277,7 +296,7 @@ export default function Home() {
             textWrap: "balance",
           }}
         >
-          Kuis langsung untuk satu kelas penuh
+          {t("judulUtama")}
         </h1>
 
         <p
@@ -290,8 +309,7 @@ export default function Home() {
             lineHeight: "var(--lh-relaxed)",
           }}
         >
-          Tampilkan soal di proyektor, murid menjawab dari ponsel masing-masing, dan peringkatnya
-          bergerak seketika. Tidak perlu memasang apa pun.
+          {t("penjelasan")}
         </p>
 
         {/*
@@ -318,7 +336,7 @@ export default function Home() {
           }}
         >
           <label htmlFor="kode" className="sr-only">
-            Kode ruangan, enam karakter
+            {t("labelKode")}
           </label>
           <input
             id="kode"
@@ -327,7 +345,7 @@ export default function Home() {
               setRoomCode(e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase());
               setJoinError("");
             }}
-            placeholder="KODE"
+            placeholder={t("kodeRuangan")}
             maxLength={6}
             autoCapitalize="characters"
             autoComplete="off"
@@ -357,7 +375,7 @@ export default function Home() {
               <Loader2 size={16} className="animate-spin" aria-hidden="true" />
             ) : (
               <>
-                Gabung <ArrowRight size={16} aria-hidden="true" />
+                {t("gabung")} <ArrowRight size={16} aria-hidden="true" />
               </>
             )}
           </button>
@@ -385,13 +403,13 @@ export default function Home() {
         )}
 
         <p className="zy-muted" style={{ marginTop: "var(--sp-4)" }}>
-          Murid tidak perlu punya akun untuk ikut.{" "}
+          {t("tanpaAkun")}{" "}
           <Link
             href="/auth/signup"
             className="zy-garis"
             style={{ color: "var(--p2)", fontWeight: "var(--fw-medium)" }}
           >
-            Buat akun pengajar
+            {t("buatAkun")}
           </Link>
         </p>
       </section>
@@ -423,9 +441,9 @@ export default function Home() {
           }}
         >
           {[
-            { angka: 520, label: "soal siap pakai" },
-            { angka: 20, label: "kuis dari 16 mata pelajaran" },
-            { angka: 6, label: "ragam permainan" },
+            { angka: angka?.soal ?? 0, label: t("soalSiapPakai") },
+            { angka: angka?.kuis ?? 0, label: t("kuisMapel") },
+            { angka: angka?.ragam ?? 6, label: t("ragamPermainan") },
           ].map((s) => (
             <div key={s.label}>
               <div
@@ -457,7 +475,7 @@ export default function Home() {
         }}
       >
         <h2 className="zy-h2" style={{ marginBottom: "var(--sp-5)" }}>
-          Enam cara membawakannya
+          {t("enamCara")}
         </h2>
 
         <div
@@ -469,15 +487,15 @@ export default function Home() {
         >
           {RAGAM.map((m) => (
             <div
-              key={m.label}
+              key={m.nama}
               className="zy-panel zy-angkat"
               style={{ padding: "var(--sp-5)" }}
             >
               <h3 className="zy-h3" style={{ fontSize: "var(--fs-base)" }}>
-                {m.label}
+                {t(m.nama)}
               </h3>
               <p className="zy-muted" style={{ marginTop: "var(--sp-2)" }}>
-                {m.desc}
+                {t(m.ket)}
               </p>
             </div>
           ))}
@@ -502,10 +520,10 @@ export default function Home() {
           </span>
           <span className="zy-row" style={{ gap: "var(--sp-5)" }}>
             <Link href="/explore" className="zy-label zy-garis">
-              Jelajahi kuis
+              {t("jelajahiKuis")}
             </Link>
             <Link href="/auth/signin" className="zy-label zy-garis">
-              Masuk
+              {t("masuk")}
             </Link>
           </span>
         </div>

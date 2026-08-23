@@ -694,3 +694,74 @@
 .zy-garis:hover::after {
   transform: scaleX(1);
 }
+
+/* ── Label yang menyingkir di layar sempit ──────────────────────────
+   Tautan Jelajahi di bilah atas membawa ikon kompas dan tulisannya.
+   Di layar selebar 360 piksel, bilah itu harus memuat tanda, nama
+   produk, empat tombol, dan tombol Daftar; tulisannya disingkirkan
+   supaya ikonnya tetap ada dan tidak ada yang meluber.
+
+   Yang disembunyikan hanya tulisannya, bukan tautannya. Nama tautan
+   tetap diumumkan pembaca layar lewat aria-label pada elemen induk,
+   jadi tidak ada yang kehilangan maknanya — hanya piksel yang hemat. */
+.zy-sempit-sembunyi {
+  display: inline;
+}
+
+@media (max-width: 640px) {
+  .zy-sempit-sembunyi {
+    /* clip, bukan display:none, supaya tulisannya tetap ada di pohon
+       aksesibilitas bagi peramban yang membacanya dari sana. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* ── Kerangka aplikasi: bilah samping, bilah atas, isi ───────────────
+   Ditulis sebagai CSS biasa, bukan utilitas md: dari Tailwind.
+
+   Alasannya bukan selera. Versi sebelumnya memakai `hidden md:flex`
+   pada bilah samping dan `md:hidden` pada bilah atas, dan varian md:
+   ternyata tidak pernah ikut terbentuk di CSS yang dikirim ke peramban
+   — hanya `.hidden` dan `pt-20` yang ada. Akibatnya bilah atas ponsel
+   ikut tampil di layar lebar, menindih judul halaman.
+
+   Kegagalan seperti itu tidak menimbulkan galat apa pun: build lulus,
+   halaman tampil, hanya tata letaknya yang salah. Menaruh aturan yang
+   menopang seluruh kerangka di tempat yang bisa hilang tanpa suara
+   adalah taruhan yang tidak sepadan, jadi aturannya dipindah ke sini. */
+
+.zy-bilah-samping { display: none; }
+.zy-bilah-atas    { display: flex; }
+
+/* Ambang 768px sama dengan md milik Tailwind, supaya sisa halaman yang
+   masih memakai utilitasnya tetap berpindah pada titik yang sama. */
+@media (min-width: 768px) {
+  .zy-bilah-samping { display: flex; }
+  .zy-bilah-atas    { display: none; }
+}
+
+/* Isi halaman.
+
+   Padding atas di layar sempit harus melebihi tinggi bilah atas
+   (12px + 26px tanda + 12px = 50px), jadi 72px memberi jarak napas
+   sekaligus ruang aman bila tandanya berubah ukuran. Versi sebelumnya
+   menulis padding sebagai gaya sebaris sekaligus memasang kelas
+   pt-20 md:pt-7; gaya sebaris selalu mengalahkan kelas, jadi kelasnya
+   tidak pernah berpengaruh dan padding atas selamanya 28px. */
+.zy-isi-utama {
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  padding: 72px var(--sp-5) var(--sp-6);
+}
+
+@media (min-width: 768px) {
+  .zy-isi-utama {
+    padding: var(--sp-6) var(--sp-6);
+  }
+}
