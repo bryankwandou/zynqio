@@ -229,7 +229,7 @@ export default function HistoryPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px]" style={{ gap: "var(--sp-5)" }}>
         <div className="zy-stack">
           {tab === "sesi" && (
-            <div id="panel-sesi" role="tabpanel" aria-labelledby="tab-sesi" className="zy-stack">
+            <div id="panel-sesi" role="tabpanel" aria-labelledby="tab-sesi" className="zy-stack zy-berurut">
               <div
                 style={{
                   display: "grid",
@@ -316,7 +316,7 @@ export default function HistoryPage() {
           )}
 
           {tab === "kuis" && (
-            <div id="panel-kuis" role="tabpanel" aria-labelledby="tab-kuis" className="zy-stack">
+            <div id="panel-kuis" role="tabpanel" aria-labelledby="tab-kuis" className="zy-stack zy-berurut">
               <div
                 style={{
                   display: "grid",

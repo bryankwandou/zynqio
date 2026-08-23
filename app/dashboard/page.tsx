@@ -110,7 +110,7 @@ export default function Dashboard() {
 
   return (
     <AppShell>
-      <div className="zy-row-between" style={{ alignItems: "flex-end", marginBottom: "var(--sp-6)", flexWrap: "wrap" }}>
+      <div className="zy-row-between zy-naik" style={{ alignItems: "flex-end", marginBottom: "var(--sp-6)", flexWrap: "wrap" }}>
         <div>
           <h1 className="zy-h1">Kuis saya</h1>
           <p className="zy-muted" style={{ marginTop: "var(--sp-1)" }}>
@@ -201,7 +201,7 @@ export default function Dashboard() {
             return (
               <div
                 key={quiz.id}
-                className="zy-panel-interactive"
+                className="zy-panel-interactive zy-angkat"
                 style={{ padding: "var(--sp-5)", display: "flex", flexDirection: "column" }}
               >
                 <div className="zy-row-between" style={{ alignItems: "flex-start", marginBottom: "var(--sp-3)" }}>
