@@ -20,6 +20,7 @@ import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { Sun, Moon } from 'lucide-react';
 import { Logo } from './Logo';
+import { TombolBahasa } from "@/lib/bahasa";
 
 interface AuthShellProps {
   title: string;
@@ -47,14 +48,20 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
     >
       <div className="ambient" />
 
-      <button
-        className="zy-btn zy-btn-quiet"
-        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-        aria-label={theme === 'dark' ? 'Beralih ke tampilan terang' : 'Beralih ke tampilan gelap'}
-        style={{ position: 'fixed', top: 'var(--sp-5)', right: 'var(--sp-5)', zIndex: 100, padding: 'var(--sp-2)' }}
+      <div
+        className="zy-row"
+        style={{ position: 'fixed', top: 'var(--sp-5)', right: 'var(--sp-5)', zIndex: 100, gap: 'var(--sp-1)' }}
       >
-        {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-      </button>
+        <TombolBahasa />
+        <button
+          className="zy-btn zy-btn-quiet"
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          aria-label={theme === 'dark' ? 'Beralih ke tampilan terang' : 'Beralih ke tampilan gelap'}
+          style={{ padding: 'var(--sp-2)' }}
+        >
+          {theme === 'dark' ? <Sun size={16} aria-hidden="true" /> : <Moon size={16} aria-hidden="true" />}
+        </button>
+      </div>
 
       <div
         className="zy-panel zy-enter"

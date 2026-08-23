@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import { TombolBahasa } from "@/lib/bahasa";
 import { Logo } from "./Logo";
 
 /**
@@ -130,11 +131,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           className="zy-btn zy-btn-secondary"
-          style={{ flex: 1, padding: "8px", fontSize: 12, justifyContent: "center" }}
+          style={{ flex: 1, padding: "var(--sp-2)", fontSize: "var(--fs-xs)", justifyContent: "center" }}
         >
-          {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+          {theme === "dark" ? <Sun size={14} aria-hidden="true" /> : <Moon size={14} aria-hidden="true" />}
           {theme === "dark" ? "Terang" : "Gelap"}
         </button>
+        {/* Pengalih bahasa diletakkan bersebelahan dengan pengalih tema:
+            keduanya mengubah tampilan seluruh aplikasi, bukan halaman
+            yang sedang dibuka, jadi tempatnya sama-sama di kaki bilah
+            samping dan bukan di dalam isi halaman. */}
+        <TombolBahasa className="zy-btn zy-btn-secondary" />
         <button
           onClick={() => signOut({ callbackUrl: "/auth/signin" })}
           className="zy-btn zy-btn-danger"
@@ -150,13 +156,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ position: "relative", zIndex: 2, minHeight: "100vh", display: "flex" }}>
       {/* Desktop sidebar */}
-      <div className="hidden md:flex" style={{ position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
+      <div className="zy-bilah-samping" style={{ position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
         {Sidebar}
       </div>
 
       {/* Mobile top bar */}
       <div
-        className="md:hidden"
+        className="zy-bilah-atas"
         style={{
           position: "fixed",
           top: 0,
@@ -208,15 +214,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main content */}
-      <main
-        style={{
-          flex: 1,
-          padding: "28px 32px",
-          maxWidth: "100%",
-          overflow: "hidden",
-        }}
-        className="md:pt-7 pt-20"
-      >
+      {/* overflow:hidden dibuang. Ia memotong apa pun yang melebar —
+          tabel lebar dan menu yang mengembang ikut terpotong, dan
+          tidak ada cara menggulungnya karena hidden juga meniadakan
+          gulungan. Yang dibutuhkan hanya min-width:0 supaya anak
+          flex tidak memaksa induknya melebar, dan itu sudah ada di
+          .zy-isi-utama. */}
+      <main className="zy-isi-utama">
         {children}
       </main>
     </div>
