@@ -47,10 +47,16 @@ function AngkaNaik({ target, durasi = 1200 }: { target: number; durasi?: number 
 
     // Orang yang meminta gerak dikurangi langsung diberi angka akhirnya.
     const kurangiGerak = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
-    if (kurangiGerak || typeof IntersectionObserver === "undefined") {
+    if (kurangiGerak || typeof IntersectionObserver === "undefined" || target === 0) {
       setNilai(target);
       return;
     }
+
+    // Target berubah berarti data baru tiba, jadi hitungannya boleh
+    // berjalan lagi. Tanpa pelepasan ini, angka yang datang dari
+    // jaringan setelah komponen terpasang akan selamanya tertahan
+    // di nilai pertamanya.
+    sudahJalan.current = false;
 
     const mulai = () => {
       if (sudahJalan.current) return;
@@ -201,6 +207,7 @@ export default function Home() {
           <span className="zy-row" style={{ gap: "var(--sp-2)" }}>
             <Logo size={30} />
             <span
+              className="zy-sempit-sembunyi"
               style={{
                 fontSize: "var(--fs-lg)",
                 fontWeight: "var(--fw-bold)",
@@ -212,7 +219,7 @@ export default function Home() {
             </span>
           </span>
 
-          <span className="zy-row" style={{ gap: "var(--sp-1)" }}>
+          <span className="zy-row zy-bilah-beranda" style={{ gap: "var(--sp-1)" }}>
             <Link href="/explore" className="zy-btn zy-btn-quiet" aria-label={t("jelajahiKuis")}>
               <Compass size={16} aria-hidden="true" />
               <span className="zy-sempit-sembunyi">{t("jelajahi")}</span>

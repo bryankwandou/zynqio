@@ -169,14 +169,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           left: 0,
           right: 0,
           zIndex: 50,
-          padding: "12px 16px",
+          padding: "var(--sp-3) var(--sp-4)",
           background: "var(--nav-bg)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           borderBottom: "1px solid var(--border-raw)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
         }}
       >
         <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>

@@ -736,7 +736,12 @@
    adalah taruhan yang tidak sepadan, jadi aturannya dipindah ke sini. */
 
 .zy-bilah-samping { display: none; }
-.zy-bilah-atas    { display: flex; }
+
+.zy-bilah-atas {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 
 /* Ambang 768px sama dengan md milik Tailwind, supaya sisa halaman yang
    masih memakai utilitasnya tetap berpindah pada titik yang sama. */
@@ -763,5 +768,27 @@
 @media (min-width: 768px) {
   .zy-isi-utama {
     padding: var(--sp-6) var(--sp-6);
+  }
+}
+
+/* ── Bilah atas di layar sempit ──────────────────────────────────────
+   Pada 390 piksel, isi bilah atas beranda hampir tidak muat: tanda,
+   nama produk, tombol Jelajahi, bahasa, tema, lalu Masuk dan Daftar.
+   Tangkapan layar sungguhan menunjukkan Daftar terdorong keluar layar.
+
+   Nama produk sudah disingkirkan lewat .zy-sempit-sembunyi. Sisanya
+   diselesaikan dengan merapatkan jarak dan memangkas padding tombol —
+   bukan dengan menyembunyikan tombol lain, karena tiap tombol di sini
+   adalah satu-satunya jalan menuju tindakan yang diwakilinya. */
+@media (max-width: 640px) {
+  .zy-bilah-beranda {
+    gap: 2px;
+  }
+
+  .zy-bilah-beranda .zy-btn {
+    padding-inline: var(--sp-2);
+    /* Ambang sentuh 44 piksel tetap dijaga: yang dipangkas hanya
+       padding mendatar, tinggi tombolnya tidak ikut menyusut. */
+    min-height: 44px;
   }
 }
