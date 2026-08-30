@@ -20,7 +20,7 @@ import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { Sun, Moon } from 'lucide-react';
 import { Logo } from './Logo';
-import { TombolBahasa } from "@/lib/bahasa";
+import { TombolBahasa, useBahasa } from "@/lib/bahasa";
 
 interface AuthShellProps {
   title: string;
@@ -31,6 +31,7 @@ interface AuthShellProps {
 }
 
 export function AuthShell({ title, subtitle, children, footer }: AuthShellProps) {
+  const { t } = useBahasa();
   const { theme, setTheme } = useTheme();
 
   return (
@@ -56,7 +57,7 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
         <button
           className="zy-btn zy-btn-quiet"
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          aria-label={theme === 'dark' ? 'Beralih ke tampilan terang' : 'Beralih ke tampilan gelap'}
+          aria-label={theme === 'dark' ? t('keTerang') : t('keGelap')}
           style={{ padding: 'var(--sp-2)' }}
         >
           {theme === 'dark' ? <Sun size={16} aria-hidden="true" /> : <Moon size={16} aria-hidden="true" />}

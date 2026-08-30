@@ -16,16 +16,16 @@ export default function PlayError({
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8 text-center">
       <div className="text-6xl mb-6">🔌</div>
-      <h2 className="text-2xl font-bold text-foreground mb-2">Game connection error</h2>
+      <h2 className="text-2xl font-bold text-foreground mb-2">Sambungan ke permainan terputus</h2>
       <p className="text-muted-foreground mb-8 max-w-sm">
-        Lost connection to the game. Try reconnecting.
+        Ponsel Anda kehilangan sambungan ke ruangan. Skor yang sudah masuk tetap tersimpan.
       </p>
       <div className="flex gap-4">
         <button
           onClick={reset}
           className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold zy-motion"
         >
-          Reconnect
+          Sambungkan lagi
         </button>
         <a
           href="/"

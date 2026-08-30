@@ -21,7 +21,7 @@ const RAGAM = [
   { nama: "buruHarta", ket: "buruHartaKet" },
   { nama: "sisaSatu",  ket: "sisaSatuKet" },
   { nama: "beregu",    ket: "bereguKet" },
-  { nama: "bertahan",  ket: "bertahanKet" },
+  { nama: "gugur",     ket: "gugurKet" },
 ] as const;
 
 /**
@@ -289,7 +289,7 @@ export default function Home() {
                 display: "inline-block",
               }}
             />
-            {angka ? angka.soal + " " + t("soalSiap") : t("soalSiap")}
+            {angka ? angka.soal + " " + t("soalSiap") : t("soalSiapKosong")}
           </span>
         </div>
 
@@ -448,8 +448,11 @@ export default function Home() {
           }}
         >
           {[
-            { angka: angka?.soal ?? 0, label: t("soalSiapPakai") },
-            { angka: angka?.kuis ?? 0, label: t("kuisMapel") },
+            { angka: angka?.soal ?? null, label: t("soalSiapPakai") },
+            {
+              angka: angka?.kuis ?? null,
+              label: t("kuisMapel").replace("{n}", angka ? String(angka.mapel) : "—"),
+            },
             { angka: angka?.ragam ?? 6, label: t("ragamPermainan") },
           ].map((s) => (
             <div key={s.label}>
@@ -462,7 +465,11 @@ export default function Home() {
                   lineHeight: 1,
                 }}
               >
-                <AngkaNaik target={s.angka} />
+                {s.angka === null ? (
+                  <span aria-hidden="true" style={{ color: "var(--t3)" }}>—</span>
+                ) : (
+                  <AngkaNaik target={s.angka} />
+                )}
               </div>
               <div className="zy-label" style={{ marginTop: "var(--sp-2)" }}>
                 {s.label}

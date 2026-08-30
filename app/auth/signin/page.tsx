@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { AuthShell, AuthNotice } from "@/components/AuthShell";
+import { useBahasa } from "@/lib/bahasa";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ function GoogleIcon() {
 }
 
 function SignInForm() {
+  const { t } = useBahasa();
   const searchParams = useSearchParams();
   const urlError = searchParams.get("error");
   const registered = searchParams.get("registered");
@@ -54,9 +56,9 @@ function SignInForm() {
   const errorMsg =
     localError ||
     (urlError === "CredentialsSignin"
-      ? "Email atau kata sandi tidak cocok."
+      ? t("galatKredensial")
       : urlError
-        ? "Proses masuk gagal. Coba lagi sebentar lagi."
+        ? t("galatMasuk")
         : "");
 
   const handleEmailLogin = async (e: React.FormEvent) => {
@@ -67,8 +69,8 @@ function SignInForm() {
     if (result?.error) {
       setLocalError(
         result.error === "CredentialsSignin"
-          ? "Email atau kata sandi tidak cocok."
-          : "Proses masuk gagal. Coba lagi sebentar lagi."
+          ? t("galatKredensial")
+          : t("galatMasuk")
       );
       setIsLoading(false);
     } else {
@@ -78,18 +80,18 @@ function SignInForm() {
 
   return (
     <AuthShell
-      title="Masuk"
-      subtitle="Lanjutkan ke ruang kerja Anda"
+      title={t("masuk")}
+      subtitle={t("masukSub")}
       footer={
         <>
-          Belum punya akun?{" "}
+          {t("belumPunyaAkun")}{" "}
           <Link href="/auth/signup" style={{ color: "var(--p2)", fontWeight: "var(--fw-medium)" }}>
-            Buat sekarang
+            {t("buatSekarang")}
           </Link>
         </>
       }
     >
-      {registered && <AuthNotice kind="success">Akun Anda sudah dibuat. Silakan masuk.</AuthNotice>}
+      {registered && <AuthNotice kind="success">{t("akunSudahDibuat")}</AuthNotice>}
       {errorMsg && <AuthNotice kind="error">{errorMsg}</AuthNotice>}
 
       {/*
@@ -112,9 +114,9 @@ function SignInForm() {
         className="zy-btn zy-btn-secondary"
         style={{ width: "100%" }}
       >
-        <GoogleIcon /> Masuk dengan Google
+        <GoogleIcon /> {t("masukGoogle")}
         <span className="zy-badge" style={{ marginLeft: "var(--sp-1)" }}>
-          Segera
+          {t("segera")}
         </span>
       </button>
 
@@ -130,7 +132,7 @@ function SignInForm() {
         }}
       >
         <span style={{ flex: 1, height: 1, background: "var(--border-raw)" }} />
-        ATAU
+        {t("atau")}
         <span style={{ flex: 1, height: 1, background: "var(--border-raw)" }} />
       </div>
 
@@ -142,7 +144,7 @@ function SignInForm() {
       <form onSubmit={handleEmailLogin} className="zy-stack-sm">
         <div className="zy-stack-sm" style={{ gap: "var(--sp-1)" }}>
           <label htmlFor="email" className="zy-label">
-            Email
+            {t("labelEmail")}
           </label>
           <input
             id="email"
@@ -152,13 +154,13 @@ function SignInForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="zy-input"
-            placeholder="nama@sekolah.sch.id"
+            placeholder={t("isiEmail")}
           />
         </div>
 
         <div className="zy-stack-sm" style={{ gap: "var(--sp-1)" }}>
           <label htmlFor="password" className="zy-label">
-            Kata sandi
+            {t("labelSandi")}
           </label>
           <input
             id="password"
@@ -177,7 +179,7 @@ function SignInForm() {
             href="/auth/forgot-password"
             style={{ fontSize: "var(--fs-xs)", fontWeight: "var(--fw-medium)", color: "var(--p2)" }}
           >
-            Lupa kata sandi?
+            {t("lupaSandiTanya")}
           </Link>
         </div>
 
@@ -190,11 +192,11 @@ function SignInForm() {
           {isLoading ? (
             <>
               <Loader2 size={16} className="animate-spin" aria-hidden="true" />
-              Sedang masuk
+              {t("sedangMasuk")}
             </>
           ) : (
             <>
-              Masuk <ArrowRight size={15} aria-hidden="true" />
+              {t("masuk")} <ArrowRight size={15} aria-hidden="true" />
             </>
           )}
         </button>

@@ -16,7 +16,9 @@
     "seed": "node scripts/seed.mjs",
     "verify:db": "node scripts/verify-db.mjs",
     "seed:bank": "node scripts/seed-bank.mjs",
-    "verify:api": "node scripts/verify-api.mjs"
+    "verify:api": "node scripts/verify-api.mjs",
+    "verify:bahasa": "node scripts/verify-bahasa.mjs",
+    "verify:hasil": "node scripts/verify-hasil.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

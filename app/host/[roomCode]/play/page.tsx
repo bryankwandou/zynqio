@@ -45,6 +45,17 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const endTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+/* Nama ragam permainan sebagaimana dibaca pengajar. Pengenalnya
+   tersimpan di basis data dan tidak boleh ikut diterjemahkan. */
+const RAGAM: Record<string, string> = {
+  wayground_classic: "Klasik",
+  speed_rush: "Adu cepat",
+  battle_royale: "Gugur",
+  survival: "Sisa satu",
+  gold_quest: "Buru harta",
+  team: "Beregu",
+};
+
   // "Classic" mode = wayground_classic (self-paced per player)
   const isClassicMode = roomState?.gameMode === "wayground_classic";
 
@@ -310,7 +321,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
     return (
       <div className="min-h-screen bg-[#0f0f1a] flex flex-col items-center justify-center gap-4">
         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-white/60 font-bold animate-pulse">Loading game...</p>
+        <p className="text-white/60 font-bold animate-pulse" role="status">Menyiapkan permainan…</p>
       </div>
     );
   }
@@ -323,15 +334,15 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <div className="bg-[#16162a] border border-red-500/30 rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl">
             <div className="text-4xl mb-4 text-center">⚠️</div>
-            <h3 className="text-xl font-black text-white text-center mb-2">End Game Now?</h3>
+            <h3 className="text-xl font-black text-white text-center mb-2">Hentikan permainan sekarang?</h3>
             <p className="text-white/50 text-sm text-center mb-6">
-              All players will be redirected to results immediately. This cannot be undone.
+              Semua peserta langsung dibawa ke halaman hasil. Langkah ini tidak bisa dibatalkan.
             </p>
             <div className="flex gap-3">
               <Button
                 onClick={() => setShowEndConfirm(false)}
                 variant="outline"
-                className="flex-1 border-white/20 text-white/60"
+                className="flex-1 border-white/25 bg-white/5 text-white hover:bg-white/10"
               >
                 Tahan dulu
               </Button>
@@ -339,7 +350,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                 onClick={() => { setShowEndConfirm(false); handleEndGame(); }}
                 className="flex-1 bg-red-600 hover:bg-red-500 font-bold"
               >
-                Yes, End Game
+                Ya, hentikan
               </Button>
             </div>
           </div>
@@ -354,18 +365,33 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
           </div>
           {isClassicMode ? (
             <>
+              {/*
+                  Ragam klasik membiarkan tiap peserta maju sendiri, jadi
+                  angka ini menghitung yang sudah menamatkan SELURUH soal —
+                  bukan yang sudah menjawab. Sepanjang kelas masih di
+                  tengah jalan, angkanya memang nol, dan "0 / 2 selesai"
+                  di layar proyektor terbaca seperti tidak ada jawaban yang
+                  tercatat sama sekali. Jumlah jawaban yang sudah masuk
+                  ditulis berdampingan supaya pengajar melihat kelasnya
+                  memang sedang bergerak.
+              */}
               <div className="flex items-center gap-1.5 text-sm text-white/50">
                 <Zap size={13} className="text-blue-400" />
                 <span className="font-bold text-white">{playersFinished}</span>
-                <span>/ {totalPlayers} done</span>
+                <span>/ {totalPlayers} tamat</span>
               </div>
+              {totalQuestions > 0 && (
+                <div className="text-xs text-white/40 font-bold">
+                  {leaderboard.reduce((n: number, p: any) => n + (p.totalAnswered || 0), 0)} jawaban masuk
+                </div>
+              )}
               {playersFinished > 0 && totalPlayers > 0 && playersFinished >= totalPlayers ? (
                 <div className="text-[10px] px-2 py-0.5 bg-green-600/20 rounded-full text-green-400 font-black uppercase tracking-widest animate-pulse">
-                  ✓ All Done — Ending...
+                  ✓ Semua selesai — permainan ditutup
                 </div>
               ) : (
                 <div className="text-[10px] px-2 py-0.5 bg-blue-600/20 rounded-full text-blue-400 font-black uppercase tracking-widest">
-                  ⚡ Classic
+                  ⚡ Klasik
                 </div>
               )}
             </>
@@ -374,7 +400,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
               <div className="flex items-center gap-1.5 text-sm text-white/50">
                 <Users size={14} className="text-blue-400" />
                 <span className="font-bold text-white">{totalAnswered}</span>
-                <span>/ {totalPlayers} answered</span>
+                <span>/ {totalPlayers} menjawab</span>
               </div>
               <div className="text-xs text-white/30 font-bold">
                 Q{qIndex + 1}{totalQuestions > 0 ? `/${totalQuestions}` : ""}
@@ -407,7 +433,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
               onClick={() => { setIsRevealed(true); setTimeLeft(0); }}
               className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm"
             >
-              <Eye size={15} className="mr-1" /> Reveal
+              <Eye size={15} className="mr-1" aria-hidden="true" /> Buka jawaban
             </Button>
           ) : totalQuestions > 0 && qIndex >= totalQuestions - 1 ? (
             <Button
@@ -431,7 +457,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
             onClick={() => setShowEndConfirm(true)}
             variant="outline"
             className="border-red-500/40 text-red-400 hover:bg-red-500/10 font-bold text-xs px-2"
-            title="End game now"
+            title="Hentikan permainan sekarang"
           >
             <Square size={12} />
           </Button>
@@ -465,7 +491,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                 {classAccuracyPct !== null ? `${classAccuracyPct}%` : "—"}
               </span>
               <span className="text-[8px] font-black text-white/40 uppercase tracking-wide mt-0.5">
-                Class Acc
+                Ketepatan
               </span>
             </div>
             <div className="flex-1 h-4 bg-red-900/30 rounded-r-full overflow-hidden">
@@ -479,9 +505,9 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
           {/* Leaderboard legend */}
           <div className="px-4 pb-2 flex items-center justify-between shrink-0">
             <h2 className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-1">
-              <Trophy size={10} className="text-yellow-400" /> Live Rankings
+              <Trophy size={10} className="text-yellow-400" aria-hidden="true" /> Peringkat langsung
             </h2>
-            <span className="text-[10px] font-black text-white/20">{totalPlayers} players</span>
+            <span className="text-[10px] font-black text-white/20">{totalPlayers} peserta</span>
           </div>
 
           {/* Legend: status colors (Wayground-style) */}
@@ -643,7 +669,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                         </div>
                         <div className="bg-black/40 px-4 py-2.5">
                           <div className="flex justify-between text-xs font-bold mb-1.5 text-white/50">
-                            <span>{count} players</span>
+                            <span>{count} peserta</span>
                           </div>
                           <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
                             <div
@@ -674,9 +700,9 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
               {isRevealed && (
                 <div className="flex gap-6 justify-center py-2 shrink-0">
                   {[
-                    { label: "Correct", val: answerStats.correct || 0, color: "text-green-400" },
-                    { label: "Wrong", val: totalAnswered - (answerStats.correct || 0), color: "text-red-400" },
-                    { label: "No answer", val: totalPlayers - totalAnswered, color: "text-white/40" },
+                    { label: "Benar", val: answerStats.correct || 0, color: "text-green-400" },
+                    { label: "Salah", val: totalAnswered - (answerStats.correct || 0), color: "text-red-400" },
+                    { label: "Belum menjawab", val: totalPlayers - totalAnswered, color: "text-white/40" },
                   ].map((s) => (
                     <div key={s.label} className="text-center">
                       <div className={`text-3xl font-black ${s.color}`}>{s.val}</div>
@@ -703,7 +729,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
               {/* Column headers */}
               <div className="flex items-center justify-between px-5 mb-2 shrink-0">
                 <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">
-                  Player Progress · {totalPlayers} players
+                  Kemajuan peserta · {totalPlayers} peserta
                 </span>
                 <span className="text-[10px] font-black text-white/20 uppercase">
                   {totalQuestions > 0 ? `${playersFinished}/${totalPlayers} finished` : "loading..."}
@@ -812,7 +838,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
                           <div className="font-black text-lg text-blue-400 leading-none">
                             {(p.score || 0).toLocaleString()}
                           </div>
-                          <div className="text-[10px] text-white/30 mt-0.5">pts</div>
+                          <div className="text-[10px] text-white/30 mt-0.5">poin</div>
                         </div>
                       </div>
                     );
@@ -849,7 +875,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
         <div className="flex items-center gap-1.5">
           <Users size={11} className="text-blue-400" />
           <span className="text-white/30 font-black uppercase tracking-widest">
-            {isClassicMode ? "Finished" : "Answered"}
+            {isClassicMode ? "Selesai" : "Sudah menjawab"}
           </span>
           <span className="font-black text-white">
             {isClassicMode ? playersFinished : totalAnswered}
@@ -874,7 +900,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
             </span>
           )}
           <span className="text-white/20 font-bold capitalize">
-            {isClassicMode ? "Classic" : (roomState?.gameMode?.replace(/_/g, " ") || "classic")}
+            {isClassicMode ? "Klasik" : (RAGAM[roomState?.gameMode ?? ""] ?? "Klasik")}
           </span>
         </div>
       </div>

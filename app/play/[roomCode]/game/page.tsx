@@ -127,7 +127,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
     if (!roomState) return;
     try {
       const qRes = await fetch(
-        `/api/quiz/get-question?quizId=${roomState.quizId}&index=${index}&roomCode=${roomCode}`
+        `/api/room/question?roomCode=${roomCode}&index=${index}&token=${encodeURIComponent(playerTokenRef.current)}`
       );
       if (!qRes.ok) {
         // No more questions — player is done
@@ -276,7 +276,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
             if (!curQ || state.currentQuestionIndex !== curQ.index) {
               if (!curQ) runCountdown();
               const qRes = await fetch(
-                `/api/quiz/get-question?quizId=${state.quizId}&index=${state.currentQuestionIndex}&roomCode=${roomCode}`
+                `/api/room/question?roomCode=${roomCode}&index=${state.currentQuestionIndex}&token=${encodeURIComponent(playerTokenRef.current)}`
               );
               if (qRes.ok) {
                 const q = await qRes.json();
@@ -478,8 +478,8 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       <div className="min-h-screen bg-[#0f0f1a] flex flex-col items-center justify-center p-8 text-center text-white">
         <div className="text-6xl mb-6">🚫</div>
         <h2 className="text-2xl font-bold mb-2">Anda dikeluarkan dari ruangan</h2>
-        <p className="text-white/60">The host removed you from this game.</p>
-        <p className="text-sm text-white/40 mt-2">Redirecting...</p>
+        <p className="text-white/60">Pengajar mengeluarkan Anda dari ruangan ini.</p>
+        <p className="text-sm text-white/40 mt-2" role="status">Kembali ke halaman depan…</p>
       </div>
     );
   }
@@ -490,7 +490,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       <div className="min-h-screen bg-[#0f0f1a] flex flex-col items-center justify-center p-8 text-center text-white">
         <div className="text-7xl mb-6 grayscale animate-pulse">💔</div>
         <h2 className="text-3xl font-black uppercase tracking-widest mb-3">GUGUR</h2>
-        <p className="text-white/60 max-w-xs">You've lost all lives. Watch the battle!</p>
+        <p className="text-white/60 max-w-xs">Nyawa Anda habis. Silakan menyimak sisa permainannya.</p>
         <div className="mt-10 bg-white/5 border border-white/10 p-6 rounded-2xl">
           <div className="text-xs text-white/40 uppercase font-bold tracking-widest mb-1">Skor akhir</div>
           <div className="text-5xl font-black text-blue-400">{score}</div>
@@ -504,9 +504,9 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
     return (
       <div className="min-h-screen bg-[#0f0f1a] flex flex-col items-center justify-center p-8 text-center text-white">
         <div className="text-6xl mb-4">🏁</div>
-        <div className="text-xs font-black text-blue-400 uppercase tracking-widest mb-2">⚡ CLASSIC</div>
-        <h2 className="text-3xl font-black mb-2">Finished!</h2>
-        <p className="text-white/50 mb-6 text-sm">Loading your results...</p>
+        <div className="text-xs font-black text-blue-400 uppercase tracking-widest mb-2">⚡ Klasik</div>
+        <h2 className="text-3xl font-black mb-2">Selesai</h2>
+        <p className="text-white/50 mb-6 text-sm" role="status">Menyiapkan hasil Anda…</p>
         <div className="bg-white/5 border border-white/10 rounded-2xl p-6 w-full max-w-xs">
           <div className="text-4xl font-black text-blue-400 mb-1">{score.toLocaleString()}</div>
           <div className="text-xs text-white/40 uppercase tracking-widest">Skor total</div>
@@ -526,11 +526,11 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
           </div>
         )}
         <div className="w-14 h-14 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-5" />
-        <h2 className="text-xl font-bold">Get Ready!</h2>
-        <p className="text-white/50 text-sm mt-1">Waiting for host to start the game...</p>
+        <h2 className="text-xl font-bold">Bersiap</h2>
+        <p className="text-white/50 text-sm mt-1" role="status">Menunggu pengajar memulai permainan…</p>
         {isWayground && (
           <p className="text-white/30 text-xs mt-3 max-w-xs text-center">
-            Answer instantly. Advance instantly. No timer waiting.
+            Jawab, langsung lanjut. Tidak perlu menunggu waktu habis.
           </p>
         )}
       </div>
@@ -545,18 +545,18 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
         <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-[#0f0f1a]/95">
           {isWayground && (
             <div className="mb-4 px-4 py-1.5 bg-blue-600/20 border border-blue-500/30 rounded-full text-xs font-black text-blue-400 uppercase tracking-widest">
-              ⚡ CLASSIC
+              ⚡ Klasik
             </div>
           )}
           <div key={String(countdownValue)} className="text-9xl font-black animate-ping-once"
             style={{ textShadow: "0 0 60px rgba(79,142,255,0.6)" }}>
-            {countdownValue}
+            {countdownValue === "GO!" ? "MULAI" : countdownValue}
           </div>
           <p className="mt-8 text-white/50 font-bold text-lg tracking-widest uppercase">
-            {countdownValue === "GO!" ? "Game On!" : "Get Ready..."}
+            {countdownValue === "GO!" ? "Mulai!" : "Bersiap…"}
           </p>
           {isWayground && countdownValue !== "GO!" && (
-            <p className="mt-3 text-white/30 text-sm">⚡ Classic mode — answer instantly!</p>
+            <p className="mt-3 text-white/30 text-sm">⚡ Ragam klasik — jawab, langsung lanjut</p>
           )}
         </div>
       )}
@@ -602,7 +602,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
             {timeLeft}
           </div>
           {isWayground && (
-            <span className="text-[8px] text-white/20 mt-0.5">cosmetic</span>
+            <span className="text-[8px] text-white/25 mt-0.5">tidak mengunci</span>
           )}
         </div>
 
@@ -612,9 +612,9 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
             <div className="text-yellow-400 text-sm font-bold">🪙 {gold}</div>
           )}
           <div className="bg-blue-500/15 px-3 py-1 rounded-full font-black text-blue-400 text-sm border border-blue-500/20">
-            {score.toLocaleString()} pts
+            {score.toLocaleString("id-ID")} poin
           </div>
-          <GameMusicPlayer defaultVolume={0.15} />
+          <GameMusicPlayer defaultVolume={0.4} />
         </div>
       </div>
 
@@ -629,7 +629,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       {/* Wayground mode badge */}
       {isWayground && !showCountdown && (
         <div className="flex items-center justify-center gap-2 py-1 bg-blue-600/10 border-b border-blue-500/10 shrink-0">
-          <span className="text-[9px] font-black text-blue-400/60 uppercase tracking-widest">⚡ CLASSIC · Answer instantly · advance instantly</span>
+          <span className="text-[9px] font-black text-blue-400/60 uppercase tracking-widest">⚡ Klasik · jawab, langsung lanjut</span>
         </div>
       )}
 
@@ -637,7 +637,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       {classAccuracy !== null && (
         <div className="flex justify-center py-1.5 shrink-0">
           <div className="text-xs text-white/40 bg-white/5 px-3 py-1 rounded-full border border-white/10">
-            Class accuracy: <span className={`font-bold ${classAccuracy >= 70 ? "text-green-400" : classAccuracy >= 40 ? "text-amber-400" : "text-red-400"}`}>{classAccuracy}%</span>
+            Ketepatan kelas: <span className={`font-bold ${classAccuracy >= 70 ? "text-green-400" : classAccuracy >= 40 ? "text-amber-400" : "text-red-400"}`}>{classAccuracy}%</span>
           </div>
         </div>
       )}
@@ -716,9 +716,9 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
                       : "bg-white/5 border-white/10 text-white/50 hover:border-white/30"
                   }`}
                 >
-                  {p === "2x" && "2× Pts"}
-                  {p === "freeze" && "❄️ Freeze"}
-                  {p === "shield" && "🛡️ Shield"}
+                  {p === "2x" && "2× poin"}
+                  {p === "freeze" && "❄️ Tahan waktu"}
+                  {p === "shield" && "🛡️ Perisai"}
                 </button>
               ))}
             </div>
@@ -744,7 +744,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
           )}
 
           <h2 className="text-3xl font-black text-white mb-2 tracking-wide uppercase">
-            {result.message || (result.correct === null ? "Answered!" : result.correct ? "Correct!" : "Incorrect")}
+            {result.message || (result.correct === null ? "Terkirim" : result.correct ? "Benar" : "Belum tepat")}
           </h2>
 
           {result.correct === null && (
@@ -755,16 +755,16 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
 
           {result.correct === true && result.points > 0 && (
             <div className="bg-white/20 px-5 py-2 rounded-full mt-3 font-bold text-lg text-white">
-              +{result.points} pts
+              +{result.points} poin
               {result.speedBonus && result.speedBonus > 0 && (
-                <span className="ml-2 text-sm opacity-80">(+{result.speedBonus} streak)</span>
+                <span className="ml-2 text-sm opacity-80">(+{result.speedBonus} beruntun)</span>
               )}
             </div>
           )}
 
           {result.correct === null && result.points > 0 && (
             <div className="bg-white/15 px-5 py-2 rounded-full mt-3 font-bold text-lg text-white">
-              +{result.points} pts recorded
+              +{result.points} poin tercatat
             </div>
           )}
 
@@ -785,7 +785,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
               Next question loading...
             </div>
           ) : (
-            <div className="mt-8 text-white/70 font-medium text-sm">Waiting for next question...</div>
+            <div className="mt-8 text-white/70 font-medium text-sm" role="status">Menunggu soal berikutnya…</div>
           )}
         </div>
       )}
@@ -793,7 +793,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       {/* Gold Quest Chests */}
       {showChests && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0f0f1a]/95">
-          <h2 className="text-2xl font-black text-yellow-400 mb-6 uppercase tracking-widest">Choose a Chest!</h2>
+          <h2 className="text-2xl font-black text-yellow-400 mb-6 uppercase tracking-widest">Pilih satu peti</h2>
           <div className="flex gap-5">
             {[0, 1, 2].map((i) => (
               <button

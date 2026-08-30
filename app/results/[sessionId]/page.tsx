@@ -191,7 +191,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
   const handleShare = async () => {
     const url = window.location.href;
     if (navigator.share) {
-      navigator.share({ title: "Zynqio Results", url });
+      navigator.share({ title: "Hasil kuis ZYNQIO", url });
     } else {
       await navigator.clipboard.writeText(url);
     }
@@ -200,7 +200,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
   const exportCSV = () => {
     if (!results?.leaderboard) return;
     const rows = [
-      ["Rank", "Name", "Score", "Accuracy", "Correct", "Total Answered"].join(","),
+      ["Peringkat", "Nama", "Skor", "Ketepatan", "Benar", "Total dijawab"].join(","),
       ...results.leaderboard.map((p: any) =>
         [p.rank, `"${p.name}"`, p.score, `${p.accuracy}%`, p.totalCorrect || 0, p.totalAnswered || 0].join(",")
       ),
@@ -233,8 +233,8 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-foreground font-bold animate-pulse">Calculating Results...</p>
-        <p className="text-muted-foreground text-xs">Loading session data…</p>
+        <p className="text-foreground font-bold animate-pulse" role="status">Menghitung hasil…</p>
+        <p className="text-muted-foreground text-xs">Mengambil data sesi</p>
       </div>
     );
   }
@@ -254,7 +254,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
       <section className="bg-card border-b border-border py-12 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(59,130,246,0.12),transparent_70%)] pointer-events-none" />
         <div className="container mx-auto px-4 relative z-10 max-w-4xl">
-          <h1 className="text-3xl font-black text-center mb-1">🏆 Final Results</h1>
+          <h1 className="text-3xl font-black text-center mb-1">🏆 Hasil akhir</h1>
           {results.quizTitle && (
             <p className="text-center text-muted-foreground text-sm mb-8">{results.quizTitle}</p>
           )}
@@ -404,7 +404,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
                     <div className="flex-1 min-w-0">
                       <div className={`font-bold text-sm truncate ${isMe ? "text-blue-400" : "text-foreground"}`}>
                         {p.name}
-                        {isMe && <span className="ml-1 text-xs font-normal text-blue-300">(you)</span>}
+                        {isMe && <span className="ml-1 text-xs font-normal text-blue-300">(Anda)</span>}
                       </div>
                       <div className="text-xs text-muted-foreground">{p.totalCorrect || 0}/{p.totalAnswered || 0} correct</div>
                     </div>
@@ -424,9 +424,9 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
           <div className="space-y-6 animate-in fade-in duration-300">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[
-                { label: "Class Accuracy", val: `${results.stats?.avgAccuracy || 0}%`, color: "text-green-500" },
-                { label: "Participants",   val: results.stats?.totalPlayers || 0,     color: "text-primary" },
-                { label: "Top Score",      val: `${(results.leaderboard?.[0]?.score || 0).toLocaleString()} pts`, color: "text-yellow-500" },
+                { label: "Ketepatan kelas", val: `${results.stats?.avgAccuracy || 0}%`, color: "text-green-500" },
+                { label: "Jumlah peserta",  val: results.stats?.totalPlayers || 0,     color: "text-primary" },
+                { label: "Skor tertinggi",  val: `${(results.leaderboard?.[0]?.score || 0).toLocaleString("id-ID")} poin`, color: "text-yellow-500" },
               ].map((stat) => (
                 <div key={stat.label} className="bg-card border border-border p-5 rounded-2xl shadow-lg">
                   <div className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2">{stat.label}</div>
@@ -504,7 +504,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
         {tab === "review" && (
           <div className="space-y-4">
             {results.questions?.length === 0 && (
-              <p className="text-muted-foreground text-center py-12">No question review data available.</p>
+              <p className="text-muted-foreground text-center py-12">Belum ada rincian per soal untuk sesi ini.</p>
             )}
             {results.questions?.map((q: any, i: number) => (
               <div key={i} className="bg-card border border-border rounded-2xl p-5 shadow-md">

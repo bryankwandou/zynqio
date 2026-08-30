@@ -10,23 +10,39 @@ import { getPusherClient } from "@/lib/pusher-client";
 import { getAvatar } from "@/lib/avatars";
 
 const GAME_MODES = [
-  { id: "wayground_classic", name: "Classic",      icon: "🏆", desc: "Self-paced · each player at own speed · auto-advance" },
-  { id: "speed_rush",   name: "Speed Rush",   icon: "⚡", desc: "Faster = more pts · auto-advance" },
-  { id: "battle_royale",name: "Battle Royale",icon: "⚔️", desc: "Wrong = lose a life · auto-advance" },
-  { id: "survival",     name: "Survival",     icon: "🏔️", desc: "Miss = reset score · auto-advance" },
-  { id: "gold_quest",   name: "Gold Quest",   icon: "💰", desc: "Chests & stealing · auto-advance" },
-  { id: "team",         name: "Team Mode",    icon: "👥", desc: "Collaborate to win · auto-advance" },
+  { id: "wayground_classic", name: "Klasik",     icon: "🏆", desc: "Tiap murid maju dengan kecepatannya sendiri" },
+  { id: "speed_rush",   name: "Adu cepat",   icon: "⚡", desc: "Makin cepat makin besar poinnya; salah dikurangi 100" },
+  { id: "battle_royale",name: "Gugur",       icon: "⚔️", desc: "Satu jawaban salah mengurangi nyawa" },
+  { id: "survival",     name: "Sisa satu",   icon: "🏔️", desc: "Satu jawaban salah menghapus skor dari awal" },
+  { id: "gold_quest",   name: "Buru harta",  icon: "💰", desc: "Peti berisi poin muncul di sela soal" },
+  { id: "team",         name: "Beregu",      icon: "👥", desc: "Skor dijumlahkan per kelompok" },
 ];
 
 const TIMERS = [10, 15, 20, 30, 45, 60, 90];
 
+/**
+ * Bulatannya dulu meleset saat menyala. Lintasannya 48px dan bulatannya
+ * 20px; posisi mati memberi jarak 2px di kiri, tetapi translate-x-6
+ * memindahkannya 24px sehingga tersisa 4px di kanan — dua kali lipat
+ * jarak seberangnya. Selisih dua piksel itu cukup membuat sakelarnya
+ * terbaca miring dan orang ragu apakah ia sedang hidup atau mati.
+ *
+ * Titik diamnya sekarang ditetapkan lewat left-0.5, jadi geserannya
+ * berangkat dari 2px dan berhenti tepat di 26px: jarak 2px di kedua sisi.
+ */
 function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
   return (
     <button
+      type="button"
+      role="switch"
+      aria-checked={on}
       onClick={onChange}
       className={`relative w-12 h-6 rounded-full transition-colors duration-200 flex-shrink-0 ${on ? "bg-primary" : "bg-white/10"}`}
     >
-      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${on ? "translate-x-6" : "translate-x-0.5"}`} />
+      <span
+        aria-hidden="true"
+        className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${on ? "translate-x-6" : "translate-x-0"}`}
+      />
     </button>
   );
 }
@@ -160,7 +176,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
         <div className="flex items-center gap-3">
           <div className="text-sm text-white/50 flex items-center gap-1.5">
             <Users size={14} className="text-blue-400" />
-            <span className="font-bold text-white">{players.length}</span> players
+            <span className="font-bold text-white">{players.length}</span> peserta
           </div>
           <Button
             onClick={() => setShowLaunchModal(true)}
@@ -212,11 +228,11 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
           <div className="bg-[#16162a] border border-white/10 rounded-2xl p-4 space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-white/40">Ragam</span>
-              <span className="font-bold text-blue-400">{GAME_MODES.find((m) => m.id === gameMode)?.name || "Classic"}</span>
+              <span className="font-bold text-blue-400">{GAME_MODES.find((m) => m.id === gameMode)?.name || "Klasik"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-white/40">Waktu per soal</span>
-              <span className="font-bold text-white">{globalTimer}s / question</span>
+              <span className="font-bold text-white">{globalTimer} detik / soal</span>
             </div>
             <div className="flex justify-between">
               <span className="text-white/40">Podium</span>
@@ -229,7 +245,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
         <div className="flex-1 flex flex-col bg-[#16162a] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
           <div className="px-5 py-4 border-b border-white/10 flex justify-between items-center">
             <span className="font-bold text-white flex items-center gap-2">
-              <Users size={16} className="text-blue-400" /> Players in Lobby
+              <Users size={16} className="text-blue-400" aria-hidden="true" /> Peserta di ruang tunggu
             </span>
             <span className="bg-primary text-white text-xs font-black px-3 py-1 rounded-full">{players.length}</span>
           </div>
@@ -238,7 +254,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
             {players.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-white/30">
                 <div className="w-12 h-12 border-4 border-white/10 border-t-blue-500 rounded-full animate-spin mb-4" />
-                <p>Waiting for players...</p>
+                <p>Menunggu murid bergabung…</p>
               </div>
             ) : (
               <div className="flex flex-wrap gap-2">
@@ -329,19 +345,24 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                 {gameMode === "team" && (
                   <div className="mt-3 p-4 bg-white/5 border border-white/10 rounded-2xl">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-bold text-white/70">Auto-assign teams</span>
+                      <span className="text-sm font-bold text-white/70">Bagi kelas jadi regu</span>
                       <div className="flex gap-2">
                         {[2, 3, 4].map((n) => (
-                          <Button key={n} size="sm" variant="outline" onClick={() => autoAssignTeams(n)} className="border-white/20 text-xs text-white/70">
-                            {n} teams
+                          <Button
+                            key={n}
+                            size="sm"
+                            onClick={() => autoAssignTeams(n)}
+                            className="border border-white/25 bg-white/10 text-xs text-white hover:bg-white/20"
+                          >
+                            {n} regu
                           </Button>
                         ))}
                       </div>
                     </div>
                     {Object.entries(teams).map(([teamId, members]) => (
                       <div key={teamId} className="text-xs text-white/50 mb-1">
-                        <span className="font-bold text-white/70">{teamId}:</span>{" "}
-                        {(members as any[]).map((p) => p.name).join(", ") || "—"}
+                        <span className="font-bold text-white/70">{teamId.replace(/^Red Team$/, "Regu Merah").replace(/^Blue Team$/, "Regu Biru").replace(/^Team (\d+)$/, "Regu $1")}:</span>{" "}
+                        {(members as any[]).map((p) => p.name).join(", ") || "belum ada anggota"}
                       </div>
                     ))}
                   </div>
@@ -371,7 +392,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
               {/* Winner Count */}
               <div>
                 <label className="text-xs font-black text-white/40 uppercase tracking-widest block mb-3">
-                  <Trophy size={12} className="inline mr-1" /> Podium Winners (1 – 5)
+                  <Trophy size={12} className="inline mr-1" aria-hidden="true" /> Berapa yang naik podium (1 – 5)
                 </label>
                 <div className="flex gap-3 items-end">
                   {[1, 2, 3, 4, 5].map((n) => {
@@ -395,7 +416,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                       </button>
                     );
                   })}
-                  <div className="ml-3 text-white/60 text-sm font-medium">Top <span className="text-white font-black">{winnerCount}</span> on podium</div>
+                  <div className="ml-3 text-white/60 text-sm font-medium">{winnerCount} teratas naik podium</div>
                 </div>
               </div>
 
@@ -404,10 +425,10 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                 <label className="text-xs font-black text-white/40 uppercase tracking-widest block mb-3">Pilihan</label>
                 <div className="space-y-2">
                   {[
-                    { icon: <Eye size={15} />, label: "Show answer after reveal", sub: "Players see correct answer when timer ends", val: showAnswerAfter, set: () => setShowAnswerAfter((v) => !v) },
-                    { icon: <Lock size={15} />, label: "One attempt per question", sub: "Prevent changing answers", val: oneAttemptOnly, set: () => setOneAttemptOnly((v) => !v) },
-                    { icon: <Shuffle size={15} />, label: "Shuffle questions", sub: "Randomize question order", val: shuffleQuestions, set: () => setShuffleQuestions((v) => !v) },
-                    { icon: <span className="text-base">⏭️</span>, label: "Auto-advance questions", sub: "Next question starts automatically after timer", val: autoAdvance, set: () => setAutoAdvance((v) => !v) },
+                    { icon: <Eye size={15} aria-hidden="true" />, label: "Tampilkan kunci jawaban", sub: "Murid melihat jawaban benar setelah waktunya habis", val: showAnswerAfter, set: () => setShowAnswerAfter((v) => !v) },
+                    { icon: <Lock size={15} aria-hidden="true" />, label: "Sekali jawab per soal", sub: "Jawaban tidak bisa diubah setelah dikirim", val: oneAttemptOnly, set: () => setOneAttemptOnly((v) => !v) },
+                    { icon: <Shuffle size={15} aria-hidden="true" />, label: "Acak urutan soal", sub: "Tiap murid menerima urutan yang berbeda", val: shuffleQuestions, set: () => setShuffleQuestions((v) => !v) },
+                    { icon: <span className="text-base" aria-hidden="true">⏭️</span>, label: "Lanjut sendiri", sub: "Soal berikutnya mulai otomatis setelah waktunya habis", val: autoAdvance, set: () => setAutoAdvance((v) => !v) },
                     { icon: <span className="text-base">🎭</span>, label: "Meme mode", sub: "Different GIFs for correct vs wrong answers", val: memeMode, set: () => setMemeMode((v) => !v) },
                   ].map((opt, i) => (
                     <div key={i} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
@@ -435,7 +456,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                 {isLaunching ? (
                   <span className="flex items-center gap-2"><div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" /> Launching...</span>
                 ) : (
-                  <span className="flex items-center gap-2"><Rocket size={20} /> Launch with {players.length} Players</span>
+                  <span className="flex items-center gap-2"><Rocket size={20} aria-hidden="true" /> Mulai dengan {players.length} peserta</span>
                 )}
               </Button>
             </div>

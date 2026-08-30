@@ -27,6 +27,10 @@ export const POST = handle(async (req) => {
     currentQuestionIndex: 0,
     questionStartedAt: new Date(),
     settings: { ...room.settings, ...(body.settings ?? {}) },
+    // Ragam ikut disimpan di sini. Sebelumnya field ini diterima lalu
+    // dibuang, sehingga pilihan guru di dialog mulai tidak pernah
+    // berlaku dan setiap sesi berjalan sebagai Klasik.
+    gameMode: body.gameMode,
   });
 
   await logEvent(code, room.session_id, 'game_started', { gameMode: updated.game_mode });

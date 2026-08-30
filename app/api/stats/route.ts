@@ -35,9 +35,11 @@ export async function GET() {
       { headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=300' } }
     );
   } catch {
-    // Beranda harus tetap tampil walau basis data sedang tak terjangkau.
-    // Nol lebih jujur daripada angka karangan, dan komponennya memang
-    // menyembunyikan panel ini ketika nilainya nol.
-    return NextResponse.json({ soal: 0, kuis: 0, mapel: 0, ragam: 6 }, { status: 200 });
+    // Beranda harus tetap tampil walau basis data sedang tak terjangkau,
+    // tetapi ia tidak boleh menampilkan nol. Nol bukan "belum tahu",
+    // nol adalah pernyataan bahwa bank soalnya kosong — dan pengunjung
+    // yang membacanya akan pergi. Dengan 503 tanpa isi, beranda tetap
+    // memuat dan panel angkanya menahan diri pada tanda pisah.
+    return new NextResponse(null, { status: 503 });
   }
 }

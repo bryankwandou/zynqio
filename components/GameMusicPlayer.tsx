@@ -148,7 +148,7 @@ function jazzBar(ctx: AudioContext, dest: AudioNode, t: number): number {
 }
 
 // ─── Component ────────────────────────────────────────────────────────
-export default function GameMusicPlayer({ autoPlay = true, defaultVolume = 0.18 }: Props) {
+export default function GameMusicPlayer({ autoPlay = true, defaultVolume = 0.45 }: Props) {
   const ctxRef = useRef<AudioContext | null>(null);
   const gainRef = useRef<GainNode | null>(null);
   const dryBusRef = useRef<GainNode | null>(null);

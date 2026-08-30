@@ -202,6 +202,32 @@ export async function addPlayer(params: {
  * Mengubah keadaan ruangan dengan penguncian optimistis.
  * Penulis yang membawa nomor versi basi ditolak, bukan menimpa diam-diam.
  */
+/**
+ * Ragam permainan yang benar-benar dikenali mesin permainan.
+ *
+ * Nilai dari peramban tidak pernah dipercaya apa adanya: ragam menentukan
+ * cara skor dihitung, jadi nilai karangan harus jatuh ke Klasik, bukan
+ * masuk ke basis data dan membuat penilaiannya tidak terdefinisi.
+ *
+ * 'classic' adalah nilai bawaan kolomnya sejak awal dan masih tersimpan
+ * di ruangan-ruangan lama, jadi ia dipetakan ke ragam yang sama supaya
+ * sesi lama tetap terbaca.
+ */
+const RAGAM_SAH = new Set([
+  'wayground_classic',
+  'speed_rush',
+  'battle_royale',
+  'survival',
+  'gold_quest',
+  'team',
+]);
+
+export function normalizeGameMode(value: unknown): string {
+  const v = String(value ?? '').trim();
+  if (v === 'classic') return 'wayground_classic';
+  return RAGAM_SAH.has(v) ? v : 'wayground_classic';
+}
+
 export async function updateRoomState(
   code: string,
   expectedVersion: number,
@@ -210,6 +236,7 @@ export async function updateRoomState(
     currentQuestionIndex?: number;
     questionStartedAt?: Date | null;
     settings?: Record<string, unknown>;
+    gameMode?: unknown;
   }
 ): Promise<RoomRow> {
   const rows = (await sql`
@@ -221,6 +248,7 @@ export async function updateRoomState(
                                  ELSE ${patch.questionStartedAt?.toISOString() ?? null}::timestamptz
                                END,
       settings               = COALESCE(${patch.settings ? JSON.stringify(patch.settings) : null}::jsonb, settings),
+      game_mode              = COALESCE(${patch.gameMode === undefined ? null : normalizeGameMode(patch.gameMode)}, game_mode),
       version                = version + 1,
       updated_at             = now()
     WHERE code = ${code} AND version = ${expectedVersion}

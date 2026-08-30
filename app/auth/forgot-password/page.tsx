@@ -4,10 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Loader2, MailCheck } from "lucide-react";
 import { AuthShell, AuthNotice } from "@/components/AuthShell";
+import { useBahasa } from "@/lib/bahasa";
 
 export const dynamic = "force-dynamic";
 
 export default function ForgotPasswordPage() {
+  const { t } = useBahasa();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -27,9 +29,9 @@ export default function ForgotPasswordPage() {
       // Membedakannya akan memberi tahu orang asing alamat mana yang
       // punya akun di sini.
       if (res.ok) setSubmitted(true);
-      else setError("Permintaan gagal diproses. Coba lagi sebentar lagi.");
+      else setError(t("galatPermintaan"));
     } catch {
-      setError("Sambungan bermasalah. Periksa jaringan Anda lalu coba lagi.");
+      setError(t("sambunganBermasalah"));
     } finally {
       setIsLoading(false);
     }
@@ -38,11 +40,11 @@ export default function ForgotPasswordPage() {
   if (submitted) {
     return (
       <AuthShell
-        title="Periksa kotak masuk"
-        subtitle="Tautan penggantian sudah dikirim bila email itu terdaftar"
+        title={t("periksaJudul")}
+        subtitle={t("periksaSub")}
         footer={
           <Link href="/auth/signin" style={{ color: "var(--p2)", fontWeight: "var(--fw-medium)" }}>
-            Kembali ke halaman masuk
+            {t("kembaliMasuk")}
           </Link>
         }
       >
@@ -62,9 +64,9 @@ export default function ForgotPasswordPage() {
             <MailCheck size={26} />
           </span>
           <p className="zy-body zy-prose">
-            Kami mengirim tautan ke <strong style={{ color: "var(--t1)" }}>{email}</strong> apabila
-            alamat itu terdaftar. Tautannya berlaku satu jam. Bila tidak ada di kotak masuk, coba
-            periksa folder spam.
+            {t("tautanTerkirimKet").split("{email}")[0]}
+            <strong style={{ color: "var(--t1)" }}>{email}</strong>
+            {t("tautanTerkirimKet").split("{email}")[1]}
           </p>
         </div>
       </AuthShell>
@@ -73,11 +75,11 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthShell
-      title="Lupa kata sandi"
-      subtitle="Masukkan email Anda untuk menerima tautan penggantian"
+      title={t("lupaJudul")}
+      subtitle={t("lupaSub")}
       footer={
         <Link href="/auth/signin" style={{ color: "var(--p2)", fontWeight: "var(--fw-medium)" }}>
-          Kembali ke halaman masuk
+          {t("kembaliMasuk")}
         </Link>
       }
     >
@@ -86,7 +88,7 @@ export default function ForgotPasswordPage() {
       <form onSubmit={handleSubmit} className="zy-stack-sm">
         <div className="zy-stack-sm" style={{ gap: "var(--sp-1)" }}>
           <label htmlFor="email" className="zy-label">
-            Email
+            {t("labelEmail")}
           </label>
           <input
             id="email"
@@ -96,7 +98,7 @@ export default function ForgotPasswordPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="zy-input"
-            placeholder="nama@sekolah.sch.id"
+            placeholder={t("isiEmail")}
           />
         </div>
 
@@ -109,11 +111,11 @@ export default function ForgotPasswordPage() {
           {isLoading ? (
             <>
               <Loader2 size={16} className="animate-spin" aria-hidden="true" />
-              Mengirim
+              {t("sedangMengirim")}
             </>
           ) : (
             <>
-              Kirim tautan <ArrowRight size={15} aria-hidden="true" />
+              {t("kirimTautan")} <ArrowRight size={15} aria-hidden="true" />
             </>
           )}
         </button>
