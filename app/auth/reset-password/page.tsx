@@ -8,11 +8,13 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
 import { AuthShell, AuthNotice } from "@/components/AuthShell";
+import { useBahasa } from "@/lib/bahasa";
 
 /** Harus sama dengan MIN_PASSWORD_LENGTH di lib/user.ts. */
 const MIN_KATA_SANDI = 8;
 
 function ResetForm() {
+  const { t } = useBahasa();
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get("token");
@@ -25,20 +27,20 @@ function ResetForm() {
 
   useEffect(() => {
     if (!token) {
-      setError("Tautan ini tidak lengkap atau sudah kedaluwarsa. Silakan minta tautan baru.");
+      setError(t("tautanTakLengkap"));
     }
-  }, [token]);
+  }, [token, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
     if (password.length < MIN_KATA_SANDI) {
-      setError(`Kata sandi minimal ${MIN_KATA_SANDI} karakter.`);
+      setError(t("minKarakter").replace("{n}", String(MIN_KATA_SANDI)));
       return;
     }
     if (password !== confirmPassword) {
-      setError("Kedua kata sandi belum sama.");
+      setError(t("sandiBelumSama"));
       return;
     }
 
@@ -57,9 +59,9 @@ function ResetForm() {
       }
 
       const data = await res.json().catch(() => null);
-      setError(data?.error ?? "Penggantian gagal. Tautannya mungkin sudah dipakai atau kedaluwarsa.");
+      setError(data?.error ?? t("galatGantiSandi"));
     } catch {
-      setError("Sambungan bermasalah. Periksa jaringan Anda lalu coba lagi.");
+      setError(t("sambunganBermasalah"));
     } finally {
       setIsLoading(false);
     }
@@ -67,7 +69,7 @@ function ResetForm() {
 
   if (success) {
     return (
-      <AuthShell title="Kata sandi diganti" subtitle="Anda akan diarahkan ke halaman masuk">
+      <AuthShell title={t("sandiDigantiJudul")} subtitle={t("sandiDigantiSub")}>
         <div className="zy-stack" style={{ alignItems: "center", textAlign: "center" }}>
           <span
             aria-hidden="true"
@@ -83,7 +85,7 @@ function ResetForm() {
           >
             <CheckCircle2 size={26} />
           </span>
-          <p className="zy-body">Silakan masuk dengan kata sandi yang baru.</p>
+          <p className="zy-body">{t("sandiDigantiKet")}</p>
         </div>
       </AuthShell>
     );
@@ -92,11 +94,11 @@ function ResetForm() {
   if (!token) {
     return (
       <AuthShell
-        title="Tautan tidak berlaku"
-        subtitle="Tautan penggantian ini tidak bisa dipakai"
+        title={t("tautanMatiJudul")}
+        subtitle={t("tautanMatiSub")}
         footer={
           <Link href="/auth/forgot-password" style={{ color: "var(--p2)", fontWeight: "var(--fw-medium)" }}>
-            Minta tautan baru
+            {t("mintaTautanBaru")}
           </Link>
         }
       >
@@ -107,11 +109,11 @@ function ResetForm() {
 
   return (
     <AuthShell
-      title="Kata sandi baru"
-      subtitle="Pilih kata sandi yang belum pernah Anda pakai di layanan lain"
+      title={t("sandiBaruJudul")}
+      subtitle={t("sandiBaruSub")}
       footer={
         <Link href="/auth/signin" style={{ color: "var(--p2)", fontWeight: "var(--fw-medium)" }}>
-          Kembali ke halaman masuk
+          {t("kembaliMasuk")}
         </Link>
       }
     >
@@ -120,7 +122,7 @@ function ResetForm() {
       <form onSubmit={handleSubmit} className="zy-stack-sm">
         <div className="zy-stack-sm" style={{ gap: "var(--sp-1)" }}>
           <label htmlFor="password" className="zy-label">
-            Kata sandi baru
+            {t("labelSandiBaru")}
           </label>
           <input
             id="password"
@@ -135,13 +137,13 @@ function ResetForm() {
             placeholder="••••••••"
           />
           <p id="bantuan-sandi" className="zy-label" style={{ color: "var(--t4)" }}>
-            Minimal {MIN_KATA_SANDI} karakter.
+            {t("minKarakter").replace("{n}", String(MIN_KATA_SANDI))}
           </p>
         </div>
 
         <div className="zy-stack-sm" style={{ gap: "var(--sp-1)" }}>
           <label htmlFor="confirm" className="zy-label">
-            Ulangi kata sandi
+            {t("labelSandiUlang")}
           </label>
           <input
             id="confirm"
@@ -164,11 +166,11 @@ function ResetForm() {
           {isLoading ? (
             <>
               <Loader2 size={16} className="animate-spin" aria-hidden="true" />
-              Menyimpan
+              {t("sedangMenyimpan")}
             </>
           ) : (
             <>
-              Simpan kata sandi <ArrowRight size={15} aria-hidden="true" />
+              {t("simpanSandi")} <ArrowRight size={15} aria-hidden="true" />
             </>
           )}
         </button>

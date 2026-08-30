@@ -3,93 +3,141 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ArrowRight, Home } from "lucide-react";
 
+/**
+ * Halaman 404.
+ *
+ * Halaman inilah yang paling sering dilihat murid yang salah mengetik
+ * kode ruangan di papan tulis — bukan halaman depan. Karena itu ia
+ * tidak berhenti pada "halaman tidak ditemukan": kotak kode ruangan
+ * dipasang langsung di sini supaya murid bisa mencoba lagi tanpa
+ * kembali dulu ke mana pun.
+ *
+ * Versi sebelumnya dipaku gelap dan berbahasa Inggris, padahal seluruh
+ * situs mengikuti tema perangkat dan berbahasa Indonesia. Murid yang
+ * memakai tema terang tiba-tiba menemui layar hitam dan mengira
+ * aplikasinya rusak, bukan alamatnya yang salah.
+ */
 export default function NotFound() {
-  const [code, setCode] = useState("");
-  const [error, setError] = useState("");
+  const [kode, setKode] = useState("");
+  const [galat, setGalat] = useState("");
   const router = useRouter();
 
-  const handleJoin = (e: React.FormEvent) => {
+  const gabung = (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = code.trim().toUpperCase();
-    if (trimmed.length !== 6) {
-      setError("Please enter a 6-character game code.");
+    const bersih = kode.trim().toUpperCase();
+    if (bersih.length !== 6) {
+      setGalat("Kode ruangan terdiri dari 6 karakter.");
       return;
     }
-    setError("");
-    router.push(`/join/${trimmed}`);
+    setGalat("");
+    router.push(`/join/${bersih}`);
   };
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center p-8 text-center"
-      style={{ backgroundColor: "#0f0f1a", color: "#ffffff" }}
+      style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        padding: "var(--sp-5)",
+        background: "var(--bg-raw)",
+      }}
     >
-      {/* 404 */}
       <div
-        className="text-[10rem] md:text-[14rem] font-black leading-none select-none"
-        style={{
-          background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #a855f7 100%)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          backgroundClip: "text",
-        }}
+        className="zy-berurut"
+        style={{ width: "100%", maxWidth: 420, textAlign: "center" }}
       >
-        404
-      </div>
+        <div
+          className="zy-num"
+          aria-hidden="true"
+          style={{
+            fontSize: "clamp(4.5rem, 22vw, 7rem)",
+            fontWeight: "var(--fw-bold)",
+            lineHeight: 1,
+            color: "var(--p)",
+            letterSpacing: "-0.04em",
+          }}
+        >
+          404
+        </div>
 
-      <h1 className="text-2xl md:text-4xl font-black uppercase tracking-tight mt-2 mb-3">
-        Oops! Page not found
-      </h1>
-      <p className="text-white/50 font-medium mb-10 max-w-sm">
-        The page you&apos;re looking for doesn&apos;t exist or has been moved.
-      </p>
-
-      {/* Go Home */}
-      <Link
-        href="/"
-        className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-sm text-white mb-12 zy-motion hover:scale-105"
-        style={{ background: "linear-gradient(135deg, #3b82f6, #6366f1)" }}
-      >
-        Go Home
-      </Link>
-
-      {/* Join a Game */}
-      <div
-        className="w-full max-w-sm rounded-[2rem] p-8 border"
-        style={{ backgroundColor: "#16162a", borderColor: "#2a2a45" }}
-      >
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-white/40 mb-4">
-          Or Join a Game
+        <h1 className="zy-h1" style={{ marginTop: "var(--sp-3)", fontSize: "var(--fs-2xl)" }}>
+          Halaman ini tidak ada
+        </h1>
+        <p className="zy-muted" style={{ marginTop: "var(--sp-2)" }}>
+          Alamatnya mungkin salah ketik, atau halamannya sudah dipindahkan.
         </p>
-        <form onSubmit={handleJoin} className="flex flex-col gap-3">
-          <input
-            type="text"
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase())}
-            maxLength={6}
-            placeholder="ENTER CODE"
-            className="w-full text-center text-2xl font-black tracking-[0.3em] rounded-xl py-4 outline-none zy-motion"
-            style={{
-              backgroundColor: "#0f0f1a",
-              border: "1px solid #2a2a45",
-              color: "#ffffff",
-            }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
-            onBlur={(e) => (e.currentTarget.style.borderColor = "#2a2a45")}
-          />
-          {error && (
-            <p className="text-xs font-bold text-red-400 uppercase tracking-widest">{error}</p>
-          )}
-          <button
-            type="submit"
-            disabled={code.length !== 6}
-            className="w-full py-4 rounded-xl font-black uppercase tracking-widest text-sm text-white zy-motion hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed"
-            style={{ background: "linear-gradient(135deg, #3b82f6, #6366f1)" }}
-          >
-            Join Battle
-          </button>
-        </form>
+
+        <Link
+          href="/"
+          className="zy-btn zy-btn-ghost"
+          style={{ marginTop: "var(--sp-5)", justifyContent: "center" }}
+        >
+          <Home size={16} aria-hidden="true" />
+          Kembali ke halaman depan
+        </Link>
+
+        <div
+          className="zy-panel"
+          style={{ marginTop: "var(--sp-6)", padding: "var(--sp-6)", textAlign: "left" }}
+        >
+          <label htmlFor="kode-ruangan" className="zy-label" style={{ display: "block" }}>
+            Atau masuk ke ruangan
+          </label>
+
+          <form onSubmit={gabung} className="zy-stack" style={{ gap: "var(--sp-3)", marginTop: "var(--sp-3)" }}>
+            <input
+              id="kode-ruangan"
+              type="text"
+              inputMode="text"
+              autoCapitalize="characters"
+              autoComplete="off"
+              value={kode}
+              onChange={(e) => {
+                setKode(e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase());
+                if (galat) setGalat("");
+              }}
+              maxLength={6}
+              placeholder="KODE 6 HURUF"
+              aria-describedby={galat ? "galat-kode" : undefined}
+              aria-invalid={galat ? true : undefined}
+              className="zy-input zy-num"
+              style={{
+                width: "100%",
+                textAlign: "center",
+                fontSize: "var(--fs-lg)",
+                letterSpacing: "0.28em",
+                padding: "var(--sp-4)",
+              }}
+            />
+
+            {galat && (
+              <p
+                id="galat-kode"
+                role="alert"
+                style={{
+                  color: "var(--red)",
+                  fontSize: "var(--fs-sm)",
+                  fontWeight: "var(--fw-medium)",
+                }}
+              >
+                {galat}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={kode.length !== 6}
+              className="zy-btn zy-btn-primary zy-btn-lg"
+              style={{ width: "100%", justifyContent: "center" }}
+            >
+              Masuk ruangan
+              <ArrowRight size={16} aria-hidden="true" />
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

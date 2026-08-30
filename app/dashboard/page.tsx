@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
+import { useBahasa } from "@/lib/bahasa";
 import { Plus, Play, Edit, Trash2, Loader2, BookOpen } from "lucide-react";
 
 interface Quiz {
@@ -48,6 +49,7 @@ function Ringkasan({ label, value }: { label: string; value: string | number }) 
 }
 
 export default function Dashboard() {
+  const { t } = useBahasa();
   const { data: session, status } = useSession();
   const router = useRouter();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -82,7 +84,7 @@ export default function Dashboard() {
   const handleDelete = async (quizId: string, judul: string) => {
     // Judulnya disebut dalam pertanyaan. "Hapus kuis ini?" tidak
     // menolong siapa pun yang punya belasan kuis dengan nama mirip.
-    if (!confirm(`Hapus "${judul}"? Soal di dalamnya ikut terhapus dan tidak bisa dikembalikan.`)) {
+    if (!confirm(t("konfirmasiHapus").replace("{judul}", judul))) {
       return;
     }
     setMenghapus(quizId);
@@ -98,7 +100,7 @@ export default function Dashboard() {
   if (status === "loading") {
     return (
       <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
-        <Loader2 size={28} className="animate-spin" style={{ color: "var(--p)" }} aria-label="Memuat" />
+        <Loader2 size={28} className="animate-spin" style={{ color: "var(--p)" }} aria-label={t("memuat")} />
       </div>
     );
   }
@@ -112,13 +114,13 @@ export default function Dashboard() {
     <AppShell>
       <div className="zy-row-between zy-naik" style={{ alignItems: "flex-end", marginBottom: "var(--sp-6)", flexWrap: "wrap" }}>
         <div>
-          <h1 className="zy-h1">Kuis saya</h1>
+          <h1 className="zy-h1">{t("navKuisSaya")}</h1>
           <p className="zy-muted" style={{ marginTop: "var(--sp-1)" }}>
-            Selamat datang kembali, {session.user?.name?.split(" ")[0] || "Pengajar"}
+            {t("selamatDatang").replace("{nama}", session.user?.name?.split(" ")[0] || t("pengajar"))}
           </p>
         </div>
         <Link href="/create" className="zy-btn zy-btn-primary">
-          <Plus size={16} aria-hidden="true" /> Kuis baru
+          <Plus size={16} aria-hidden="true" /> {t("kuisBaru")}
         </Link>
       </div>
 
@@ -136,9 +138,9 @@ export default function Dashboard() {
           marginBottom: "var(--sp-6)",
         }}
       >
-        <Ringkasan label="Kuis" value={quizzes.length} />
-        <Ringkasan label="Soal" value={totalSoal} />
-        <Ringkasan label="Terbuka untuk umum" value={jumlahPublik} />
+        <Ringkasan label={t("ringkasKuis")} value={quizzes.length} />
+        <Ringkasan label={t("ringkasSoal")} value={totalSoal} />
+        <Ringkasan label={t("ringkasPublik")} value={jumlahPublik} />
       </div>
 
       {loading ? (
@@ -179,18 +181,17 @@ export default function Dashboard() {
             <BookOpen size={24} />
           </span>
           <div>
-            <h2 className="zy-h3">Belum ada kuis</h2>
+            <h2 className="zy-h3">{t("belumAdaKuis")}</h2>
             <p className="zy-body zy-prose" style={{ marginTop: "var(--sp-2)", maxWidth: "36ch" }}>
-              Susun kuis pertama Anda, atau ambil salah satu dari katalog umum lalu ubah sesuai
-              kebutuhan kelas.
+              {t("belumAdaKuisKet")}
             </p>
           </div>
           <div className="zy-row">
             <Link href="/create" className="zy-btn zy-btn-primary">
-              <Plus size={15} aria-hidden="true" /> Susun kuis
+              <Plus size={15} aria-hidden="true" /> {t("navSusunKuis")}
             </Link>
             <Link href="/explore" className="zy-btn zy-btn-secondary">
-              Lihat katalog
+              {t("lihatKatalog")}
             </Link>
           </div>
         </div>
@@ -205,7 +206,7 @@ export default function Dashboard() {
                 style={{ padding: "var(--sp-5)", display: "flex", flexDirection: "column" }}
               >
                 <div className="zy-row-between" style={{ alignItems: "flex-start", marginBottom: "var(--sp-3)" }}>
-                  <span className="zy-badge">{publik ? "Umum" : "Pribadi"}</span>
+                  <span className="zy-badge">{publik ? t("badgeUmum") : t("badgePribadi")}</span>
                   <span className="zy-label zy-num">
                     {new Date(quiz.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
                   </span>
@@ -228,12 +229,12 @@ export default function Dashboard() {
                 </h2>
 
                 <p className="zy-label zy-num" style={{ marginBottom: "var(--sp-4)" }}>
-                  {quiz.questionCount} soal
+                  {quiz.questionCount} {t("satuanSoal")}
                 </p>
 
                 <div className="zy-row" style={{ marginTop: "auto", gap: "var(--sp-2)" }}>
                   <button onClick={() => handleHost(quiz.id)} className="zy-btn zy-btn-primary" style={{ flex: 1 }}>
-                    <Play size={14} aria-hidden="true" /> Mulai
+                    <Play size={14} aria-hidden="true" /> {t("mulai")}
                   </button>
 
                   {/* Tombol berikut hanya berisi ikon, jadi namanya
@@ -242,7 +243,7 @@ export default function Dashboard() {
                   <Link
                     href={`/create?quizId=${encodeURIComponent(quiz.id)}`}
                     className="zy-btn zy-btn-secondary"
-                    aria-label={`Ubah kuis ${quiz.title}`}
+                    aria-label={t("ubahKuis").replace("{judul}", quiz.title)}
                     style={{ padding: "var(--sp-3)" }}
                   >
                     <Edit size={14} aria-hidden="true" />
@@ -252,7 +253,7 @@ export default function Dashboard() {
                     onClick={() => handleDelete(quiz.id, quiz.title)}
                     disabled={menghapus === quiz.id}
                     className="zy-btn zy-btn-danger"
-                    aria-label={`Hapus kuis ${quiz.title}`}
+                    aria-label={t("hapusKuis").replace("{judul}", quiz.title)}
                     style={{ padding: "var(--sp-3)" }}
                   >
                     {menghapus === quiz.id ? (

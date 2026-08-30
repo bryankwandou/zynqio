@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { handle } from '@/lib/api-guard';
 import { getRoom, getPlayers, normalizeRoomCode, RoomError } from '@/lib/room';
 import { getQuizForPlayers } from '@/lib/quiz';
+import { getQuestionStats } from '@/lib/answers';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
@@ -39,6 +40,33 @@ export const GET = handle(async (req) => {
       ? quiz.questions[room.current_question_index] ?? null
       : null;
 
+  /*
+    Statistik jawaban soal yang sedang berjalan, dihitung dari tabel
+    jawaban — bukan dari penghitung terpisah yang bisa melenceng.
+
+    Hanya sebaran pilihannya yang ikut, tidak pernah pilihan mana yang
+    benar: peserta memanggil route ini juga, dan mengirimkan penanda
+    is_correct ke sana sama saja dengan membocorkan kunci jawaban lewat
+    pintu belakang. Yang menyeberang cuma "berapa orang memilih apa",
+    ditambah jumlah yang benar sebagai satu angka gabungan untuk
+    ketepatan kelas — angka yang tidak memberi tahu pilihan mana pun.
+  */
+  let answerStats: Record<string, { total: number; correct: number; byAnswer: Record<string, number> }> = {};
+  if (current && room.session_id) {
+    try {
+      const stats = await getQuestionStats(room.session_id, current.id);
+      const byAnswer: Record<string, number> = {};
+      for (const baris of stats.distribution) {
+        const kunci = typeof baris.choice === 'string' ? baris.choice : JSON.stringify(baris.choice);
+        if (kunci !== null && kunci !== undefined) byAnswer[kunci] = (byAnswer[kunci] ?? 0) + baris.n;
+      }
+      answerStats = { [current.id]: { total: stats.total, correct: stats.correct, byAnswer } };
+    } catch {
+      // Statistik yang gagal dihitung tidak boleh menjatuhkan seluruh
+      // keadaan ruangan; layar tetap berjalan tanpa angka sebarannya.
+    }
+  }
+
   return NextResponse.json(
     {
       roomCode: room.code,
@@ -52,6 +80,9 @@ export const GET = handle(async (req) => {
       totalQuestions,
       isHost,
       question: current,
+      // Sebaran jawaban hanya berarti bagi layar guru, tetapi tidak
+      // berbahaya bagi murid: tidak ada kunci jawaban di dalamnya.
+      answerStats,
       players: players.map((p) => ({
         id: p.id,
         name: p.name,

@@ -2,8 +2,9 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
+import { useBahasa } from "@/lib/bahasa";
 import Link from "next/link";
 import { Loader2, User, FileQuestion, Search, Pencil } from "lucide-react";
 
@@ -43,6 +44,7 @@ interface Rekomendasi {
  * tidak bisa melihat batangnya.
  */
 function GrafikKetepatan({ sesi }: { sesi: Sesi[] }) {
+  const { t } = useBahasa();
   const terakhir = sesi.slice(0, 15).reverse();
   if (terakhir.length === 0) return null;
 
@@ -74,7 +76,7 @@ function GrafikKetepatan({ sesi }: { sesi: Sesi[] }) {
       </div>
 
       <table className="sr-only">
-        <caption>Ketepatan kelas pada tiap sesi terakhir</caption>
+        <caption>{t("ketepatanTiapSesi")}</caption>
         <tbody>
           {terakhir.map((s) => (
             <tr key={s.sessionId}>
@@ -113,7 +115,8 @@ function Ringkasan({ label, value }: { label: string; value: string | number }) 
   );
 }
 
-export default function HistoryPage() {
+function IsiRiwayat() {
+  const { t } = useBahasa();
   const { data: session, status } = useSession();
   const router = useRouter();
   const paramCari = useSearchParams();
@@ -151,7 +154,7 @@ export default function HistoryPage() {
   if (status === "loading" || loading) {
     return (
       <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
-        <Loader2 size={28} className="animate-spin" style={{ color: "var(--p)" }} aria-label="Memuat" />
+        <Loader2 size={28} className="animate-spin" style={{ color: "var(--p)" }} aria-label={t("memuat")} />
       </div>
     );
   }
@@ -172,9 +175,9 @@ export default function HistoryPage() {
   return (
     <AppShell>
       <div style={{ marginBottom: "var(--sp-5)" }}>
-        <h1 className="zy-h1">Riwayat</h1>
+        <h1 className="zy-h1">{t("navRiwayat")}</h1>
         <p className="zy-muted" style={{ marginTop: "var(--sp-1)" }}>
-          Sesi yang sudah Anda bawakan dan kuis yang Anda susun
+          {t("riwayatKet")}
         </p>
       </div>
 
@@ -186,7 +189,7 @@ export default function HistoryPage() {
       */}
       <div
         role="tablist"
-        aria-label="Bagian riwayat"
+        aria-label={t("bagianRiwayat")}
         style={{
           display: "flex",
           borderBottom: "1px solid var(--border-raw)",
@@ -195,8 +198,8 @@ export default function HistoryPage() {
       >
         {(
           [
-            ["sesi", "Sesi yang dibawakan"],
-            ["kuis", "Kuis saya"],
+            ["sesi", t("tabSesi")],
+            ["kuis", t("navKuisSaya")],
           ] as const
         ).map(([k, label]) => (
           <button
@@ -257,15 +260,14 @@ export default function HistoryPage() {
                   style={{ padding: "var(--sp-4) var(--sp-5)", borderBottom: "1px solid var(--border-raw)" }}
                 >
                   <h2 className="zy-h3" style={{ fontSize: "var(--fs-base)" }}>
-                    Sesi terakhir
+                    {t("sesiTerakhir")}
                   </h2>
                   <span className="zy-label zy-num">{sesi.length} tercatat</span>
                 </div>
 
                 {sesi.length === 0 ? (
                   <p className="zy-body" style={{ padding: "var(--sp-7) var(--sp-5)", textAlign: "center" }}>
-                    Belum ada sesi yang selesai. Setelah satu kuis dibawakan sampai tuntas,
-                    ringkasannya muncul di sini.
+                    {t("belumAdaSesi")}
                   </p>
                 ) : (
                   sesi.map((h, i) => (
@@ -313,7 +315,7 @@ export default function HistoryPage() {
                         >
                           {h.accuracy}%
                         </div>
-                        <div className="zy-label">ketepatan kelas</div>
+                        <div className="zy-label">{t("ketepatanKelasKecil")}</div>
                       </div>
                     </div>
                   ))
@@ -331,22 +333,22 @@ export default function HistoryPage() {
                   gap: "var(--sp-3)",
                 }}
               >
-                <Ringkasan label="Kuis" value={kuis.length} />
-                <Ringkasan label="Soal" value={totalSoal} />
+                <Ringkasan label={t("ringkasKuis")} value={kuis.length} />
+                <Ringkasan label={t("ringkasSoal")} value={totalSoal} />
               </div>
 
               <div className="zy-panel" style={{ overflow: "hidden" }}>
                 <div style={{ padding: "var(--sp-4) var(--sp-5)", borderBottom: "1px solid var(--border-raw)" }}>
                   <h2 className="zy-h3" style={{ fontSize: "var(--fs-base)" }}>
-                    Koleksi kuis
+                    {t("koleksiKuis")}
                   </h2>
                 </div>
 
                 {kuis.length === 0 ? (
                   <p className="zy-body" style={{ padding: "var(--sp-7) var(--sp-5)", textAlign: "center" }}>
-                    Belum ada kuis.{" "}
+                    {t("belumAdaKuisTitik")}{" "}
                     <Link href="/create" style={{ color: "var(--p2)", fontWeight: "var(--fw-medium)" }}>
-                      Susun yang pertama
+                      {t("susunYangPertama")}
                     </Link>
                   </p>
                 ) : (
@@ -400,11 +402,11 @@ export default function HistoryPage() {
         <aside>
           <div className="zy-panel" style={{ padding: "var(--sp-5)", position: "sticky", top: "var(--sp-6)" }}>
             <h2 className="zy-label" style={{ marginBottom: "var(--sp-4)" }}>
-              KUIS YANG MUNGKIN COCOK
+              {t("kuisMungkinCocok")}
             </h2>
 
             {rekomendasi.length === 0 ? (
-              <p className="zy-muted">Belum ada saran.</p>
+              <p className="zy-muted">{t("belumAdaSaran")}</p>
             ) : (
               <div className="zy-stack-sm">
                 {rekomendasi.slice(0, 6).map((rec) => (
@@ -454,5 +456,33 @@ export default function HistoryPage() {
         </aside>
       </div>
     </AppShell>
+  );
+}
+
+/*
+  useSearchParams memaksa halaman ini dirender di peramban. Next 16
+  menolak membangun halaman semacam itu bila tidak dibungkus batas
+  Suspense — tanpa pembungkus ini, seluruh halaman gagal dibangun,
+  bukan hanya bagian yang membaca alamat.
+
+  Cadangannya sengaja dibuat menyerupai kerangka halaman, bukan layar
+  kosong, supaya jeda sepersekian detik itu tidak terbaca seperti
+  aplikasi yang mati.
+*/
+export default function HistoryPage() {
+  const { t } = useBahasa();
+  return (
+    <Suspense
+      fallback={
+        <AppShell>
+          <div className="zy-stack" style={{ alignItems: "center", padding: "var(--sp-7) 0", gap: "var(--sp-3)" }}>
+            <Loader2 size={22} className="animate-spin" style={{ color: "var(--p)" }} aria-hidden="true" />
+            <p className="zy-muted" role="status">{t("memuatRiwayat")}</p>
+          </div>
+        </AppShell>
+      }
+    >
+      <IsiRiwayat />
+    </Suspense>
   );
 }

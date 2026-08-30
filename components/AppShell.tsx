@@ -17,7 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { TombolBahasa } from "@/lib/bahasa";
+import { TombolBahasa, useBahasa, type KunciTeks } from "@/lib/bahasa";
 import { Logo } from "./Logo";
 
 /**
@@ -28,15 +28,16 @@ import { Logo } from "./Logo";
  * ditemukan". Menu yang menjanjikan halaman yang tidak ada lebih buruk
  * daripada menu yang lebih pendek.
  */
-const NAV_ITEMS = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Kuis saya" },
-  { href: "/create",    icon: Plus,            label: "Susun kuis" },
-  { href: "/explore",   icon: Compass,         label: "Jelajahi" },
-  { href: "/history",   icon: Clock,           label: "Riwayat" },
-  { href: "/analytics", icon: BarChart2,       label: "Kuis tersusun" },
+const NAV_ITEMS: { href: string; icon: typeof LayoutDashboard; kunci: KunciTeks }[] = [
+  { href: "/dashboard", icon: LayoutDashboard, kunci: "navKuisSaya" },
+  { href: "/create",    icon: Plus,            kunci: "navSusunKuis" },
+  { href: "/explore",   icon: Compass,         kunci: "navJelajahi" },
+  { href: "/history",   icon: Clock,           kunci: "navRiwayat" },
+  { href: "/analytics", icon: BarChart2,       kunci: "navKuisTersusun" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const { t } = useBahasa();
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const { data: session } = useSession();
@@ -103,7 +104,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             }}
           >
             <item.icon size={17} strokeWidth={active ? 2.2 : 1.8} />
-            {item.label}
+            {t(item.kunci)}
           </Link>
         );
       })}
@@ -121,7 +122,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             }}
           >
             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {session.user?.name || "Pengajar"}
+              {session.user?.name || t("pengajar")}
             </div>
             <div style={{ fontSize: 11, color: "var(--t3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>
               {session.user?.email}
@@ -134,7 +135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           style={{ flex: 1, padding: "var(--sp-2)", fontSize: "var(--fs-xs)", justifyContent: "center" }}
         >
           {theme === "dark" ? <Sun size={14} aria-hidden="true" /> : <Moon size={14} aria-hidden="true" />}
-          {theme === "dark" ? "Terang" : "Gelap"}
+          {theme === "dark" ? t("temaTerang") : t("temaGelap")}
         </button>
         {/* Pengalih bahasa diletakkan bersebelahan dengan pengalih tema:
             keduanya mengubah tampilan seluruh aplikasi, bukan halaman
@@ -145,7 +146,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           onClick={() => signOut({ callbackUrl: "/auth/signin" })}
           className="zy-btn zy-btn-danger"
           style={{ padding: "var(--sp-2) var(--sp-3)" }}
-          aria-label="Keluar dari akun"
+          aria-label={t("keluarAkun")}
         >
           <LogOut size={14} />
         </button>
@@ -183,7 +184,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-expanded={mobileOpen}
-          aria-label={mobileOpen ? "Tutup menu" : "Buka menu"}
+          aria-label={mobileOpen ? t("tutupMenu") : t("bukaMenu")}
           style={{ color: "var(--t1)", padding: "var(--sp-1)" }}
         >
           {mobileOpen ? <X size={22} /> : <Menu size={22} />}

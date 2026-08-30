@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { AuthShell, AuthNotice } from "@/components/AuthShell";
+import { useBahasa } from "@/lib/bahasa";
 
 /**
  * Panjang minimum kata sandi.
@@ -20,6 +21,7 @@ import { AuthShell, AuthNotice } from "@/components/AuthShell";
 const MIN_KATA_SANDI = 8;
 
 export default function SignUpPage() {
+  const { t } = useBahasa();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -36,7 +38,7 @@ export default function SignUpPage() {
     // panjang. Peladen tetap memeriksanya sendiri — pemeriksaan di sisi
     // peramban adalah kemudahan, bukan penjagaan.
     if (password.length < MIN_KATA_SANDI) {
-      setError(`Kata sandi minimal ${MIN_KATA_SANDI} karakter.`);
+      setError(t("minKarakter").replace("{n}", String(MIN_KATA_SANDI)));
       return;
     }
 
@@ -54,9 +56,9 @@ export default function SignUpPage() {
       }
 
       const data = await res.json().catch(() => null);
-      setError(data?.error ?? "Pendaftaran gagal. Coba lagi sebentar lagi.");
+      setError(data?.error ?? t("galatDaftar"));
     } catch {
-      setError("Sambungan bermasalah. Periksa jaringan Anda lalu coba lagi.");
+      setError(t("sambunganBermasalah"));
     } finally {
       setIsLoading(false);
     }
@@ -64,13 +66,13 @@ export default function SignUpPage() {
 
   return (
     <AuthShell
-      title="Buat akun"
-      subtitle="Mulai susun kuis untuk kelas Anda"
+      title={t("daftarJudul")}
+      subtitle={t("daftarSub")}
       footer={
         <>
-          Sudah punya akun?{" "}
+          {t("sudahPunyaAkun")}{" "}
           <Link href="/auth/signin" style={{ color: "var(--p2)", fontWeight: "var(--fw-medium)" }}>
-            Masuk di sini
+            {t("masukDiSini")}
           </Link>
         </>
       }
@@ -80,7 +82,7 @@ export default function SignUpPage() {
       <form onSubmit={handleSubmit} className="zy-stack-sm">
         <div className="zy-stack-sm" style={{ gap: "var(--sp-1)" }}>
           <label htmlFor="email" className="zy-label">
-            Email
+            {t("labelEmail")}
           </label>
           <input
             id="email"
@@ -90,13 +92,13 @@ export default function SignUpPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="zy-input"
-            placeholder="nama@sekolah.sch.id"
+            placeholder={t("isiEmail")}
           />
         </div>
 
         <div className="zy-stack-sm" style={{ gap: "var(--sp-1)" }}>
           <label htmlFor="username" className="zy-label">
-            Nama tampilan
+            {t("labelNama")}
           </label>
           <input
             id="username"
@@ -108,13 +110,13 @@ export default function SignUpPage() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="zy-input"
-            placeholder="Nama yang dilihat peserta"
+            placeholder={t("isiNama")}
           />
         </div>
 
         <div className="zy-stack-sm" style={{ gap: "var(--sp-1)" }}>
           <label htmlFor="password" className="zy-label">
-            Kata sandi
+            {t("labelSandi")}
           </label>
           <input
             id="password"
@@ -129,7 +131,7 @@ export default function SignUpPage() {
             placeholder="••••••••"
           />
           <p id="bantuan-sandi" className="zy-label" style={{ color: "var(--t4)" }}>
-            Minimal {MIN_KATA_SANDI} karakter.
+            {t("minKarakter").replace("{n}", String(MIN_KATA_SANDI))}
           </p>
         </div>
 
@@ -142,11 +144,11 @@ export default function SignUpPage() {
           {isLoading ? (
             <>
               <Loader2 size={16} className="animate-spin" aria-hidden="true" />
-              Sedang mendaftar
+              {t("sedangMendaftar")}
             </>
           ) : (
             <>
-              Daftar <ArrowRight size={15} aria-hidden="true" />
+              {t("daftar")} <ArrowRight size={15} aria-hidden="true" />
             </>
           )}
         </button>

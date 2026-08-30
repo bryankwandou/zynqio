@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
+import { useBahasa } from "@/lib/bahasa";
 import { Search, Play, Star, User, FileQuestion } from "lucide-react";
 import Link from "next/link";
 import { SampulKuis } from "@/components/SampulKuis";
@@ -46,6 +47,7 @@ interface Quiz {
 }
 
 export default function ExplorePage() {
+  const { t } = useBahasa();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
@@ -75,15 +77,15 @@ export default function ExplorePage() {
   return (
     <AppShell>
       <div style={{ marginBottom: "var(--sp-5)" }}>
-        <h1 className="zy-h1">Jelajahi</h1>
+        <h1 className="zy-h1">{t("navJelajahi")}</h1>
         <p className="zy-muted" style={{ marginTop: "var(--sp-1)" }}>
-          Kuis siap pakai yang bisa langsung dibawakan atau disalin lalu diubah
+          {t("jelajahiKet")}
         </p>
       </div>
 
       <div style={{ position: "relative", marginBottom: "var(--sp-4)" }}>
         <label htmlFor="cari" className="sr-only">
-          Cari kuis
+          {t("cariKuis")}
         </label>
         <Search
           size={16}
@@ -100,7 +102,7 @@ export default function ExplorePage() {
         <input
           id="cari"
           type="search"
-          placeholder="Cari judul kuis"
+          placeholder={t("cariJudul")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="zy-input"
@@ -115,7 +117,7 @@ export default function ExplorePage() {
       */}
       <div
         role="group"
-        aria-label="Saring menurut mata pelajaran"
+        aria-label={t("saringMapel")}
         className="zy-row"
         style={{ flexWrap: "wrap", gap: "var(--sp-2)", marginBottom: "var(--sp-5)" }}
       >
@@ -125,7 +127,7 @@ export default function ExplorePage() {
           className="zy-motion"
           style={chipStyle(!category)}
         >
-          Semua
+          {t("semuaMapel")}
         </button>
         {KATEGORI.map((cat) => (
           <button
@@ -157,11 +159,11 @@ export default function ExplorePage() {
             textAlign: "center",
           }}
         >
-          <h2 className="zy-h3">Tidak ada yang cocok</h2>
+          <h2 className="zy-h3">{t("takAdaCocok")}</h2>
           <p className="zy-body" style={{ maxWidth: "40ch" }}>
             {adaSaringan
-              ? "Coba kata kunci lain, atau lepas saringan mata pelajarannya."
-              : "Katalog umum masih kosong."}
+              ? t("takAdaCocokKet")
+              : t("katalogKosong")}
           </p>
           {adaSaringan && (
             <button
@@ -171,7 +173,7 @@ export default function ExplorePage() {
               }}
               className="zy-btn zy-btn-secondary"
             >
-              Tampilkan semua
+              {t("tampilkanSemua")}
             </button>
           )}
         </div>
@@ -202,7 +204,7 @@ export default function ExplorePage() {
                     {quiz.rating}
                   </span>
                 ) : (
-                  <span className="zy-label">Baru</span>
+                  <span className="zy-label">{t("badgeBaru")}</span>
                 )}
               </div>
 
@@ -224,7 +226,7 @@ export default function ExplorePage() {
                   <User size={12} aria-hidden="true" /> {quiz.author ?? "Anonim"}
                 </span>
                 <span className="zy-label zy-row zy-num" style={{ gap: "var(--sp-1)" }}>
-                  <FileQuestion size={12} aria-hidden="true" /> {quiz.questionCount ?? 0} soal
+                  <FileQuestion size={12} aria-hidden="true" /> {quiz.questionCount ?? 0} {t("satuanSoal")}
                 </span>
               </div>
 
@@ -232,9 +234,9 @@ export default function ExplorePage() {
                 href={`/quiz/${quiz.hostId}/${quiz.id}`}
                 className="zy-btn zy-btn-primary"
                 style={{ marginTop: "auto" }}
-                aria-label={`Buka kuis ${quiz.title}`}
+                aria-label={t("bukaKuis").replace("{judul}", quiz.title)}
               >
-                <Play size={13} aria-hidden="true" /> Buka
+                <Play size={13} aria-hidden="true" /> {t("buka")}
               </Link>
             </article>
           ))}
