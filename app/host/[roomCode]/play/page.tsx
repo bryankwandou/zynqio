@@ -8,6 +8,7 @@ import { getAvatar } from "@/lib/avatars";
 import { Users, SkipForward, Trophy, Eye, Flame, Square, Zap } from "lucide-react";
 import { getPusherClient } from "@/lib/pusher-client";
 import GameMusicPlayer from "@/components/GameMusicPlayer";
+import { useBahasa } from "@/lib/bahasa";
 
 const COLORS = [
   { bg: "bg-red-500",   bar: "bg-red-400",   shape: "▲" },
@@ -20,6 +21,10 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   const { status } = useSession();
   const router = useRouter();
   const { roomCode } = use(params);
+  // Layar guru selama ini menulis kalimatnya langsung di kode — sebagian
+  // Inggris, sebagian Indonesia — sehingga menekan tombol bahasa tidak
+  // menggerakkan apa pun di sini.
+  const { t } = useBahasa();
 
   const [currentQuestion, setCurrentQuestion] = useState<any>(null);
   const [isRevealed, setIsRevealed] = useState(false);
@@ -209,12 +214,43 @@ const RAGAM: Record<string, string> = {
   const questionId = currentQuestion?.id;
   const answerStats = roomState?.answerStats?.[questionId] || { total: 0, correct: 0, byAnswer: {} };
   const totalAnswered = answerStats.total || 0;
-  const classAccuracyPct =
-    totalAnswered > 0 ? Math.round(((answerStats.correct || 0) / totalAnswered) * 100) : null;
 
   const leaderboard = [...(roomState?.players || [])].sort(
     (a, b) => (b.score || 0) - (a.score || 0)
   );
+
+  /**
+   * Ketepatan kelas.
+   *
+   * Sebelumnya angka ini selalu diambil dari answerStats, yang hanya
+   * berisi satu soal: soal yang sedang ditunjuk guru. Pada mode Langsung
+   * itu benar, karena semua orang memang mengerjakan soal yang sama.
+   *
+   * Pada mode Klasik tidak ada "soal yang sama" — setiap peserta berjalan
+   * di soal berbeda, dan soal yang ditunjuk guru boleh jadi belum dijawab
+   * siapa pun. Hasilnya sebuah layar yang menampilkan 20 jawaban masuk
+   * dengan 4 benar dan 2 benar di sebelahnya, lalu menulis ketepatan kelas
+   * 0% di atasnya. Angkanya tidak kosong, ia salah — dan itu lebih buruk,
+   * karena tidak ada yang terlihat rusak.
+   *
+   * Di mode Klasik ketepatan dihitung dari seluruh jawaban yang sudah
+   * masuk, persis penjumlahan angka yang sudah tampil di baris peserta.
+   */
+  const jawabanKelas = leaderboard.reduce(
+    (n, p: any) => n + (p.totalAnswered || 0),
+    0
+  );
+  const benarKelas = leaderboard.reduce(
+    (n, p: any) => n + (p.totalCorrect || 0),
+    0
+  );
+  const classAccuracyPct = isClassicMode
+    ? jawabanKelas > 0
+      ? Math.round((benarKelas / jawabanKelas) * 100)
+      : null
+    : totalAnswered > 0
+      ? Math.round(((answerStats.correct || 0) / totalAnswered) * 100)
+      : null;
   const totalPlayers = leaderboard.length;
   const qIndex = roomState?.currentQuestionIndex ?? 0;
 
@@ -491,7 +527,7 @@ const RAGAM: Record<string, string> = {
                 {classAccuracyPct !== null ? `${classAccuracyPct}%` : "—"}
               </span>
               <span className="text-[8px] font-black text-white/40 uppercase tracking-wide mt-0.5">
-                Ketepatan
+                {t("ketepatanKecil")}
               </span>
             </div>
             <div className="flex-1 h-4 bg-red-900/30 rounded-r-full overflow-hidden">
@@ -505,16 +541,16 @@ const RAGAM: Record<string, string> = {
           {/* Leaderboard legend */}
           <div className="px-4 pb-2 flex items-center justify-between shrink-0">
             <h2 className="text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-1">
-              <Trophy size={10} className="text-yellow-400" aria-hidden="true" /> Peringkat langsung
+              <Trophy size={10} className="text-yellow-400" aria-hidden="true" /> {t("peringkatLangsung")}
             </h2>
-            <span className="text-[10px] font-black text-white/20">{totalPlayers} peserta</span>
+            <span className="text-[10px] font-black text-white/20">{totalPlayers} {t("pesertaKecil")}</span>
           </div>
 
           {/* Legend: status colors (Wayground-style) */}
           <div className="px-3 pb-2 flex items-center gap-2 flex-wrap shrink-0 text-[8px] font-bold uppercase tracking-wider">
-            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 bg-green-500 rounded-sm" /><span className="text-white/40">Benar</span></div>
-            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 bg-red-500 rounded-sm" /><span className="text-white/40">Salah</span></div>
-            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 bg-amber-500 rounded-sm" /><span className="text-white/40">Sebagian benar</span></div>
+            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 bg-green-500 rounded-sm" /><span className="text-white/40">{t("benarKecil")}</span></div>
+            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 bg-red-500 rounded-sm" /><span className="text-white/40">{t("salahKecil")}</span></div>
+            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 bg-amber-500 rounded-sm" /><span className="text-white/40">{t("sebagianBenarKecil")}</span></div>
             <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 bg-white/10 rounded-sm" /><span className="text-white/40">N/A</span></div>
           </div>
 
@@ -722,7 +758,7 @@ const RAGAM: Record<string, string> = {
               <div className="mx-4 mt-4 mb-3 px-4 py-2 bg-blue-600/10 border border-blue-500/20 rounded-xl flex items-center gap-2 shrink-0">
                 <Zap size={14} className="text-blue-400" />
                 <span className="text-xs font-black text-blue-400 uppercase tracking-widest">
-                  CLASSIC — Player-paced · each player advances at their own speed
+                  {t("klasikSpanduk")}
                 </span>
               </div>
 
@@ -732,7 +768,9 @@ const RAGAM: Record<string, string> = {
                   Kemajuan peserta · {totalPlayers} peserta
                 </span>
                 <span className="text-[10px] font-black text-white/20 uppercase">
-                  {totalQuestions > 0 ? `${playersFinished}/${totalPlayers} finished` : "loading..."}
+                  {totalQuestions > 0
+                    ? `${playersFinished}/${totalPlayers} ${t("tamatKecil")}`
+                    : t("memuatKecil")}
                 </span>
               </div>
 
@@ -765,6 +803,23 @@ const RAGAM: Record<string, string> = {
                       }
                     });
 
+                    /**
+                     * Riwayat per-soal hanya terbentuk dari kabar langsung
+                     * yang tiba selagi tab ini terbuka; ia tidak ikut
+                     * dikirim /api/room/state. Guru yang memuat ulang
+                     * halamannya kehilangan seluruhnya, sementara angka di
+                     * sebelahnya tetap dibaca dari peladen.
+                     *
+                     * Akibatnya satu baris bisa berkata "10/45" sambil
+                     * menggambar empat puluh lima kotak yang semuanya
+                     * berarti "belum dijawab". Selama kotak-kotak itu belum
+                     * bisa dipulihkan dari peladen, lebih jujur menampilkan
+                     * apa yang memang diketahui — berapa banyak — daripada
+                     * mengarang soal mana.
+                     */
+                    const riwayatDiketahui = Object.keys(historyByIndex).length > 0;
+                    const riwayatHilang = !riwayatDiketahui && answered > 0;
+
                     return (
                       <div
                         key={p.id || p.name}
@@ -790,13 +845,26 @@ const RAGAM: Record<string, string> = {
                             <span className="font-bold text-sm text-white truncate">{p.name}</span>
                             <div className="flex items-center gap-2 text-xs shrink-0 ml-2">
                               {isDone ? (
-                                <span className="text-green-400 font-black text-[10px] uppercase">✓ Done</span>
+                                <span className="text-green-400 font-black text-[10px] uppercase">✓ {t("tamatKecil")}</span>
                               ) : (
                                 <span className="text-white/40 font-bold">{answered}/{totalQs}</span>
                               )}
                             </div>
                           </div>
                           {/* Wayground-style colored grid (one cell per question) */}
+                          {riwayatHilang ? (
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-3.5 rounded-sm bg-white/[0.07] overflow-hidden">
+                                <div
+                                  className="h-full bg-sky-500/70 zy-motion"
+                                  style={{ width: `${Math.min(100, Math.round((answered / totalQs) * 100))}%` }}
+                                />
+                              </div>
+                              <span className="text-[8px] text-white/30 font-bold uppercase tracking-wider shrink-0">
+                                {t("riwayatSoalTakTermuat")}
+                              </span>
+                            </div>
+                          ) : (
                           <div className="flex items-center gap-[3px]">
                             {Array.from({ length: Math.min(totalQs, 25) }).map((_, qi) => {
                               const status = historyByIndex[qi];
@@ -818,10 +886,11 @@ const RAGAM: Record<string, string> = {
                               <span className="text-[8px] text-white/30 ml-1">+{totalQs - 25}</span>
                             )}
                           </div>
+                          )}
                           {/* Mini stats */}
                           <div className="flex items-center gap-3 mt-1.5 text-[10px]">
                             <span className="text-white/30">
-                              Acc <span className={`font-black ${accuracy >= 70 ? "text-green-400" : accuracy >= 40 ? "text-amber-400" : accuracy > 0 ? "text-red-400" : "text-white/30"}`}>{accuracy}%</span>
+                              {t("ketepatanSingkat")} <span className={`font-black ${accuracy >= 70 ? "text-green-400" : accuracy >= 40 ? "text-amber-400" : accuracy > 0 ? "text-red-400" : "text-white/30"}`}>{accuracy}%</span>
                             </span>
                             <span className="text-white/30">
                               <span className="text-green-400 font-bold">{correct}</span>/{answered}
