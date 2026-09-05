@@ -178,6 +178,37 @@ export async function getQuestionStats(sessionId: string, questionId: string) {
   return { total, correct, distribution: rows };
 }
 
+/**
+ * Riwayat jawaban tiap peserta dalam satu sesi, untuk kisi per-soal di
+ * layar guru.
+ *
+ * Sebelumnya kisi itu hanya terisi dari kabar langsung yang tiba selagi
+ * tab guru terbuka. Riwayatnya tidak pernah tersimpan di mana pun selain
+ * memori peramban, jadi memuat ulang halaman — atau membukanya di
+ * perangkat lain — menghapus seluruhnya, sementara angka di sebelahnya
+ * tetap dibaca dari peladen. Satu baris bisa berkata "10/45" sambil
+ * menggambar empat puluh lima kotak yang semuanya berarti "belum
+ * dijawab".
+ *
+ * Yang keluar dari sini memuat is_correct, jadi ia hanya boleh diberikan
+ * kepada guru. Route yang memanggilnya wajib memeriksa itu lebih dulu;
+ * mengirimkannya ke peserta sama saja membocorkan kunci jawaban.
+ */
+export async function getAnswerHistory(sessionId: string) {
+  return (await sql`
+    SELECT player_id, question_id, is_correct, choice, points
+    FROM answers
+    WHERE session_id = ${sessionId}
+    ORDER BY answered_at ASC
+  `) as {
+    player_id: string;
+    question_id: string;
+    is_correct: boolean;
+    choice: unknown;
+    points: number;
+  }[];
+}
+
 /** Papan peringkat langsung dari tabel peserta. */
 export async function getLeaderboard(roomCode: string, limit = 100) {
   return (await sql`
