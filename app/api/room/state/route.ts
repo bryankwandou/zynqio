@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { handle } from '@/lib/api-guard';
 import { getRoom, getPlayers, normalizeRoomCode, RoomError } from '@/lib/room';
 import { getQuizForPlayers } from '@/lib/quiz';
-import { getQuestionStats } from '@/lib/answers';
+import { getQuestionStats, getAnswerHistory } from '@/lib/answers';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
@@ -67,6 +67,42 @@ export const GET = handle(async (req) => {
     }
   }
 
+  /*
+    Riwayat per-soal tiap peserta, untuk kisi berwarna di layar guru.
+
+    Sebelumnya kisi itu hanya terisi dari kabar langsung Pusher yang tiba
+    selagi tab guru terbuka, dan tidak pernah ikut dikirim dari sini.
+    Guru yang memuat ulang halamannya — atau membukanya di perangkat
+    lain — melihat seluruh kotak berubah menjadi "belum dijawab",
+    sementara angka di sebelahnya tetap dibaca dari peladen dan berkata
+    sepuluh soal sudah dijawab.
+
+    Isinya memuat is_correct, jadi ia hanya berangkat kepada guru. Murid
+    memanggil route yang sama; memberikan penanda benar-salah kepada
+    mereka sama saja membocorkan kunci jawaban lewat pintu belakang,
+    persis seperti yang sudah dijaga pada answerStats di atas.
+  */
+  let answerHistory: Record<string, Record<string, { status: string; questionIndex: number; points: number }>> = {};
+  if (isHost && room.session_id && quiz) {
+    try {
+      const indeksSoal = new Map(quiz.questions.map((q, i) => [q.id, i]));
+      const baris = await getAnswerHistory(room.session_id);
+      for (const b of baris) {
+        const i = indeksSoal.get(b.question_id);
+        if (i === undefined) continue;
+        (answerHistory[b.player_id] ??= {})[b.question_id] = {
+          status: b.choice === null ? 'unattempted' : b.is_correct ? 'correct' : 'wrong',
+          questionIndex: i,
+          points: b.points ?? 0,
+        };
+      }
+    } catch {
+      // Riwayat yang gagal dibaca tidak boleh menjatuhkan keadaan ruangan.
+      // Layar guru sudah tahu cara mengatakan bahwa rinciannya tak termuat.
+      answerHistory = {};
+    }
+  }
+
   return NextResponse.json(
     {
       roomCode: room.code,
@@ -91,6 +127,8 @@ export const GET = handle(async (req) => {
         streak: p.streak,
         totalAnswered: p.total_answered,
         totalCorrect: p.total_correct,
+        // Kosong bagi murid; hanya layar guru yang menerima isinya.
+        answerHistory: answerHistory[p.id] ?? {},
       })),
     },
     { headers: { 'Cache-Control': 'no-store' } }

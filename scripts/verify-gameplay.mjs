@@ -16,6 +16,7 @@
 
 import pg from 'pg';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 const BASE = (process.argv[2] || 'http://localhost:3000').replace(/\/$/, '');
 const connectionString = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
@@ -235,6 +236,80 @@ async function main() {
         'Skor tersimpan konsisten dengan jumlah jawaban',
         p && a.n === 2 && p.total_answered === 2 && p.total_correct === 2,
         `skor ${p?.score}, dijawab ${p?.total_answered}, benar ${p?.total_correct}, baris jawaban ${a.n}`
+      );
+    }
+
+    // ---- 11. riwayat per-soal tidak menyeberang ke peserta ------------
+    //
+    // Layar guru menerima riwayat jawaban tiap peserta supaya kisi
+    // berwarnanya tetap utuh setelah halaman dimuat ulang. Riwayat itu
+    // memuat penanda benar-salah untuk tiap soal yang sudah dijawab.
+    //
+    // Peserta memanggil route yang sama. Kalau riwayatnya ikut berangkat
+    // ke mereka, seorang murid bisa membaca soal mana yang dijawab benar
+    // oleh temannya — dan pada mode Klasik, tempat setiap orang berjalan
+    // di soal berbeda, itu berarti kunci jawaban soal yang belum ia
+    // kerjakan. Pemeriksaan ini berjalan setelah dua jawaban tercatat,
+    // jadi riwayat yang bocor pasti terlihat.
+    {
+      const st = await panggil(`/api/room/state?roomCode=${KODE}`);
+      const daftar = st.body?.players ?? [];
+      const adaRiwayat = daftar.some(
+        (p) => p.answerHistory && Object.keys(p.answerHistory).length > 0
+      );
+      const teks = JSON.stringify(st.body ?? {});
+      const adaPenanda = /"status"\s*:\s*"(correct|wrong)"/i.test(teks);
+      catat(
+        'Riwayat per-soal tidak dikirim ke peserta',
+        !adaRiwayat && !adaPenanda,
+        adaRiwayat || adaPenanda ? 'RIWAYAT BOCOR' : `${daftar.length} peserta, riwayat kosong`
+      );
+    }
+
+    // ---- 11b. guru justru harus menerimanya --------------------------
+    //
+    // Pemeriksaan di atas hanya membuktikan riwayatnya tidak bocor. Kalau
+    // berhenti di situ, cara termudah untuk lulus adalah tidak pernah
+    // mengirimkannya kepada siapa pun — dan kisi berwarna di layar guru
+    // tetap kosong seperti semula. Jadi sisi sebaliknya ikut dibuktikan:
+    // guru yang sah menerima riwayat kedua soal yang sudah dijawab.
+    {
+      const sandi = `Uji-${TAG}-${crypto.randomBytes(4).toString('hex')}!`;
+      await pool.query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [
+        await bcrypt.hash(sandi, 10),
+        hostId,
+      ]);
+      const { rows: [u] } = await pool.query(`SELECT email FROM users WHERE id = $1`, [hostId]);
+
+      const kuki = {};
+      const pungut = (res) => {
+        for (const b of res.headers.getSetCookie?.() ?? []) {
+          const [pasangan] = b.split(';');
+          const i = pasangan.indexOf('=');
+          if (i > 0) kuki[pasangan.slice(0, i).trim()] = pasangan.slice(i + 1).trim();
+        }
+      };
+      const rangkai = () => Object.entries(kuki).map(([k, v]) => `${k}=${v}`).join('; ');
+
+      const csrfRes = await fetch(`${BASE}/api/auth/csrf`);
+      pungut(csrfRes);
+      const { csrfToken } = await csrfRes.json();
+      const masuk = await fetch(`${BASE}/api/auth/callback/credentials`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', Cookie: rangkai() },
+        body: new URLSearchParams({ email: u.email, password: sandi, csrfToken, json: 'true' }),
+        redirect: 'manual',
+      });
+      pungut(masuk);
+
+      const st = await panggil(`/api/room/state?roomCode=${KODE}`, { headers: { Cookie: rangkai() } });
+      const punyaRiwayat = (st.body?.players ?? []).some(
+        (p) => p.answerHistory && Object.keys(p.answerHistory).length === 2
+      );
+      catat(
+        'Guru menerima riwayat per-soal setelah memuat ulang',
+        st.body?.isHost === true && punyaRiwayat,
+        `isHost=${st.body?.isHost}, riwayat ${(st.body?.players ?? []).map((p) => Object.keys(p.answerHistory ?? {}).length).join('/')}`
       );
     }
 
