@@ -125,18 +125,55 @@ const KAMUS = {
                       en: "Signing in failed. Try again in a moment." },
   galatDaftar:      { id: "Pendaftaran gagal. Coba lagi sebentar lagi.",
                       en: "Creating the account failed. Try again in a moment." },
-  akunSudahDibuat:  { id: "Akun Anda sudah dibuat. Silakan masuk.",
-                      en: "Your account is ready. Please sign in." },
+  // Pendaftaran sengaja membalas sama untuk email baru dan email yang
+  // sudah terdaftar, supaya halaman ini tidak bisa dipakai memeriksa
+  // siapa punya akun di sini. Tetapi kalimat lamanya — "Akun Anda sudah
+  // dibuat" — mengubah kerahasiaan itu menjadi jebakan: orang yang
+  // mendaftar ulang dengan kata sandi baru percaya sandi itu terpasang,
+  // padahal tidak ada yang berubah. Ia lalu tidak bisa masuk dan
+  // menyimpulkan akunnya hilang.
+  //
+  // Kalimat penggantinya benar untuk kedua kemungkinan sekaligus, jadi
+  // tidak ada yang bocor dan tidak ada yang tersesat.
+  akunSudahDibuat:  { id: "Pendaftaran diterima. Bila alamat itu belum punya akun, akunnya sudah dibuat — silakan masuk. Bila sudah punya, masuklah dengan kata sandi lama, atau pulihkan lewat Lupa kata sandi.",
+                      en: "Registration received. If that address had no account, one has been created — please sign in. If it already had one, sign in with the existing password, or recover it via Forgotten password." },
+
+  // ── Layar guru saat permainan berjalan ────────────────────────────
+  //
+  // Kalimat-kalimat ini sebelumnya tertulis langsung di dalam
+  // app/host/[roomCode]/play/page.tsx, sebagian Inggris dan sebagian
+  // Indonesia, di layar yang sama. Menekan tombol bahasa di sana tidak
+  // menggerakkan satu kata pun.
+  klasikSpanduk:    { id: "KLASIK — Tiap peserta maju dengan kecepatannya sendiri",
+                      en: "CLASSIC — Player-paced · each player advances at their own speed" },
+  tamatKecil:       { id: "tamat",                    en: "finished" },
+  memuatKecil:      { id: "memuat...",                en: "loading..." },
+  ketepatanKecil:   { id: "Ketepatan",                en: "Accuracy" },
+  ketepatanSingkat: { id: "Tepat",                    en: "Acc" },
+  peringkatLangsung:{ id: "Peringkat langsung",       en: "Live ranking" },
+  pesertaKecil:     { id: "peserta",                  en: "players" },
+  benarKecil:       { id: "Benar",                    en: "Correct" },
+  salahKecil:       { id: "Salah",                    en: "Wrong" },
+  sebagianBenarKecil:{ id: "Sebagian benar",          en: "Partly correct" },
+  riwayatSoalTakTermuat: { id: "rincian per-soal tidak termuat",
+                      en: "per-question detail unavailable" },
 
   // ── Lupa dan ganti kata sandi ─────────────────────────────────────
   lupaJudul:        { id: "Lupa kata sandi",          en: "Forgotten password" },
-  lupaSub:          { id: "Masukkan email Anda untuk menerima tautan penggantian",
-                      en: "Enter your email to receive a reset link" },
+  lupaSub:          { id: "Masukkan email Anda untuk meminta tautan penggantian",
+                      en: "Enter your email to request a reset link" },
   kirimTautan:      { id: "Kirim tautan",             en: "Send the link" },
   sedangMengirim:   { id: "Sedang mengirim",          en: "Sending" },
-  periksaJudul:     { id: "Periksa kotak masuk",      en: "Check your inbox" },
-  periksaSub:       { id: "Tautan penggantian sudah dikirim bila email itu terdaftar",
-                      en: "A reset link has been sent if that email is registered" },
+  // Pengiriman surel belum terpasang: tautannya diterbitkan, tetapi
+  // hanya sampai ke catatan peladen. Kalimat lamanya menyuruh orang
+  // memeriksa kotak masuk yang tidak akan pernah kedatangan apa pun,
+  // sehingga satu-satunya jalan pulih dari lupa sandi tampak berfungsi
+  // padahal buntu. Selama pengirimnya belum ada, halaman ini menyebut
+  // keadaan yang sebenarnya dan menunjuk jalan yang benar-benar bisa
+  // ditempuh.
+  periksaJudul:     { id: "Permintaan sudah dicatat",  en: "Your request is recorded" },
+  periksaSub:       { id: "Pengiriman surel belum terpasang di layanan ini, jadi tautannya tidak dikirim ke kotak masuk. Hubungi pengelola kelas untuk menerima tautan penggantian Anda.",
+                      en: "Email delivery is not yet configured here, so the link is not sent to your inbox. Ask your class administrator for your reset link." },
   kembaliMasuk:     { id: "Kembali ke halaman masuk", en: "Back to the sign-in page" },
   galatPermintaan:  { id: "Permintaan gagal diproses. Coba lagi sebentar lagi.",
                       en: "The request could not be processed. Try again in a moment." },
