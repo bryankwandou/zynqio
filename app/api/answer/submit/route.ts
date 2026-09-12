@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { handle, readJson } from '@/lib/api-guard';
 import { normalizeRoomCode } from '@/lib/room';
@@ -22,17 +23,36 @@ import { RoomError } from '@/lib/room';
  * berfungsi sebagai identitas.
  */
 export const POST = handle(async (req) => {
-  const ip = getIP(req);
-  if (!(await rateLimit(ip, 'answer', 30, 60))) {
-    return NextResponse.json({ error: 'Terlalu banyak permintaan. Tunggu sebentar.' }, { status: 429 });
-  }
-
   const body = await readJson<{
     roomCode?: string;
     playerToken?: string;
     questionId?: string;
     selectedAnswer?: unknown;
   }>(req);
+
+  /*
+    Jatah menjawab mengikuti peserta, bukan alamat IP.
+
+    Sebelumnya tiga puluh jawaban per menit dihitung per alamat. Satu
+    kelas berbagi satu alamat publik keluar, jadi jatah itu terbagi
+    rata-rata satu jawaban per murid — kuis dua puluh soal berhenti di
+    soal pertama, dan yang tampil di layar murid hanyalah "Terlalu
+    banyak permintaan" tanpa sebab yang terlihat.
+
+    Yang dipakai sebagai kunci adalah sidik ringkas token peserta, bukan
+    tokennya sendiri, supaya penanda yang sesungguhnya tidak ikut
+    tersimpan di tabel pembatas. Permintaan tanpa token jatuh kembali ke
+    alamat IP: di sanalah banjir yang tidak membawa identitas apa pun
+    perlu ditahan.
+  */
+  const penanda =
+    typeof body.playerToken === 'string' && body.playerToken
+      ? 'p:' + crypto.createHash('sha256').update(body.playerToken).digest('hex').slice(0, 32)
+      : 'ip:' + getIP(req);
+
+  if (!(await rateLimit(penanda, 'answer', 60, 60))) {
+    return NextResponse.json({ error: 'Terlalu banyak permintaan. Tunggu sebentar.' }, { status: 429 });
+  }
 
   const code = normalizeRoomCode(body.roomCode);
 

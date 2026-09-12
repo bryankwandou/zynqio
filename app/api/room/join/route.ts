@@ -22,7 +22,18 @@ import { pusherServer } from '@/lib/pusher';
  */
 export const POST = handle(async (req) => {
   const ip = getIP(req);
-  if (!(await rateLimit(ip, 'join', 10, 60))) {
+  /*
+    Batasnya dulu sepuluh permintaan per menit per alamat. Di sekolah
+    itu berarti sepuluh murid: seluruh ponsel di satu ruang kelas keluar
+    lewat satu alamat publik yang sama, dan murid kesebelas dan
+    seterusnya dijawab "Terlalu banyak percobaan bergabung" — persis
+    ketika guru sedang menunggu kelasnya masuk.
+
+    Angkanya sekarang dipasang di atas ukuran ruangan terbesar (300),
+    jadi satu kelas penuh yang masuk bersamaan tidak pernah menyentuhnya,
+    sementara banjir permintaan dari satu naskah tetap tertahan.
+  */
+  if (!(await rateLimit(ip, 'join', 400, 60))) {
     return NextResponse.json(
       { error: 'Terlalu banyak percobaan bergabung. Tunggu sebentar.' },
       { status: 429 }

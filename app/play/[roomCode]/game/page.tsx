@@ -89,6 +89,24 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
   const playerTokenRef = useRef("");
   const currentQuestionRef = useRef<any>(null);
   const roomStateRef = useRef<any>(null);
+  /**
+   * sessionId ruangan, dibaca dari keadaan yang datang tiap detik.
+   *
+   * Halaman ini hanya memegang kode ruangan dari alamatnya, dan dulu
+   * kode itulah yang dikirim ke /results/<...>. Layar hasil menaruhnya
+   * pada parameter sessionId, tidak ada sesi bernama enam huruf, dan
+   * peserta berhenti di layar "Hasil tidak ditemukan" — sementara guru,
+   * yang memang membawa sessionId, melihat papan peringkat yang utuh.
+   *
+   * Peladen sekarang menerima keduanya, tetapi kode ruangan bisa
+   * terpakai ulang oleh sesi berikutnya sementara sessionId tidak.
+   * Karena itu yang dipakai selalu sessionId bila sudah diketahui.
+   */
+  const sessionIdRef = useRef<string | null>(null);
+  const alamatHasil = useCallback(
+    () => `/results/${sessionIdRef.current ?? roomCode}`,
+    [roomCode]
+  );
   const timerTotalRef = useRef(30);
   const questionStartRef = useRef(Date.now());
   const activePowerupRef = useRef<string | null>(null);
@@ -137,7 +155,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
           correct: 0, // will be set from live state
           total: totalQuestionsRef.current,
         });
-        setTimeout(() => router.push(`/results/${roomCode}`), 2000);
+        setTimeout(() => router.push(alamatHasil()), 2000);
         return;
       }
       const q = await qRes.json();
@@ -160,7 +178,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       // Network error — retry once
       setTimeout(() => fetchWaygroundQuestion(index), 1000);
     }
-  }, [roomCode, router, score]);
+  }, [roomCode, router, score, alamatHasil]);
 
   // Trigger first Wayground question after countdown ends
   useEffect(() => {
@@ -220,6 +238,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
         const state = await res.json();
         if (state.updatedAt) lastUpdatedAt.current = state.updatedAt;
         roomStateRef.current = state;
+        if (state.sessionId) sessionIdRef.current = state.sessionId;
         const detectedMode = state.gameMode || 'classic';
         setGameMode(detectedMode);
         gameModeRef.current = detectedMode;
@@ -294,7 +313,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
             }
           }
         } else if (state.status === "ended") {
-          router.push(`/results/${roomCode}`);
+          router.push(alamatHasil());
         }
       } catch {}
     };
@@ -302,7 +321,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
     const roomInterval = setInterval(pollRoom, 1500);
     pollRoom();
     return () => clearInterval(roomInterval);
-  }, [roomCode, router, runCountdown]);
+  }, [roomCode, router, runCountdown, alamatHasil]);
 
   // Pusher: instant kick detection
   useEffect(() => {
@@ -435,7 +454,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
             setWaygroundStats({ score: prev, correct: 0, total });
             return prev;
           });
-          setTimeout(() => router.push(`/results/${roomCode}`), 1500);
+          setTimeout(() => router.push(alamatHasil()), 1500);
         } else {
           playerQuestionIndexRef.current = nextIndex;
           setPlayerQuestionIndex(nextIndex);

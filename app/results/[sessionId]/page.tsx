@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { useEffect, useState, use, useRef } from "react";
 import { Navbar } from "@/components/navbar";
 import { Button } from "@/components/ui/button";
@@ -135,7 +136,11 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
           `/api/room/results?sessionId=${encodeURIComponent(unwrappedParams.sessionId)}`
         );
         if (!res.ok) {
-          if (attempt < 8) {
+          // 400 berarti penandanya sendiri tidak berbentuk — mengulang
+          // permintaan yang sama tidak akan mengubah jawabannya. Yang
+          // pantas diulang hanya yang bisa berubah: hasil yang belum
+          // selesai ditulis (404) dan gangguan peladen (5xx).
+          if (res.status !== 400 && attempt < 8) {
             // exponential backoff: 1.5s, 3s, 4.5s … capped at 8s
             const delay = Math.min(1500 * (attempt + 1), 8000);
             setTimeout(() => load(attempt + 1), delay);
@@ -219,14 +224,23 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
           <div className="text-5xl">😕</div>
           <h2 className="text-xl font-black text-foreground">Hasil tidak ditemukan</h2>
           <p className="text-muted-foreground text-sm max-w-xs">
-            The session may have expired or is not ready yet.
+            Sesi ini mungkin sudah lewat, atau hasilnya belum selesai
+            dihitung. Coba muat ulang sebentar lagi.
           </p>
-          <button
-            onClick={() => { setLoadError(false); window.location.reload(); }}
-            className="px-6 py-3 bg-primary text-white font-bold rounded-xl hover:opacity-90 transition-opacity"
-          >
-            Try Again
-          </button>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={() => { setLoadError(false); window.location.reload(); }}
+              className="px-6 py-3 bg-primary text-white font-bold rounded-xl hover:opacity-90 transition-opacity"
+            >
+              Coba lagi
+            </button>
+            <Link
+              href="/"
+              className="px-6 py-3 border border-border text-foreground font-bold rounded-xl hover:bg-muted transition-colors"
+            >
+              Kembali ke beranda
+            </Link>
+          </div>
         </div>
       );
     }
@@ -251,7 +265,15 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
       <Navbar />
 
       {/* ── Podium Section ─────────────────────────────────────── */}
-      <section className="bg-card border-b border-border py-12 relative overflow-hidden">
+      {/*
+        shrink-0 bukan hiasan. Bagian ini adalah anak dari kolom flex
+        yang tingginya min-h-screen, jadi tanpa penahan itu ia ikut
+        dikecilkan ketika isi halaman melebihi tinggi layar — dan karena
+        ia juga overflow-hidden, yang terpotong justru podiumnya:
+        tingginya 344 piksel, ruang yang tersisa 97. Juara, medali, dan
+        mahkotanya ada di dalam DOM, hanya tidak pernah terlihat.
+      */}
+      <section className="shrink-0 bg-card border-b border-border py-12 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(59,130,246,0.12),transparent_70%)] pointer-events-none" />
         <div className="container mx-auto px-4 relative z-10 max-w-4xl">
           <h1 className="text-3xl font-black text-center mb-1">🏆 Hasil akhir</h1>
