@@ -60,6 +60,27 @@ export async function getRoom(code: string): Promise<RoomRow | null> {
   return rows[0] ?? null;
 }
 
+/**
+ * Ruangan tanpa saringan kedaluwarsa, khusus untuk layar hasil.
+ *
+ * getRoom sengaja menolak ruangan yang sudah lewat masa berlakunya:
+ * ruangan mati tidak boleh lagi menerima peserta atau jawaban. Tetapi
+ * hasil sebuah sesi hidup jauh lebih lama daripada ruangannya. Guru
+ * menyimpan tautannya, membagikannya ke wali kelas, dan membukanya lagi
+ * berhari-hari kemudian.
+ *
+ * Dengan saringan itu ikut terpakai di layar hasil, tautan yang sama
+ * berubah menjadi "Hasil tidak ditemukan" pada jam tertentu, tanpa ada
+ * yang menghapus apa pun. Datanya masih utuh; hanya pintunya yang
+ * menutup sendiri.
+ */
+export async function getRoomForResults(code: string): Promise<RoomRow | null> {
+  const rows = (await sql`
+    SELECT * FROM rooms WHERE code = ${code} LIMIT 1
+  `) as RoomRow[];
+  return rows[0] ?? null;
+}
+
 export async function getPlayers(code: string): Promise<RoomPlayerRow[]> {
   return (await sql`
     SELECT id, room_code, user_id, name, avatar_id, score, total_answered,
