@@ -127,7 +127,7 @@ const RAGAM: Record<string, string> = {
         }
         if (state.status === "ended") {
           clearInterval(interval);
-          router.push(`/results/${state.sessionId ?? roomCode}`);
+          router.push(`/results/${roomCode}`);
         }
       } catch {}
     };
@@ -288,8 +288,8 @@ const RAGAM: Record<string, string> = {
       // Halaman hasil dialamatkan dengan sessionId, bukan kode ruangan.
       // Kode ruangan berumur pendek dan bisa terpakai ulang; sessionId
       // menandai satu permainan tertentu dan bertahan di riwayat.
-      const data = await res.json().catch(() => null);
-      router.push(`/results/${data?.sessionId ?? roomCode}`);
+      await res.json().catch(() => null);
+      router.push(`/results/${roomCode}`);
     } catch {}
   };
 
