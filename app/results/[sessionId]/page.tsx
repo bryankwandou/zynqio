@@ -174,7 +174,9 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
         setIsHost(amHost);
         // Data hasil dimuat ulang berkala; tanpa penjaga ini jendela
         // penilaian terbuka lagi setiap kali, termasuk sesudah dinilai.
-        if (!amHost && !ratingAskedRef.current) {
+        // Penilaian hanya diterima dari akun yang masuk (tanpa itu /api/quiz/rate
+        // menjawab 401), jadi peserta tamu tidak ditanya sama sekali.
+        if (!amHost && userId && !ratingAskedRef.current) {
           ratingAskedRef.current = true;
           setShowRating(true);
         }
@@ -205,11 +207,13 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
   }, [unwrappedParams.sessionId, userId, statusSesi]);
 
   const submitRating = async () => {
-    await fetch("/api/quiz/rate", {
+    const res = await fetch("/api/quiz/rate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ quizId: results.quizId, rating }),
-    }).catch(() => {});
+    }).catch(() => null);
+    // Tidak berterima kasih atas penilaian yang tidak tersimpan.
+    if (!res?.ok) { setShowRating(false); return; }
     setRatingDone(true);
     setTimeout(() => setShowRating(false), 1800);
   };
@@ -334,8 +338,21 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
 
         {/* ── Rating Modal ──────────────────────────────────────── */}
         {!isHost && showRating && !ratingDone && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <div className="bg-card border border-border p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl mx-4">
+          <div
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowRating(false)}
+          >
+            <div
+              className="relative bg-card border border-border p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                aria-label="Tutup"
+                onClick={() => setShowRating(false)}
+                className="absolute top-3 right-4 text-xl text-muted-foreground hover:text-foreground"
+              >
+                ×
+              </button>
               <div className="text-4xl mb-3">🌟</div>
               <h2 className="text-xl font-black mb-1">Beri nilai kuis ini</h2>
               <p className="text-muted-foreground text-sm mb-5">Masukan Anda membantu pengajar menyusun kuis berikutnya</p>
