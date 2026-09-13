@@ -102,7 +102,8 @@ function PodiumSlot({ player, rank, delay, visible }: { player: any; rank: numbe
 
 /* ── Main Page ─────────────────────────────────────────────────── */
 export default function ResultsPage({ params }: { params: Promise<{ sessionId: string }> }) {
-  const { data: session } = useSession();
+  const { data: session, status: statusSesi } = useSession();
+  const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
   const unwrappedParams = use(params);
   const [tab, setTab] = useState<"leaderboard" | "review" | "analytics">("leaderboard");
   const [results, setResults] = useState<any>(null);
@@ -119,6 +120,14 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
   const [ratingDone, setRatingDone] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const historySavedRef = useRef(false);
+  const ratingAskedRef = useRef(false);
+
+  useEffect(() => {
+    if (!showRating) return;
+    const tutup = (e: KeyboardEvent) => { if (e.key === "Escape") setShowRating(false); };
+    window.addEventListener("keydown", tutup);
+    return () => window.removeEventListener("keydown", tutup);
+  }, [showRating]);
 
   useEffect(() => {
     // Nama peserta dibaca lewat pembantu sesi bersama, bukan langsung
@@ -128,6 +137,9 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
     setMyNickname(nick);
 
     let cancelled = false;
+    // Sebelum sesi selesai dibaca, guru belum dikenali sebagai guru dan
+    // akan ikut disodori jendela penilaian kuisnya sendiri.
+    if (statusSesi === "loading") return;
 
     async function load(attempt = 0) {
       if (cancelled) return;
@@ -158,9 +170,15 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
         // Penanda cadangan di localStorage dibuang: nilainya ditulis oleh
         // peramban sendiri, jadi siapa pun bisa mengisinya dan tampil
         // sebagai host di layar hasil.
-        const amHost = (session?.user as { id?: string } | undefined)?.id === data.hostId;
+        const amHost = !!userId && userId === data.hostId;
         setIsHost(amHost);
-        if (!amHost) setShowRating(true);
+        // Data hasil dimuat ulang berkala; tanpa penjaga ini jendela
+        // penilaian terbuka lagi setiap kali, termasuk sesudah dinilai.
+        if (!amHost && !ratingAskedRef.current) {
+          ratingAskedRef.current = true;
+          setShowRating(true);
+        }
+        if (amHost) setShowRating(false);
 
         // Riwayat tidak lagi dikirim dari peramban. Hasil sesi sudah
         // tercatat server saat permainan ditutup, jadi mengirimkannya
@@ -181,7 +199,10 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
     load();
 
     return () => { cancelled = true; };
-  }, [unwrappedParams.sessionId, session]);
+  // Bergantung pada id pengguna, bukan objek sesi: objek itu diganti
+  // setiap kali tab kembali difokuskan, yang dulu memuat ulang hasil dan
+  // membuka ulang jendela penilaian tanpa henti.
+  }, [unwrappedParams.sessionId, userId, statusSesi]);
 
   const submitRating = async () => {
     await fetch("/api/quiz/rate", {
@@ -347,8 +368,18 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
           </div>
         )}
         {ratingDone && showRating && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <div className="bg-card border border-border p-8 rounded-3xl text-center">
+          <div
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer"
+            onClick={() => setShowRating(false)}
+          >
+            <div className="relative bg-card border border-border p-8 rounded-3xl text-center">
+              <button
+                aria-label="Tutup"
+                onClick={() => setShowRating(false)}
+                className="absolute top-3 right-4 text-xl text-muted-foreground hover:text-foreground"
+              >
+                ×
+              </button>
               <div className="text-5xl mb-3">🙏</div>
               <h2 className="text-xl font-black">Terima kasih atas penilaiannya</h2>
             </div>

@@ -98,13 +98,13 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
    * peserta berhenti di layar "Hasil tidak ditemukan" — sementara guru,
    * yang memang membawa sessionId, melihat papan peringkat yang utuh.
    *
-   * Peladen sekarang menerima keduanya, tetapi kode ruangan bisa
-   * terpakai ulang oleh sesi berikutnya sementara sessionId tidak.
-   * Karena itu yang dipakai selalu sessionId bila sudah diketahui.
+   * Peladen sekarang mengenali kode ruangan dan mengambil sesi terakhir
+   * yang selesai di ruangan itu. Alamat hasil memakai kode saja: pengenal
+   * sesi internal tidak perlu tampil di bilah alamat atau tautan bagikan.
    */
   const sessionIdRef = useRef<string | null>(null);
   const alamatHasil = useCallback(
-    () => `/results/${sessionIdRef.current ?? roomCode}`,
+    () => `/results/${roomCode}`,
     [roomCode]
   );
   const timerTotalRef = useRef(30);
