@@ -86,6 +86,61 @@ function sebagaiKodeRuangan(nilai: unknown): string | null {
   return POLA_KODE.test(kode) ? kode : null;
 }
 
+/**
+ * Tab Review dan Analytics membaca `stats` dan `questions`, tetapi route
+ * ini dulu tidak pernah mengirim keduanya — jumlah peserta tampil 0,
+ * ketepatan kelas 0%, dan daftar soal kosong. Angka ringkasan dihitung
+ * dari papan peringkat (selalu ada); rincian per soal dari tabel jawaban,
+ * atau dari salinan yang disimpan saat sesi ditutup bila jawabannya sudah
+ * terhapus bersama ruangannya.
+ */
+async function rincianSesi(
+  sessionId: string,
+  quizId: string | null,
+  papan: unknown[],
+  simpanan?: unknown,
+) {
+  const baris = papan as { totalAnswered?: number; totalCorrect?: number }[];
+  const dijawab = baris.reduce((t, p) => t + angka(p.totalAnswered), 0);
+  const benar = baris.reduce((t, p) => t + angka(p.totalCorrect), 0);
+  const stats = {
+    totalPlayers: baris.length,
+    avgAccuracy: dijawab > 0 ? Math.round((benar / dijawab) * 100) : 0,
+  };
+
+  let questions: unknown[] = [];
+  if (quizId) {
+    const rows = (await sql`
+      SELECT q.id, q.position, q.type, q.text,
+             count(a.id)::int AS dijawab,
+             count(a.id) FILTER (WHERE a.is_correct)::int AS benar
+      FROM questions q
+      LEFT JOIN answers a ON a.question_id = q.id AND a.session_id = ${sessionId}
+      WHERE q.quiz_id = ${quizId}
+      GROUP BY q.id
+      ORDER BY q.position
+    `) as { id: string; position: number; type: string; text: string; dijawab: number; benar: number }[];
+    const adaJawaban = rows.some((r) => r.dijawab > 0);
+    if (adaJawaban || !Array.isArray(simpanan) || simpanan.length === 0) {
+      questions = rows
+        .filter((r) => !adaJawaban || r.dijawab > 0)
+        .map((r) => ({
+          id: r.id,
+          type: r.type,
+          text: r.text,
+          answered: r.dijawab,
+          correct: r.benar,
+          accuracy: r.dijawab > 0 ? Math.round((r.benar / r.dijawab) * 100) : 0,
+        }));
+    } else {
+      questions = simpanan;
+    }
+  } else if (Array.isArray(simpanan)) {
+    questions = simpanan;
+  }
+  return { stats, questions };
+}
+
 type CatatanSesi = {
   session_id: string;
   room_code: string | null;
@@ -96,7 +151,9 @@ type CatatanSesi = {
   quiz_title: string | null;
 };
 
-function jawabanCatatan(baris: CatatanSesi) {
+async function jawabanCatatan(baris: CatatanSesi) {
+  const papan = rapikanPapan(baris.payload?.leaderboard);
+  const rincian = await rincianSesi(baris.session_id, baris.quiz_id, papan, baris.payload?.questions);
   return NextResponse.json({
     ...baris.payload,
     sessionId: baris.session_id,
@@ -105,7 +162,8 @@ function jawabanCatatan(baris: CatatanSesi) {
     quizTitle: baris.quiz_title,
     hostId: baris.host_id,
     status: 'ended',
-    leaderboard: rapikanPapan(baris.payload?.leaderboard),
+    leaderboard: papan,
+    ...rincian,
     finishedAt: baris.finished_at,
   });
 }
@@ -185,6 +243,9 @@ export const GET = handle(async (req) => {
     SELECT title FROM quizzes WHERE id = ${room.quiz_id} LIMIT 1
   `) as { title: string }[];
 
+  const papan = rapikanPapan(leaderboard);
+  const rincian = await rincianSesi(room.session_id, room.quiz_id, papan);
+
   return NextResponse.json({
     sessionId: room.session_id,
     roomCode: code,
@@ -194,6 +255,7 @@ export const GET = handle(async (req) => {
     quizId: room.quiz_id,
     quizTitle: judul[0]?.title ?? null,
     hostId: room.host_id,
-    leaderboard: rapikanPapan(leaderboard),
+    leaderboard: papan,
+    ...rincian,
   });
 });

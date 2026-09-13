@@ -322,7 +322,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
           {/* Buttons */}
           <div className="flex justify-center mt-8 gap-3 flex-wrap">
             <Button onClick={handleShare} variant="outline" className="gap-2 border-border dark:border-white/20 dark:text-white/80 dark:bg-white/5 dark:hover:bg-white/10">
-              <Share2 size={15} /> Share Results
+              <Share2 size={15} /> Bagikan hasil
             </Button>
             {isHost && (
               <Button
@@ -588,7 +588,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
                   <div className={`text-xs font-black px-2 py-1 rounded-lg ${
                     q.accuracy < 40 ? "bg-red-500/10 text-red-500" : q.accuracy < 70 ? "bg-amber-500/10 text-amber-500" : "bg-green-500/10 text-green-500"
                   }`}>
-                    {q.accuracy}% correct
+                    {q.accuracy}% benar
                   </div>
                 </div>
                 <div className="h-1.5 bg-accent rounded-full overflow-hidden">

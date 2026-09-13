@@ -33,6 +33,22 @@ export const POST = handle(async (req) => {
     FROM answers WHERE session_id = ${room.session_id}
   `) as { total: number; benar: number }[];
 
+  // Rincian per soal ikut disalin: tabel jawaban terhapus bersama
+  // ruangannya, sedangkan tab Review dan Analytics tetap membutuhkannya.
+  const perSoal = (await sql`
+    SELECT q.id, q.type, q.text,
+           count(a.id)::int AS answered,
+           count(a.id) FILTER (WHERE a.is_correct)::int AS correct
+    FROM questions q
+    JOIN answers a ON a.question_id = q.id AND a.session_id = ${room.session_id}
+    GROUP BY q.id
+    ORDER BY q.position
+  `) as { id: string; type: string; text: string; answered: number; correct: number }[];
+  const questions = perSoal.map((q) => ({
+    ...q,
+    accuracy: q.answered > 0 ? Math.round((q.correct / q.answered) * 100) : 0,
+  }));
+
   // Hasil disimpan sebagai catatan tersendiri supaya tetap ada setelah
   // ruangannya kedaluwarsa dan terhapus.
   await sql`
@@ -43,6 +59,7 @@ export const POST = handle(async (req) => {
         gameMode: room.game_mode,
         settings: room.settings,
         leaderboard,
+        questions,
         answers: stats[0] ?? { total: 0, benar: 0 },
         endedAt: new Date().toISOString(),
       })}::jsonb
