@@ -11,12 +11,12 @@ import { getPusherClient } from "@/lib/pusher-client";
 import { getAvatar } from "@/lib/avatars";
 
 const GAME_MODES = [
-  { id: "wayground_classic", name: "Klasik",     icon: "🏆", desc: "Tiap murid maju dengan kecepatannya sendiri" },
-  { id: "speed_rush",   name: "Adu cepat",   icon: "⚡", desc: "Makin cepat makin besar poinnya; salah dikurangi 100" },
-  { id: "battle_royale",name: "Gugur",       icon: "⚔️", desc: "Satu jawaban salah mengurangi nyawa" },
-  { id: "survival",     name: "Sisa satu",   icon: "🏔️", desc: "Satu jawaban salah menghapus skor dari awal" },
-  { id: "gold_quest",   name: "Buru harta",  icon: "💰", desc: "Peti berisi poin muncul di sela soal" },
-  { id: "team",         name: "Beregu",      icon: "👥", desc: "Skor dijumlahkan per kelompok" },
+  { id: "wayground_classic", name: ["Klasik", "Classic"] as [string, string], icon: "🏆", desc: ["Tiap murid maju dengan kecepatannya sendiri", "Each student goes at their own pace"] as [string, string] },
+  { id: "speed_rush",   name: ["Adu cepat", "Speed rush"] as [string, string], icon: "⚡", desc: ["Makin cepat makin besar poinnya; salah dikurangi 100", "Faster answers score more; wrong answers lose 100"] as [string, string] },
+  { id: "battle_royale",name: ["Gugur", "Battle royale"] as [string, string], icon: "⚔️", desc: ["Satu jawaban salah mengurangi nyawa", "A wrong answer costs a life"] as [string, string] },
+  { id: "survival",     name: ["Sisa satu", "Survival"] as [string, string], icon: "🏔️", desc: ["Satu jawaban salah menghapus skor dari awal", "A wrong answer resets your score"] as [string, string] },
+  { id: "gold_quest",   name: ["Buru harta", "Gold quest"] as [string, string], icon: "💰", desc: ["Peti berisi poin muncul di sela soal", "Chests full of points appear between questions"] as [string, string] },
+  { id: "team",         name: ["Beregu", "Teams"] as [string, string], icon: "👥", desc: ["Skor dijumlahkan per kelompok", "Scores are summed per team"] as [string, string] },
 ];
 
 const TIMERS = [10, 15, 20, 30, 45, 60, 90];
@@ -211,13 +211,13 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
 
             <div className="flex gap-2 mt-4 w-full">
               <button
-                onClick={() => copyText(joinUrl, "Link copied!")}
+                onClick={() => copyText(joinUrl, tt("Tautan disalin!", "Link copied!"))}
                 className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold bg-primary hover:bg-primary/90 rounded-xl zy-motion"
               >
                 <Copy size={12} aria-hidden="true" />{" "}{tt("Salin tautan", "Copy link")}
               </button>
               <button
-                onClick={() => copyText(roomCode, "Code copied!")}
+                onClick={() => copyText(roomCode, tt("Kode disalin!", "Code copied!"))}
                 className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold bg-white/10 hover:bg-white/15 rounded-xl border border-white/10 zy-motion"
               >
                 <Copy size={12} aria-hidden="true" />{" "}{tt("Salin kode", "Copy code")}
@@ -230,7 +230,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
           <div className="bg-[#16162a] border border-white/10 rounded-2xl p-4 space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-white/40">{tt("Ragam", "Mode")}</span>
-              <span className="font-bold text-blue-400">{GAME_MODES.find((m) => m.id === gameMode)?.name || tt("Klasik", "Classic")}</span>
+              <span className="font-bold text-blue-400">{tt(...(GAME_MODES.find((m) => m.id === gameMode)?.name ?? ["Klasik", "Classic"]))}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-white/40">{tt("Waktu per soal", "Time per question")}</span>
@@ -338,8 +338,8 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                       }`}
                     >
                       <div className="text-xl mb-1">{mode.icon}</div>
-                      <div className={`font-bold text-sm ${gameMode === mode.id ? "text-blue-400" : "text-white/80"}`}>{mode.name}</div>
-                      <div className="text-[10px] text-white/40 mt-0.5">{mode.desc}</div>
+                      <div className={`font-bold text-sm ${gameMode === mode.id ? "text-blue-400" : "text-white/80"}`}>{tt(...mode.name)}</div>
+                      <div className="text-[10px] text-white/40 mt-0.5">{tt(...mode.desc)}</div>
                     </button>
                   ))}
                 </div>
@@ -363,7 +363,10 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                     </div>
                     {Object.entries(teams).map(([teamId, members]) => (
                       <div key={teamId} className="text-xs text-white/50 mb-1">
-                        <span className="font-bold text-white/70">{teamId.replace(/^Red Team$/, "Regu Merah").replace(/^Blue Team$/, "Regu Biru").replace(/^Team (\d+)$/, "Regu $1")}:</span>{" "}
+                        <span className="font-bold text-white/70">{tt(
+                          teamId.replace(/^Red Team$/, "Regu Merah").replace(/^Blue Team$/, "Regu Biru").replace(/^Team (\d+)$/, "Regu $1"),
+                          teamId,
+                        )}:</span>{" "}
                         {(members as any[]).map((p) => p.name).join(", ") || tt("belum ada anggota", "no members yet")}
                       </div>
                     ))}
@@ -427,11 +430,11 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                 <label className="text-xs font-black text-white/40 uppercase tracking-widest block mb-3">{tt("Pilihan", "Options")}</label>
                 <div className="space-y-2">
                   {[
-                    { icon: <Eye size={15} aria-hidden="true" />, label: "Tampilkan kunci jawaban", sub: "Murid melihat jawaban benar setelah waktunya habis", val: showAnswerAfter, set: () => setShowAnswerAfter((v) => !v) },
-                    { icon: <Lock size={15} aria-hidden="true" />, label: "Sekali jawab per soal", sub: "Jawaban tidak bisa diubah setelah dikirim", val: oneAttemptOnly, set: () => setOneAttemptOnly((v) => !v) },
-                    { icon: <Shuffle size={15} aria-hidden="true" />, label: "Acak urutan soal", sub: "Tiap murid menerima urutan yang berbeda", val: shuffleQuestions, set: () => setShuffleQuestions((v) => !v) },
-                    { icon: <span className="text-base" aria-hidden="true">⏭️</span>, label: "Lanjut sendiri", sub: "Soal berikutnya mulai otomatis setelah waktunya habis", val: autoAdvance, set: () => setAutoAdvance((v) => !v) },
-                    { icon: <span className="text-base">🎭</span>, label: "Meme mode", sub: "Different GIFs for correct vs wrong answers", val: memeMode, set: () => setMemeMode((v) => !v) },
+                    { icon: <Eye size={15} aria-hidden="true" />, label: tt("Tampilkan kunci jawaban", "Show answer key"), sub: tt("Murid melihat jawaban benar setelah waktunya habis", "Students see the correct answer when time is up"), val: showAnswerAfter, set: () => setShowAnswerAfter((v) => !v) },
+                    { icon: <Lock size={15} aria-hidden="true" />, label: tt("Sekali jawab per soal", "One attempt per question"), sub: tt("Jawaban tidak bisa diubah setelah dikirim", "Answers cannot be changed once sent"), val: oneAttemptOnly, set: () => setOneAttemptOnly((v) => !v) },
+                    { icon: <Shuffle size={15} aria-hidden="true" />, label: tt("Acak urutan soal", "Shuffle questions"), sub: tt("Tiap murid menerima urutan yang berbeda", "Each student gets a different order"), val: shuffleQuestions, set: () => setShuffleQuestions((v) => !v) },
+                    { icon: <span className="text-base" aria-hidden="true">⏭️</span>, label: tt("Lanjut sendiri", "Auto-advance"), sub: tt("Soal berikutnya mulai otomatis setelah waktunya habis", "The next question starts automatically when time is up"), val: autoAdvance, set: () => setAutoAdvance((v) => !v) },
+                    { icon: <span className="text-base">🎭</span>, label: tt("Mode meme", "Meme mode"), sub: tt("GIF berbeda untuk jawaban benar dan salah", "Different GIFs for correct vs wrong answers"), val: memeMode, set: () => setMemeMode((v) => !v) },
                   ].map((opt, i) => (
                     <div key={i} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
                       <div className="flex items-center gap-3">

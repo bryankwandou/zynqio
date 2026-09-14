@@ -224,7 +224,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
   const handleShare = async () => {
     const url = window.location.href;
     if (navigator.share) {
-      navigator.share({ title: "Hasil kuis ZYNQIO", url });
+      navigator.share({ title: tt("Hasil kuis ZYNQIO", "ZYNQIO quiz results"), url });
     } else {
       await navigator.clipboard.writeText(url);
     }
@@ -233,7 +233,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
   const exportCSV = () => {
     if (!results?.leaderboard) return;
     const rows = [
-      ["Peringkat", "Nama", "Skor", "Ketepatan", "Benar", "Total dijawab"].join(","),
+      [tt("Peringkat", "Rank"), tt("Nama", "Name"), tt("Skor", "Score"), tt("Ketepatan", "Accuracy"), tt("Benar", "Correct"), tt("Total dijawab", "Total answered")].join(","),
       ...results.leaderboard.map((p: any) =>
         [p.rank, `"${p.name}"`, p.score, `${p.accuracy}%`, p.totalCorrect || 0, p.totalAnswered || 0].join(",")
       ),
@@ -496,9 +496,9 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
           <div className="space-y-6 animate-in fade-in duration-300">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[
-                { label: "Ketepatan kelas", val: `${results.stats?.avgAccuracy || 0}%`, color: "text-green-500" },
-                { label: "Jumlah peserta",  val: results.stats?.totalPlayers || 0,     color: "text-primary" },
-                { label: "Skor tertinggi",  val: `${(results.leaderboard?.[0]?.score || 0).toLocaleString("id-ID")} poin`, color: "text-yellow-500" },
+                { label: tt("Ketepatan kelas", "Class accuracy"), val: `${results.stats?.avgAccuracy || 0}%`, color: "text-green-500" },
+                { label: tt("Jumlah peserta", "Participants"), val: results.stats?.totalPlayers || 0,     color: "text-primary" },
+                { label: tt("Skor tertinggi", "Top score"), val: `${(results.leaderboard?.[0]?.score || 0).toLocaleString("id-ID")} ${tt("poin", "pts")}`, color: "text-yellow-500" },
               ].map((stat) => (
                 <div key={stat.label} className="bg-card border border-border p-5 rounded-2xl shadow-lg">
                   <div className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2">{stat.label}</div>
