@@ -597,6 +597,35 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
                     style={{ width: `${q.accuracy}%` }}
                   />
                 </div>
+                {Array.isArray(q.options) && q.options.length > 0 && (
+                  <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {q.options.map((o: any, oi: number) => (
+                      <li
+                        key={oi}
+                        className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2 text-sm ${
+                          o.correct
+                            ? "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400 font-bold"
+                            : "border-border text-muted-foreground"
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span aria-hidden="true">{o.correct ? "✓" : "○"}</span>
+                          {o.text}
+                          {o.correct && <span className="sr-only">(jawaban benar)</span>}
+                        </span>
+                        {o.picked != null && <span className="text-xs shrink-0">{o.picked} memilih</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {(!Array.isArray(q.options) || q.options.length === 0) && q.correctAnswer && (
+                  <p className="mt-4 rounded-xl border border-green-500 bg-green-500/10 px-3 py-2 text-sm font-bold text-green-700 dark:text-green-400">
+                    ✓ Jawaban benar: {q.correctAnswer}
+                  </p>
+                )}
+                {q.explanation && (
+                  <p className="mt-3 text-sm text-muted-foreground">💡 {q.explanation}</p>
+                )}
               </div>
             ))}
           </div>
