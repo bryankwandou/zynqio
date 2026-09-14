@@ -99,6 +99,7 @@ async function rincianSesi(
   quizId: string | null,
   papan: unknown[],
   simpanan?: unknown,
+  selesai = true,
 ) {
   const baris = papan as { totalAnswered?: number; totalCorrect?: number }[];
   const dijawab = baris.reduce((t, p) => t + angka(p.totalAnswered), 0);
@@ -111,15 +112,20 @@ async function rincianSesi(
   let questions: unknown[] = [];
   if (quizId) {
     const rows = (await sql`
-      SELECT q.id, q.position, q.type, q.text,
+      SELECT q.id, q.position, q.type, q.text, q.options, q.correct_answer, q.explanation,
              count(a.id)::int AS dijawab,
-             count(a.id) FILTER (WHERE a.is_correct)::int AS benar
+             count(a.id) FILTER (WHERE a.is_correct)::int AS benar,
+             coalesce(jsonb_agg(a.choice) FILTER (WHERE a.id IS NOT NULL), '[]'::jsonb) AS pilihan
       FROM questions q
       LEFT JOIN answers a ON a.question_id = q.id AND a.session_id = ${sessionId}
       WHERE q.quiz_id = ${quizId}
       GROUP BY q.id
       ORDER BY q.position
-    `) as { id: string; position: number; type: string; text: string; dijawab: number; benar: number }[];
+    `) as {
+      id: string; position: number; type: string; text: string;
+      options: unknown; correct_answer: unknown; explanation: string | null;
+      dijawab: number; benar: number; pilihan: unknown[];
+    }[];
     const adaJawaban = rows.some((r) => r.dijawab > 0);
     if (adaJawaban || !Array.isArray(simpanan) || simpanan.length === 0) {
       questions = rows
@@ -131,14 +137,51 @@ async function rincianSesi(
           answered: r.dijawab,
           correct: r.benar,
           accuracy: r.dijawab > 0 ? Math.round((r.benar / r.dijawab) * 100) : 0,
+          // Kunci jawaban baru dibuka setelah sesi selesai, seperti Quizizz.
+          // Selama permainan berjalan route ini publik, jadi kunci yang ikut
+          // terkirim berarti contekan bagi siapa pun yang memanggilnya.
+          ...(selesai ? kunciSoal(r) : {}),
         }));
     } else {
-      questions = simpanan;
+      // Jawaban sudah terhapus bersama ruangan: angka dari salinan, kunci
+      // dan pilihan dari soal yang masih ada.
+      const perId = new Map(rows.map((r) => [r.id, r]));
+      questions = simpanan.map((q) => {
+        const r = perId.get((q as { id?: string }).id ?? '');
+        if (!r || !selesai) return q;
+        const k = kunciSoal({ ...r, pilihan: [] });
+        return { ...(q as object), ...k, options: k.options.map((o) => ({ ...o, picked: null })) };
+      });
     }
   } else if (Array.isArray(simpanan)) {
     questions = simpanan;
   }
   return { stats, questions };
+}
+
+function kunciSoal(r: { type: string; options: unknown; correct_answer: unknown; explanation: string | null; pilihan: unknown[] }) {
+  const norm = (v: unknown) => String(v ?? '').trim().toLowerCase();
+  const opsi = (Array.isArray(r.options) ? r.options : []).map((o) =>
+    typeof o === 'object' && o !== null ? String((o as { text?: unknown }).text ?? '') : String(o)
+  );
+  const kunci = norm(r.correct_answer);
+  const diterima = r.type === 'TYPE_ANSWER' ? kunci.split(';').map((x) => x.trim()).filter(Boolean) : [kunci];
+  const hitung = (i: number, teks: string) =>
+    r.pilihan.filter((c) => norm(c) === String(i) || norm(c) === norm(teks)).length;
+  return {
+    options: opsi.map((teks, i) => ({
+      text: teks,
+      correct: r.type !== 'POLL' && (diterima.includes(String(i)) || diterima.includes(norm(teks))),
+      picked: hitung(i, teks),
+    })),
+    correctAnswer:
+      r.type === 'POLL'
+        ? null
+        : opsi.length > 0
+          ? opsi.filter((t, i) => diterima.includes(String(i)) || diterima.includes(norm(t))).join(', ') || String(r.correct_answer ?? '')
+          : String(r.correct_answer ?? '').split(';').map((x) => x.trim()).filter(Boolean).join(' / '),
+    explanation: r.explanation,
+  };
 }
 
 type CatatanSesi = {
@@ -244,7 +287,7 @@ export const GET = handle(async (req) => {
   `) as { title: string }[];
 
   const papan = rapikanPapan(leaderboard);
-  const rincian = await rincianSesi(room.session_id, room.quiz_id, papan);
+  const rincian = await rincianSesi(room.session_id, room.quiz_id, papan, undefined, room.status === 'ended');
 
   return NextResponse.json({
     sessionId: room.session_id,
