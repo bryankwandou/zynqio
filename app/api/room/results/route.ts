@@ -3,6 +3,7 @@ import { handle } from '@/lib/api-guard';
 import { normalizeRoomCode, getRoomForResults, RoomError } from '@/lib/room';
 import { getLeaderboard } from '@/lib/answers';
 import { sql } from '@/lib/db';
+import { bacaKunci, teksOpsi } from '@/lib/kunci';
 
 export const dynamic = 'force-dynamic';
 
@@ -160,26 +161,21 @@ async function rincianSesi(
 }
 
 function kunciSoal(r: { type: string; options: unknown; correct_answer: unknown; explanation: string | null; pilihan: unknown[] }) {
+  const opsi = teksOpsi(r.options);
+  const k = bacaKunci(r.type, r.options, r.correct_answer);
+  const benar = new Set(k.jenis === 'pilihan' ? k.indeks : []);
   const norm = (v: unknown) => String(v ?? '').trim().toLowerCase();
-  const opsi = (Array.isArray(r.options) ? r.options : []).map((o) =>
-    typeof o === 'object' && o !== null ? String((o as { text?: unknown }).text ?? '') : String(o)
-  );
-  const kunci = norm(r.correct_answer);
-  const diterima = r.type === 'TYPE_ANSWER' ? kunci.split(';').map((x) => x.trim()).filter(Boolean) : [kunci];
   const hitung = (i: number, teks: string) =>
     r.pilihan.filter((c) => norm(c) === String(i) || norm(c) === norm(teks)).length;
+  const correctAnswer =
+    k.jenis === 'pilihan' ? k.indeks.map((i) => opsi[i]).join(', ')
+    : k.jenis === 'urutan' ? k.indeks.map((i) => opsi[i]).join(' → ')
+    : k.jenis === 'isian' ? k.diterima.join(' / ')
+    : null;
   return {
-    options: opsi.map((teks, i) => ({
-      text: teks,
-      correct: r.type !== 'POLL' && (diterima.includes(String(i)) || diterima.includes(norm(teks))),
-      picked: hitung(i, teks),
-    })),
-    correctAnswer:
-      r.type === 'POLL'
-        ? null
-        : opsi.length > 0
-          ? opsi.filter((t, i) => diterima.includes(String(i)) || diterima.includes(norm(t))).join(', ') || String(r.correct_answer ?? '')
-          : String(r.correct_answer ?? '').split(';').map((x) => x.trim()).filter(Boolean).join(' / '),
+    answerKind: k.jenis,
+    options: k.jenis === 'isian' ? [] : opsi.map((teks, i) => ({ text: teks, correct: benar.has(i), picked: hitung(i, teks) })),
+    correctAnswer,
     explanation: r.explanation,
   };
 }
