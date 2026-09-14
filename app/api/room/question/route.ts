@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { handle } from '@/lib/api-guard';
 import { assertPlayer, getRoom, normalizeRoomCode, RoomError } from '@/lib/room';
 import { sql, type FullQuestionRow } from '@/lib/db';
+import { bacaKunci, teksOpsi } from '@/lib/kunci';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,7 +58,7 @@ export const GET = handle(async (req) => {
   const total = dihitung[0]?.n ?? 0;
 
   const rows = (await sql`
-    SELECT id, quiz_id, position, type, text, options, image_url, points, time_limit
+    SELECT id, quiz_id, position, type, text, options, correct_answer, image_url, points, time_limit
     FROM questions
     WHERE quiz_id = ${room.quiz_id} AND position = ${index}
     LIMIT 1
@@ -69,13 +70,42 @@ export const GET = handle(async (req) => {
 
   const q = rows[0];
 
+  // Kunci dibaca hanya untuk mengetahui bentuk soalnya; isinya tidak
+  // ikut terkirim. Layar peserta membutuhkan bentuk itu untuk memilih
+  // antara tombol pilihan, kotak isian, centang ganda, atau susunan urutan.
+  const k = bacaKunci(q.type, q.options, q.correct_answer);
+  const answerKind =
+    q.type === 'POLL' ? 'polling'
+    : k.jenis === 'isian' ? 'isian'
+    : k.jenis === 'urutan' ? 'urutan'
+    : k.jenis === 'pilihan' && k.indeks.length > 1 ? 'ganda'
+    : 'tunggal';
+
+  // Pada soal urutan, urutan simpanan pilihannya adalah jawabannya, jadi
+  // pilihan dikirim teracak bersama nomor aslinya.
+  let options: unknown = answerKind === 'isian' ? [] : q.options;
+  let optionIds: number[] | undefined;
+  if (answerKind === 'urutan') {
+    const teks = teksOpsi(q.options);
+    const acak = teks.map((t, i) => ({ t, i }));
+    for (let n = acak.length - 1; n > 0; n--) {
+      const j = Math.floor(Math.random() * (n + 1));
+      [acak[n], acak[j]] = [acak[j], acak[n]];
+    }
+    if (acak.every((x, n) => x.i === n) && acak.length > 1) acak.push(acak.shift()!);
+    options = acak.map((x) => x.t);
+    optionIds = acak.map((x) => x.i);
+  }
+
   return NextResponse.json(
     {
       id: q.id,
       index: q.position,
       type: q.type,
       text: q.text,
-      options: q.options,
+      options,
+      optionIds,
+      answerKind,
       imageUrl: q.image_url,
       points: q.points,
       timeLimit: q.time_limit,
