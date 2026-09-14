@@ -1,5 +1,6 @@
 "use client";
 
+import { useBahasa } from "@/lib/bahasa";
 import { useState, use, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, ArrowRight } from "lucide-react";
@@ -7,6 +8,7 @@ import { AVATARS, getAvatar } from "@/lib/avatars";
 import { saveSession, readSession, clearSession, verifySession } from "@/lib/player-session";
 
 export default function NicknamePage({ params }: { params: Promise<{ roomCode: string }> }) {
+  const { tt } = useBahasa();
   const router = useRouter();
   const unwrappedParams = use(params);
   const roomCode = unwrappedParams.roomCode.toUpperCase();
@@ -101,7 +103,7 @@ export default function NicknamePage({ params }: { params: Promise<{ roomCode: s
       <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg-raw)" }}>
         <div className="zy-stack" style={{ alignItems: "center", gap: "var(--sp-4)" }}>
           <Loader2 size={30} className="animate-spin" style={{ color: "var(--p)" }} aria-hidden="true" />
-          <p className="zy-muted" role="status">Menyambungkan kembali ke ruangan…</p>
+          <p className="zy-muted" role="status">{tt("Menyambungkan kembali ke ruangan…", "Reconnecting to the room…")}</p>
         </div>
       </div>
     );
@@ -127,7 +129,7 @@ export default function NicknamePage({ params }: { params: Promise<{ roomCode: s
           jadi pekerjaan tersendiri di tengah kelas yang ramai.
         */}
         <div style={{ textAlign: "center", marginBottom: "var(--sp-5)" }}>
-          <div className="zy-label">Kode ruangan</div>
+          <div className="zy-label">{tt("Kode ruangan", "Room code")}</div>
           <div
             className="zy-num"
             style={{
@@ -144,10 +146,10 @@ export default function NicknamePage({ params }: { params: Promise<{ roomCode: s
 
         <div className="zy-panel" style={{ padding: "var(--sp-6)" }}>
           <h1 className="zy-h2" style={{ textAlign: "center" }}>
-            Pilih avatar dan tulis nama
+            {tt("Pilih avatar dan tulis nama", "Pick an avatar and type a name")}
           </h1>
           <p className="zy-muted" style={{ textAlign: "center", marginTop: "var(--sp-2)" }}>
-            Nama ini yang muncul di papan peringkat
+            {tt("Nama ini yang muncul di papan peringkat", "This name appears on the leaderboard")}
           </p>
 
           {/*
@@ -159,7 +161,7 @@ export default function NicknamePage({ params }: { params: Promise<{ roomCode: s
           */}
           <div
             role="radiogroup"
-            aria-label="Pilihan avatar"
+            aria-label={tt("Pilihan avatar", "Avatar options")}
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(5, 1fr)",
@@ -204,13 +206,13 @@ export default function NicknamePage({ params }: { params: Promise<{ roomCode: s
 
           <form onSubmit={handleJoin} style={{ marginTop: "var(--sp-5)" }}>
             <label htmlFor="nama" className="zy-label" style={{ display: "block", marginBottom: "var(--sp-2)" }}>
-              Nama panggilan
+              {tt("Nama panggilan", "Nickname")}
             </label>
             <input
               id="nama"
               ref={inputRef}
               type="text"
-              placeholder={`Nama kamu, mis. ${avatarTerpilih.id}`}
+              placeholder={tt(`Nama kamu, mis. ${avatarTerpilih.id}`, `Your name, e.g. ${avatarTerpilih.id}`)}
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               maxLength={50}
@@ -253,11 +255,11 @@ export default function NicknamePage({ params }: { params: Promise<{ roomCode: s
               {isLoading ? (
                 <>
                   <Loader2 size={16} className="animate-spin" aria-hidden="true" />
-                  Menggabungkan…
+                  {tt("Menggabungkan…", "Joining…")}
                 </>
               ) : (
                 <>
-                  Masuk ke permainan
+                  {tt("Masuk ke permainan", "Enter the game")}
                   <ArrowRight size={16} aria-hidden="true" />
                 </>
               )}

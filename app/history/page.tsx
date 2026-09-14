@@ -44,14 +44,14 @@ interface Rekomendasi {
  * tidak bisa melihat batangnya.
  */
 function GrafikKetepatan({ sesi }: { sesi: Sesi[] }) {
-  const { t } = useBahasa();
+  const { tt, t } = useBahasa();
   const terakhir = sesi.slice(0, 15).reverse();
   if (terakhir.length === 0) return null;
 
   return (
     <div className="zy-panel" style={{ padding: "var(--sp-5)" }}>
       <h2 className="zy-label" style={{ marginBottom: "var(--sp-4)" }}>
-        KETEPATAN {terakhir.length} SESI TERAKHIR
+        {tt("KETEPATAN", "ACCURACY")}{" "}{terakhir.length}{" "}{tt("SESI TERAKHIR", "LATEST SESSION")}
       </h2>
 
       <div
@@ -83,7 +83,7 @@ function GrafikKetepatan({ sesi }: { sesi: Sesi[] }) {
               <th scope="row">
                 {s.title}, {new Date(s.date).toLocaleDateString("id-ID")}
               </th>
-              <td>{s.accuracy} persen</td>
+              <td>{s.accuracy}{" "}{tt("persen", "percent")}</td>
             </tr>
           ))}
         </tbody>
@@ -116,7 +116,7 @@ function Ringkasan({ label, value }: { label: string; value: string | number }) 
 }
 
 function IsiRiwayat() {
-  const { t } = useBahasa();
+  const { tt, t } = useBahasa();
   const { data: session, status } = useSession();
   const router = useRouter();
   const paramCari = useSearchParams();
@@ -247,9 +247,9 @@ function IsiRiwayat() {
                   gap: "var(--sp-3)",
                 }}
               >
-                <Ringkasan label="Sesi selesai" value={sesi.length} />
-                <Ringkasan label="Rata ketepatan" value={`${rataKetepatan}%`} />
-                <Ringkasan label="Peserta terlayani" value={totalPeserta} />
+                <Ringkasan label={tt("Sesi selesai", "Sessions finished")} value={sesi.length} />
+                <Ringkasan label={tt("Rata ketepatan", "Average accuracy")} value={`${rataKetepatan}%`} />
+                <Ringkasan label={tt("Peserta terlayani", "Players served")} value={totalPeserta} />
               </div>
 
               <GrafikKetepatan sesi={sesi} />
@@ -262,7 +262,7 @@ function IsiRiwayat() {
                   <h2 className="zy-h3" style={{ fontSize: "var(--fs-base)" }}>
                     {t("sesiTerakhir")}
                   </h2>
-                  <span className="zy-label zy-num">{sesi.length} tercatat</span>
+                  <span className="zy-label zy-num">{sesi.length}{" "}{tt("tercatat", "recorded")}</span>
                 </div>
 
                 {sesi.length === 0 ? (
@@ -299,8 +299,8 @@ function IsiRiwayat() {
                             month: "short",
                             year: "numeric",
                           })}
-                          {h.totalPlayers > 0 ? ` · ${h.totalPlayers} peserta` : ""}
-                          {h.topName ? ` · teratas ${h.topName}` : ""}
+                          {h.totalPlayers > 0 ? tt(` · ${h.totalPlayers} peserta`, ` · ${h.totalPlayers} players`) : ""}
+                          {h.topName ? tt(` · teratas ${h.topName}`, ` · top ${h.topName}`) : ""}
                         </div>
                       </div>
 
@@ -379,14 +379,14 @@ function IsiRiwayat() {
                           className="zy-label zy-row zy-num"
                           style={{ gap: "var(--sp-1)", marginTop: "var(--sp-1)" }}
                         >
-                          <FileQuestion size={12} aria-hidden="true" /> {q.questionCount} soal
+                          <FileQuestion size={12} aria-hidden="true" /> {q.questionCount}{" "}{tt("soal", "questions")}
                         </div>
                       </div>
 
                       <Link
                         href={`/create?quizId=${encodeURIComponent(q.id)}`}
                         className="zy-btn zy-btn-secondary"
-                        aria-label={`Ubah kuis ${q.title}`}
+                        aria-label={tt(`Ubah kuis ${q.title}`, `Edit quiz ${q.title}`)}
                         style={{ padding: "var(--sp-2) var(--sp-3)" }}
                       >
                         <Pencil size={13} aria-hidden="true" />
@@ -438,7 +438,7 @@ function IsiRiwayat() {
                       className="zy-label zy-row"
                       style={{ gap: "var(--sp-1)", marginTop: "var(--sp-1)" }}
                     >
-                      <User size={11} aria-hidden="true" /> {rec.author ?? "Anonim"}
+                      <User size={11} aria-hidden="true" /> {rec.author ?? tt("Anonim", "Anonymous")}
                     </div>
                   </Link>
                 ))}
@@ -450,7 +450,7 @@ function IsiRiwayat() {
               className="zy-btn zy-btn-quiet"
               style={{ width: "100%", marginTop: "var(--sp-4)" }}
             >
-              <Search size={13} aria-hidden="true" /> Jelajahi katalog
+              <Search size={13} aria-hidden="true" />{" "}{tt("Jelajahi katalog", "Browse the catalog")}
             </Link>
           </div>
         </aside>

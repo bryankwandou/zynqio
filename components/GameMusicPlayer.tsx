@@ -1,5 +1,6 @@
 "use client";
 
+import { useBahasa } from "@/lib/bahasa";
 import { useEffect, useRef, useState, useCallback } from "react";
 
 interface Props {
@@ -149,6 +150,7 @@ function jazzBar(ctx: AudioContext, dest: AudioNode, t: number): number {
 
 // ─── Component ────────────────────────────────────────────────────────
 export default function GameMusicPlayer({ autoPlay = true, defaultVolume = 0.45 }: Props) {
+  const { tt } = useBahasa();
   const ctxRef = useRef<AudioContext | null>(null);
   const gainRef = useRef<GainNode | null>(null);
   const dryBusRef = useRef<GainNode | null>(null);
@@ -285,7 +287,7 @@ export default function GameMusicPlayer({ autoPlay = true, defaultVolume = 0.45 
   return (
     <button
       onClick={toggleMute}
-      title={muted ? "Unmute lo-fi jazz" : started ? "Mute music" : "Play lo-fi jazz"}
+      title={muted ? tt("Nyalakan musik lo-fi jazz", "Unmute lo-fi jazz") : started ? tt("Matikan musik", "Mute music") : tt("Putar musik lo-fi jazz", "Play lo-fi jazz")}
       className="w-8 h-8 rounded-full flex items-center justify-center text-xs border border-white/10 bg-white/5 hover:bg-white/10 zy-motion shrink-0"
       style={{ fontSize: "14px" }}
     >

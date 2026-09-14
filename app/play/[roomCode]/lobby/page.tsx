@@ -1,5 +1,6 @@
 "use client";
 
+import { useBahasa } from "@/lib/bahasa";
 import { useEffect, useState, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getAvatar } from "@/lib/avatars";
@@ -13,6 +14,7 @@ type Player = {
 };
 
 export default function PlayerLobby({ params }: { params: Promise<{ roomCode: string }> }) {
+  const { tt } = useBahasa();
   const router = useRouter();
   const unwrappedParams = use(params);
   const roomCode = unwrappedParams.roomCode.toUpperCase();
@@ -135,11 +137,11 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
     return (
       <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: "var(--sp-5)", background: "var(--bg-raw)" }}>
         <div className="zy-stack" style={{ alignItems: "center", textAlign: "center", gap: "var(--sp-3)", maxWidth: 380 }}>
-          <h2 className="zy-h2">Anda dikeluarkan dari ruangan</h2>
+          <h2 className="zy-h2">{tt("Anda dikeluarkan dari ruangan", "You were removed from the room")}</h2>
           <p className="zy-muted">
-            Pengajar mengeluarkan Anda dari ruangan ini. Bila ini keliru, mintalah kode ruangannya lagi.
+            {tt("Pengajar mengeluarkan Anda dari ruangan ini. Bila ini keliru, mintalah kode ruangannya lagi.", "The teacher removed you from this room. If this was a mistake, ask them to let you back in.")}
           </p>
-          <p className="zy-label" role="status">Kembali ke halaman depan…</p>
+          <p className="zy-label" role="status">{tt("Kembali ke halaman depan…", "Back to the home page…")}</p>
         </div>
       </div>
     );
@@ -172,7 +174,7 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
             padding: "var(--sp-2)",
           }}
         >
-          Sambungan terputus — sedang mencoba lagi…
+          {tt("Sambungan terputus — sedang mencoba lagi…", "Connection lost — trying again…")}
         </div>
       )}
 
@@ -188,7 +190,7 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
         }}
       >
         <div style={{ textAlign: "center" }}>
-          <div className="zy-label">Kode ruangan</div>
+          <div className="zy-label">{tt("Kode ruangan", "Room code")}</div>
           <div
             className="zy-num"
             style={{
@@ -223,12 +225,12 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
           </div>
 
           <h1 className="zy-h1" style={{ textAlign: "center", fontSize: "var(--fs-2xl)" }}>
-            Kamu sudah masuk, {namaPendek}
+            {tt("Kamu sudah masuk,", "You're in,")}{" "}{namaPendek}
           </h1>
 
           {quizTitle && (
             <p className="zy-muted" style={{ textAlign: "center" }}>
-              Kuis: <span style={{ color: "var(--t1)", fontWeight: "var(--fw-medium)" }}>{quizTitle}</span>
+              {tt("Kuis:", "Quiz:")}{" "}<span style={{ color: "var(--t1)", fontWeight: "var(--fw-medium)" }}>{quizTitle}</span>
             </p>
           )}
         </div>
@@ -250,7 +252,7 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
               borderWidth: 2,
             }}
           >
-            <div className="zy-label">Regu Anda</div>
+            <div className="zy-label">{tt("Regu Anda", "Your team")}</div>
             <div
               style={{
                 fontSize: "var(--fs-xl)",
@@ -259,7 +261,7 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
                 marginTop: "var(--sp-1)",
               }}
             >
-              {team === "Red Team" ? "Regu Merah" : "Regu Biru"}
+              {team === "Red Team" ? tt("Regu Merah", "Red Team") : tt("Regu Biru", "Blue Team")}
             </div>
           </div>
         )}
@@ -272,7 +274,7 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
               borderBottom: "1px solid var(--border-raw)",
             }}
           >
-            <span className="zy-label">Peserta di ruangan</span>
+            <span className="zy-label">{tt("Peserta di ruangan", "Players in the room")}</span>
             <span
               className="zy-badge zy-num"
               // Jumlahnya berubah saat orang lain masuk. aria-live
@@ -286,7 +288,7 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
           <div style={{ padding: "var(--sp-4)" }}>
             {players.length === 0 ? (
               <p className="zy-muted" style={{ textAlign: "center", padding: "var(--sp-4) 0" }}>
-                Belum ada yang bergabung
+                {tt("Belum ada yang bergabung", "Nobody has joined yet")}
               </p>
             ) : (
               <ul
@@ -324,7 +326,7 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
                         }}
                       >
                         {nama}
-                        {sayaSendiri && <span className="zy-label" style={{ marginLeft: "var(--sp-1)" }}>(Anda)</span>}
+                        {sayaSendiri && <span className="zy-label" style={{ marginLeft: "var(--sp-1)" }}>{tt("(Anda)", "(You)")}</span>}
                       </span>
                     </li>
                   );
@@ -358,7 +360,7 @@ export default function PlayerLobby({ params }: { params: Promise<{ roomCode: st
               />
             ))}
           </div>
-          <p className="zy-muted" role="status">Menunggu pengajar memulai</p>
+          <p className="zy-muted" role="status">{tt("Menunggu pengajar memulai", "Waiting for the teacher to start")}</p>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useBahasa } from "@/lib/bahasa";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useEffect, useState, use, useRef } from "react";
@@ -64,6 +65,7 @@ function podiumOrder(winners: any[]) {
 }
 
 function PodiumSlot({ player, rank, delay, visible }: { player: any; rank: number; delay: number; visible: boolean }) {
+  const { tt } = useBahasa();
   const av = getAvatar(player.avatarId);
   const isFirst = rank === 1;
   return (
@@ -90,7 +92,7 @@ function PodiumSlot({ player, rank, delay, visible }: { player: any; rank: numbe
         style={{ height: PODIUM_H[rank - 1] }}
       >
         <span className="text-3xl font-black">{rank}</span>
-        <span className="text-xs opacity-80 font-semibold">{(player.score || 0).toLocaleString()} pts</span>
+        <span className="text-xs opacity-80 font-semibold">{(player.score || 0).toLocaleString()}{" "}{tt("poin", "pts")}</span>
       </div>
       {/* Name */}
       <div className={`mt-2 font-bold text-center text-sm truncate w-24 ${isFirst ? "text-yellow-400 font-black uppercase tracking-wide" : "text-muted-foreground"}`}>
@@ -102,6 +104,7 @@ function PodiumSlot({ player, rank, delay, visible }: { player: any; rank: numbe
 
 /* ── Main Page ─────────────────────────────────────────────────── */
 export default function ResultsPage({ params }: { params: Promise<{ sessionId: string }> }) {
+  const { tt } = useBahasa();
   const { data: session, status: statusSesi } = useSession();
   const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
   const unwrappedParams = use(params);
@@ -247,23 +250,22 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
       return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-5 px-6 text-center">
           <div className="text-5xl">😕</div>
-          <h2 className="text-xl font-black text-foreground">Hasil tidak ditemukan</h2>
+          <h2 className="text-xl font-black text-foreground">{tt("Hasil tidak ditemukan", "Results not found")}</h2>
           <p className="text-muted-foreground text-sm max-w-xs">
-            Sesi ini mungkin sudah lewat, atau hasilnya belum selesai
-            dihitung. Coba muat ulang sebentar lagi.
+            {tt("Sesi ini mungkin sudah lewat, atau hasilnya belum selesai dihitung. Coba muat ulang sebentar lagi.", "This session may have expired, or its results are still being counted. Try reloading in a moment.")}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <button
               onClick={() => { setLoadError(false); window.location.reload(); }}
               className="px-6 py-3 bg-primary text-white font-bold rounded-xl hover:opacity-90 transition-opacity"
             >
-              Coba lagi
+              {tt("Coba lagi", "Try again")}
             </button>
             <Link
               href="/"
               className="px-6 py-3 border border-border text-foreground font-bold rounded-xl hover:bg-muted transition-colors"
             >
-              Kembali ke beranda
+              {tt("Kembali ke beranda", "Back to home")}
             </Link>
           </div>
         </div>
@@ -272,8 +274,8 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-foreground font-bold animate-pulse" role="status">Menghitung hasil…</p>
-        <p className="text-muted-foreground text-xs">Mengambil data sesi</p>
+        <p className="text-foreground font-bold animate-pulse" role="status">{tt("Menghitung hasil…", "Counting results…")}</p>
+        <p className="text-muted-foreground text-xs">{tt("Mengambil data sesi", "Fetching session data")}</p>
       </div>
     );
   }
@@ -301,7 +303,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
       <section className="shrink-0 bg-card border-b border-border py-12 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(59,130,246,0.12),transparent_70%)] pointer-events-none" />
         <div className="container mx-auto px-4 relative z-10 max-w-4xl">
-          <h1 className="text-3xl font-black text-center mb-1">🏆 Hasil akhir</h1>
+          <h1 className="text-3xl font-black text-center mb-1">{tt("🏆 Hasil akhir", "🏆 Final results")}</h1>
           {results.quizTitle && (
             <p className="text-center text-muted-foreground text-sm mb-8">{results.quizTitle}</p>
           )}
@@ -322,7 +324,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
           {/* Buttons */}
           <div className="flex justify-center mt-8 gap-3 flex-wrap">
             <Button onClick={handleShare} variant="outline" className="gap-2 border-border dark:border-white/20 dark:text-white/80 dark:bg-white/5 dark:hover:bg-white/10">
-              <Share2 size={15} /> Bagikan hasil
+              <Share2 size={15} />{" "}{tt("Bagikan hasil", "Share results")}
             </Button>
             {isHost && (
               <Button
@@ -330,7 +332,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
                 variant="outline"
                 className="gap-2 border-border dark:border-white/20 dark:text-white/80 dark:bg-white/5 dark:hover:bg-white/10"
               >
-                <Copy size={15} aria-hidden="true" /> Salin tautan ruangan
+                <Copy size={15} aria-hidden="true" />{" "}{tt("Salin tautan ruangan", "Copy room link")}
               </Button>
             )}
           </div>
@@ -347,15 +349,15 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
               onClick={(e) => e.stopPropagation()}
             >
               <button
-                aria-label="Tutup"
+                aria-label={tt("Tutup", "Close")}
                 onClick={() => setShowRating(false)}
                 className="absolute top-3 right-4 text-xl text-muted-foreground hover:text-foreground"
               >
                 ×
               </button>
               <div className="text-4xl mb-3">🌟</div>
-              <h2 className="text-xl font-black mb-1">Beri nilai kuis ini</h2>
-              <p className="text-muted-foreground text-sm mb-5">Masukan Anda membantu pengajar menyusun kuis berikutnya</p>
+              <h2 className="text-xl font-black mb-1">{tt("Beri nilai kuis ini", "Rate this quiz")}</h2>
+              <p className="text-muted-foreground text-sm mb-5">{tt("Masukan Anda membantu pengajar menyusun kuis berikutnya", "Your feedback helps the teacher build the next quiz")}</p>
               <div className="flex justify-center gap-2 mb-5">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
@@ -371,15 +373,15 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
               </div>
               <textarea
                 className="w-full bg-background border border-border rounded-xl p-3 text-sm text-foreground mb-4 outline-none resize-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Tulis komentar singkat (boleh dikosongkan)"
+                placeholder={tt("Tulis komentar singkat (boleh dikosongkan)", "Write a short comment (optional)")}
                 rows={2}
                 maxLength={120}
                 value={reviewText}
                 onChange={(e) => setReviewText(e.target.value)}
               />
               <div className="flex gap-3">
-                <Button onClick={() => setShowRating(false)} variant="outline" className="flex-1 border-border dark:border-white/20 dark:text-white/70">Lewati</Button>
-                <Button onClick={submitRating} disabled={rating === 0} className="flex-1 bg-primary hover:bg-primary/90 text-white">Kirim</Button>
+                <Button onClick={() => setShowRating(false)} variant="outline" className="flex-1 border-border dark:border-white/20 dark:text-white/70">{tt("Lewati", "Skip")}</Button>
+                <Button onClick={submitRating} disabled={rating === 0} className="flex-1 bg-primary hover:bg-primary/90 text-white">{tt("Kirim", "Submit")}</Button>
               </div>
             </div>
           </div>
@@ -391,14 +393,14 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
           >
             <div className="relative bg-card border border-border p-8 rounded-3xl text-center">
               <button
-                aria-label="Tutup"
+                aria-label={tt("Tutup", "Close")}
                 onClick={() => setShowRating(false)}
                 className="absolute top-3 right-4 text-xl text-muted-foreground hover:text-foreground"
               >
                 ×
               </button>
               <div className="text-5xl mb-3">🙏</div>
-              <h2 className="text-xl font-black">Terima kasih atas penilaiannya</h2>
+              <h2 className="text-xl font-black">{tt("Terima kasih atas penilaiannya", "Thanks for your rating")}</h2>
             </div>
           </div>
         )}
@@ -415,7 +417,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
                 tab === t ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t === "analytics" ? "📊 Analytics" : t === "review" ? "📝 Review" : "🏅 Leaderboard"}
+              {t === "analytics" ? tt("📊 Analisis", "📊 Analytics") : t === "review" ? tt("📝 Pembahasan", "📝 Review") : tt("🏅 Peringkat", "🏅 Leaderboard")}
             </button>
           ))}
         </div>
@@ -426,7 +428,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
             {results.gameMode === "team" && results.teamLeaderboard?.length > 0 && (
               <div className="bg-card border border-border rounded-2xl p-5 shadow-lg mb-4">
                 <h2 className="font-bold mb-3 flex items-center gap-2 text-sm text-muted-foreground uppercase tracking-widest">
-                  <Users size={14} className="text-primary" /> Team Rankings
+                  <Users size={14} className="text-primary" />{" "}{tt("Peringkat regu", "Team rankings")}
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {results.teamLeaderboard.map((t: any, i: number) => (
@@ -445,10 +447,10 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
             )}
 
             <div className="flex justify-between items-center mb-3">
-              <h2 className="font-bold text-lg">Peringkat peserta</h2>
+              <h2 className="font-bold text-lg">{tt("Peringkat peserta", "Player ranking")}</h2>
               {isHost && (
                 <Button onClick={exportCSV} variant="outline" size="sm" className="gap-2 border-border dark:border-white/20 dark:text-white/80 dark:bg-white/5">
-                  <Download size={14} aria-hidden="true" /> Unduh CSV
+                  <Download size={14} aria-hidden="true" />{" "}{tt("Unduh CSV", "Download CSV")}
                 </Button>
               )}
             </div>
@@ -474,13 +476,13 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
                     <div className="flex-1 min-w-0">
                       <div className={`font-bold text-sm truncate ${isMe ? "text-blue-400" : "text-foreground"}`}>
                         {p.name}
-                        {isMe && <span className="ml-1 text-xs font-normal text-blue-300">(Anda)</span>}
+                        {isMe && <span className="ml-1 text-xs font-normal text-blue-300">{tt("(Anda)", "(You)")}</span>}
                       </div>
-                      <div className="text-xs text-muted-foreground">{p.totalCorrect || 0}/{p.totalAnswered || 0} correct</div>
+                      <div className="text-xs text-muted-foreground">{p.totalCorrect || 0}/{p.totalAnswered || 0}{" "}{tt("benar", "correct")}</div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="font-black text-primary text-sm">{(p.score || 0).toLocaleString()} pts</div>
-                      <div className="text-xs text-muted-foreground">{p.accuracy}% acc</div>
+                      <div className="font-black text-primary text-sm">{(p.score || 0).toLocaleString()}{" "}{tt("poin", "pts")}</div>
+                      <div className="text-xs text-muted-foreground">{p.accuracy}{tt("% tepat", "% acc")}</div>
                     </div>
                   </div>
                 );
@@ -507,7 +509,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
 
             <div className="bg-card border border-border rounded-2xl p-6 shadow-lg">
               <h3 className="font-black mb-5 flex items-center gap-2">
-                <BarChart2 size={16} className="text-primary" aria-hidden="true" /> Tingkat kesulitan tiap soal
+                <BarChart2 size={16} className="text-primary" aria-hidden="true" />{" "}{tt("Tingkat kesulitan tiap soal", "Difficulty per question")}
               </h3>
               <div className="space-y-4">
                 {results.questions?.map((q: any, i: number) => (
@@ -532,15 +534,15 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
             {/* Per-player grid */}
             <div className="bg-card border border-border rounded-2xl p-6 shadow-lg overflow-x-auto">
               <h3 className="font-black mb-5 flex items-center gap-2">
-                <Trophy size={16} className="text-yellow-500" aria-hidden="true" /> Rincian per peserta
+                <Trophy size={16} className="text-yellow-500" aria-hidden="true" />{" "}{tt("Rincian per peserta", "Breakdown per player")}
               </h3>
               <table className="w-full text-sm min-w-[500px]">
                 <thead>
                   <tr className="text-muted-foreground text-xs uppercase tracking-widest border-b border-border">
-                    <th className="py-2 text-left font-black">Peserta</th>
-                    <th className="py-2 text-right font-black">Skor</th>
-                    <th className="py-2 text-right font-black">Benar</th>
-                    <th className="py-2 text-right font-black">Ketepatan</th>
+                    <th className="py-2 text-left font-black">{tt("Peserta", "Player")}</th>
+                    <th className="py-2 text-right font-black">{tt("Skor", "Score")}</th>
+                    <th className="py-2 text-right font-black">{tt("Benar", "Correct")}</th>
+                    <th className="py-2 text-right font-black">{tt("Ketepatan", "Accuracy")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -574,7 +576,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
         {tab === "review" && (
           <div className="space-y-4">
             {results.questions?.length === 0 && (
-              <p className="text-muted-foreground text-center py-12">Belum ada rincian per soal untuk sesi ini.</p>
+              <p className="text-muted-foreground text-center py-12">{tt("Belum ada rincian per soal untuk sesi ini.", "No per-question breakdown for this session yet.")}</p>
             )}
             {results.questions?.map((q: any, i: number) => (
               <div key={i} className="bg-card border border-border rounded-2xl p-5 shadow-md">
@@ -588,7 +590,7 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
                   <div className={`text-xs font-black px-2 py-1 rounded-lg ${
                     q.accuracy < 40 ? "bg-red-500/10 text-red-500" : q.accuracy < 70 ? "bg-amber-500/10 text-amber-500" : "bg-green-500/10 text-green-500"
                   }`}>
-                    {q.accuracy}% benar
+                    {q.accuracy}{tt("% benar", "% correct")}
                   </div>
                 </div>
                 <div className="h-1.5 bg-accent rounded-full overflow-hidden">
@@ -611,16 +613,16 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
                         <span className="flex items-center gap-2">
                           <span aria-hidden="true">{o.correct ? "✓" : "○"}</span>
                           {o.text}
-                          {o.correct && <span className="sr-only">(jawaban benar)</span>}
+                          {o.correct && <span className="sr-only">{tt("(jawaban benar)", "(correct answer)")}</span>}
                         </span>
-                        {o.picked != null && <span className="text-xs shrink-0">{o.picked} memilih</span>}
+                        {o.picked != null && <span className="text-xs shrink-0">{o.picked}{" "}{tt("memilih", "picked")}</span>}
                       </li>
                     ))}
                   </ul>
                 )}
                 {(q.answerKind === "urutan" || !Array.isArray(q.options) || q.options.length === 0) && q.correctAnswer && (
                   <p className="mt-4 rounded-xl border border-green-500 bg-green-500/10 px-3 py-2 text-sm font-bold text-green-700 dark:text-green-400">
-                    ✓ {q.answerKind === "urutan" ? "Urutan benar" : "Jawaban benar"}: {q.correctAnswer}
+                    ✓ {q.answerKind === "urutan" ? tt("Urutan benar", "Correct order") : tt("Jawaban benar", "Correct answer")}: {q.correctAnswer}
                   </p>
                 )}
                 {q.explanation && (

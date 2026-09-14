@@ -1,5 +1,6 @@
 "use client";
 
+import { useBahasa } from "@/lib/bahasa";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/navbar";
@@ -296,6 +297,7 @@ const PLATFORM_LABELS: Record<Platform, string> = {
 };
 
 export default function ImportQuiz() {
+  const { tt } = useBahasa();
   const router = useRouter();
   const [preview, setPreview] = useState<any[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
@@ -402,9 +404,9 @@ export default function ImportQuiz() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-3xl font-black text-foreground mb-1 uppercase tracking-tight">Impor kuis</h1>
+            <h1 className="text-3xl font-black text-foreground mb-1 uppercase tracking-tight">{tt("Impor kuis", "Import quiz")}</h1>
             <p className="text-muted-foreground text-sm">
-              Auto-detects: <span className="text-blue-400 font-bold">Quizizz · Kahoot · Blooket · CSV · XLSX · XLS</span>
+              {tt("Deteksi otomatis:", "Auto-detects:")}{" "}<span className="text-blue-400 font-bold">Quizizz · Kahoot · Blooket · CSV · XLSX · XLS</span>
             </p>
           </div>
         </div>
@@ -428,11 +430,10 @@ export default function ImportQuiz() {
                 <Upload size={40} className={dragging ? "scale-110 transition-transform" : "animate-bounce"} />
               </div>
               <h2 className="text-2xl font-black text-foreground mb-4 uppercase">
-                {dragging ? "Drop it!" : "Click to browse or drag & drop"}
+                {dragging ? tt("Lepaskan di sini!", "Drop it!") : tt("Klik untuk memilih atau seret ke sini", "Click to browse or drag & drop")}
               </h2>
               <p className="text-muted-foreground max-w-lg mx-auto mb-6 text-base">
-                Supports <strong>CSV, XLSX, XLS</strong>. Automatically detects format from
-                Quizizz, Kahoot, Blooket, and custom spreadsheets.
+                {tt("Mendukung", "Supports")}{" "}<strong>CSV, XLSX, XLS</strong>{tt(". Format dari Quizizz, Kahoot, Blooket, dan buatan sendiri dikenali otomatis.", ". Automatically detects format from Quizizz, Kahoot, Blooket, and custom spreadsheets.")}
               </p>
               <div className="flex flex-wrap justify-center gap-2 mb-10">
                 {["Quizizz", "Kahoot", "Blooket", "Custom CSV", "Custom XLSX"].map((p) => (
@@ -442,7 +443,7 @@ export default function ImportQuiz() {
                 ))}
               </div>
               <Button className="bg-primary hover:bg-primary text-white font-bold py-6 px-10 rounded-2xl shadow-lg shadow-primary/30 pointer-events-none">
-                Select File
+                {tt("Pilih berkas", "Select file")}
               </Button>
             </label>
 
@@ -455,11 +456,11 @@ export default function ImportQuiz() {
             <div className="mt-12 flex justify-center gap-4 flex-wrap">
               <Button variant="outline" className="border-border text-muted-foreground py-5 px-6 rounded-xl hover:bg-accent"
                 onClick={() => { const a = document.createElement("a"); a.href = "/api/template/xlsx"; a.download = "Zynqio_Template.xlsx"; a.click(); }}>
-                <FileSpreadsheet size={18} className="mr-2" /> Excel Template
+                <FileSpreadsheet size={18} className="mr-2" />{" "}{tt("Templat Excel", "Excel template")}
               </Button>
               <Button variant="outline" className="border-border text-muted-foreground py-5 px-6 rounded-xl hover:bg-accent"
                 onClick={() => { const a = document.createElement("a"); a.href = "/api/template/csv"; a.download = "Zynqio_Template.csv"; a.click(); }}>
-                <FileSpreadsheet size={18} className="mr-2" /> CSV Example
+                <FileSpreadsheet size={18} className="mr-2" />{" "}{tt("Contoh CSV", "CSV example")}
               </Button>
             </div>
           </div>
@@ -468,31 +469,31 @@ export default function ImportQuiz() {
             <div className="bg-card border border-border rounded-3xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xl">
               <div>
                 <div className="flex items-center gap-3 text-green-500 font-black text-xl mb-1 uppercase">
-                  <CheckCircle2 size={24} /> {preview.length} Questions Ready
+                  <CheckCircle2 size={24} /> {preview.length}{" "}{tt("Soal siap", "Questions ready")}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground font-bold uppercase tracking-wider">
                   <Zap size={12} className="text-primary" />
-                  Detected format: <span className="text-blue-400 ml-1">{PLATFORM_LABELS[platform]}</span>
+                  {tt("Format terdeteksi:", "Detected format:")}{" "}<span className="text-blue-400 ml-1">{PLATFORM_LABELS[platform]}</span>
                 </div>
                 {errors.length > 0 && (
                   <div className="flex items-center gap-2 text-amber-500 text-xs mt-2 font-medium">
-                    <AlertCircle size={14} /> {errors.length} rows skipped
+                    <AlertCircle size={14} /> {errors.length}{" "}{tt("baris dilewati", "rows skipped")}
                   </div>
                 )}
               </div>
               <div className="flex gap-3">
                 <Button variant="ghost" className="text-muted-foreground" onClick={() => { setPreview([]); setErrors([]); }}>
-                  Batal
+                  {tt("Batal", "Cancel")}
                 </Button>
                 <Button className="bg-green-600 hover:bg-green-700 text-white font-black py-5 px-8 rounded-2xl shadow-lg" onClick={importToBuilder}>
-                  Import to Builder
+                  {tt("Masukkan ke penyusun", "Import to builder")}
                 </Button>
               </div>
             </div>
 
             {errors.length > 0 && (
               <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 text-amber-600 text-xs space-y-1 font-medium">
-                <div className="font-black uppercase mb-1">Skipped rows:</div>
+                <div className="font-black uppercase mb-1">{tt("Baris dilewati:", "Skipped rows:")}</div>
                 {errors.map((e, i) => <div key={i}>• {e}</div>)}
               </div>
             )}
@@ -502,11 +503,11 @@ export default function ImportQuiz() {
                 <thead className="bg-accent/50 text-muted-foreground border-b border-border">
                   <tr>
                     <th className="p-4 font-black uppercase tracking-widest text-xs w-8">#</th>
-                    <th className="p-4 font-black uppercase tracking-widest text-xs">Jenis</th>
-                    <th className="p-4 font-black uppercase tracking-widest text-xs">Soal</th>
-                    <th className="p-4 font-black uppercase tracking-widest text-xs">Pilihan jawaban</th>
-                    <th className="p-4 font-black uppercase tracking-widest text-xs">Kunci</th>
-                    <th className="p-4 font-black uppercase tracking-widest text-xs">Poin</th>
+                    <th className="p-4 font-black uppercase tracking-widest text-xs">{tt("Jenis", "Type")}</th>
+                    <th className="p-4 font-black uppercase tracking-widest text-xs">{tt("Soal", "Question")}</th>
+                    <th className="p-4 font-black uppercase tracking-widest text-xs">{tt("Pilihan jawaban", "Answer options")}</th>
+                    <th className="p-4 font-black uppercase tracking-widest text-xs">{tt("Kunci", "Key")}</th>
+                    <th className="p-4 font-black uppercase tracking-widest text-xs">{tt("Poin", "Points")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -523,7 +524,7 @@ export default function ImportQuiz() {
                         }`}>{q.type}</span>
                       </td>
                       <td className="p-4 font-medium text-foreground max-w-xs truncate">{q.text}</td>
-                      <td className="p-4 text-muted-foreground text-xs">{q.options?.length || 0} opts</td>
+                      <td className="p-4 text-muted-foreground text-xs">{q.options?.length || 0}{" "}{tt("pilihan", "opts")}</td>
                       <td className="p-4 font-bold text-green-500 text-xs">{q.correctAnswer || "—"}</td>
                       <td className="p-4 font-black text-xs">{q.points}</td>
                     </tr>

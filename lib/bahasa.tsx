@@ -278,7 +278,13 @@ const Konteks = createContext<{
   bahasa: Bahasa;
   ganti: () => void;
   t: (k: KunciTeks) => string;
-}>({ bahasa: "id", ganti: () => {}, t: (k) => KAMUS[k].id });
+  /**
+   * Teks berpasangan di tempat pemakaiannya: tt("Simpan", "Save").
+   * Dipakai untuk frasa yang hanya muncul di satu layar, supaya kamus di
+   * atas tidak membengkak dengan ratusan kunci yang dipakai sekali.
+   */
+  tt: (id: string, en: string) => string;
+}>({ bahasa: "id", ganti: () => {}, t: (k) => KAMUS[k].id, tt: (id) => id });
 
 const PENYIMPANAN = "zynqio-bahasa";
 
@@ -313,8 +319,9 @@ export function PenyediaBahasa({ children }: { children: React.ReactNode }) {
   }, []);
 
   const t = useCallback((k: KunciTeks) => KAMUS[k][bahasa], [bahasa]);
+  const tt = useCallback((id: string, en: string) => (bahasa === "en" ? en : id), [bahasa]);
 
-  return <Konteks.Provider value={{ bahasa, ganti, t }}>{children}</Konteks.Provider>;
+  return <Konteks.Provider value={{ bahasa, ganti, t, tt }}>{children}</Konteks.Provider>;
 }
 
 export function useBahasa() {

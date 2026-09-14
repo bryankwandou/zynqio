@@ -1,5 +1,6 @@
 "use client";
 
+import { useBahasa } from "@/lib/bahasa";
 /**
  * components/navbar.tsx — bilah navigasi utama.
  *
@@ -34,6 +35,7 @@ const TAUTAN = [
 ];
 
 export function Navbar() {
+  const { tt } = useBahasa();
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
@@ -57,7 +59,7 @@ export function Navbar() {
         gap: "var(--sp-3)",
       }}
     >
-      <Link href="/" className="zy-row" style={{ gap: "var(--sp-2)" }} aria-label="ZYNQIO, ke beranda">
+      <Link href="/" className="zy-row" style={{ gap: "var(--sp-2)" }} aria-label={tt("ZYNQIO, ke beranda", "ZYNQIO, go home")}>
         <Logo size={28} />
         <span
           style={{
@@ -105,17 +107,17 @@ export function Navbar() {
             onClick={() => signOut({ callbackUrl: "/" })}
             className="zy-btn zy-btn-quiet"
             style={{ padding: "var(--sp-2)" }}
-            aria-label="Keluar dari akun"
+            aria-label={tt("Keluar dari akun", "Sign out")}
           >
             <LogOut size={15} aria-hidden="true" />
           </button>
         ) : (
           <>
             <Link href="/auth/signin" className="zy-btn zy-btn-quiet">
-              Masuk
+              {tt("Masuk", "Sign in")}
             </Link>
             <Link href="/auth/signup" className="zy-btn zy-btn-primary">
-              Mulai
+              {tt("Mulai", "Start")}
             </Link>
           </>
         )}
@@ -124,7 +126,7 @@ export function Navbar() {
           className="zy-btn zy-btn-quiet"
           style={{ padding: "var(--sp-2)" }}
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          aria-label={theme === "dark" ? "Beralih ke tampilan terang" : "Beralih ke tampilan gelap"}
+          aria-label={theme === "dark" ? tt("Beralih ke tampilan terang", "Switch to light theme") : tt("Beralih ke tampilan gelap", "Switch to dark theme")}
         >
           {theme === "dark" ? <Sun size={15} aria-hidden="true" /> : <Moon size={15} aria-hidden="true" />}
         </button>

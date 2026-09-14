@@ -1,5 +1,6 @@
 "use client";
 
+import { useBahasa } from "@/lib/bahasa";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -20,6 +21,7 @@ import { ArrowRight, Home } from "lucide-react";
  * aplikasinya rusak, bukan alamatnya yang salah.
  */
 export default function NotFound() {
+  const { tt } = useBahasa();
   const [kode, setKode] = useState("");
   const [galat, setGalat] = useState("");
   const router = useRouter();
@@ -64,10 +66,10 @@ export default function NotFound() {
         </div>
 
         <h1 className="zy-h1" style={{ marginTop: "var(--sp-3)", fontSize: "var(--fs-2xl)" }}>
-          Halaman ini tidak ada
+          {tt("Halaman ini tidak ada", "This page does not exist")}
         </h1>
         <p className="zy-muted" style={{ marginTop: "var(--sp-2)" }}>
-          Alamatnya mungkin salah ketik, atau halamannya sudah dipindahkan.
+          {tt("Alamatnya mungkin salah ketik, atau halamannya sudah dipindahkan.", "The address may be mistyped, or the page has moved.")}
         </p>
 
         <Link
@@ -76,7 +78,7 @@ export default function NotFound() {
           style={{ marginTop: "var(--sp-5)", justifyContent: "center" }}
         >
           <Home size={16} aria-hidden="true" />
-          Kembali ke halaman depan
+          {tt("Kembali ke halaman depan", "Back to the home page")}
         </Link>
 
         <div
@@ -84,7 +86,7 @@ export default function NotFound() {
           style={{ marginTop: "var(--sp-6)", padding: "var(--sp-6)", textAlign: "left" }}
         >
           <label htmlFor="kode-ruangan" className="zy-label" style={{ display: "block" }}>
-            Atau masuk ke ruangan
+            {tt("Atau masuk ke ruangan", "Or enter a room")}
           </label>
 
           <form onSubmit={gabung} className="zy-stack" style={{ gap: "var(--sp-3)", marginTop: "var(--sp-3)" }}>
@@ -100,7 +102,7 @@ export default function NotFound() {
                 if (galat) setGalat("");
               }}
               maxLength={6}
-              placeholder="KODE 6 HURUF"
+              placeholder={tt("KODE 6 HURUF", "6-LETTER CODE")}
               aria-describedby={galat ? "galat-kode" : undefined}
               aria-invalid={galat ? true : undefined}
               className="zy-input zy-num"
@@ -133,7 +135,7 @@ export default function NotFound() {
               className="zy-btn zy-btn-primary zy-btn-lg"
               style={{ width: "100%", justifyContent: "center" }}
             >
-              Masuk ruangan
+              {tt("Masuk ruangan", "Enter room")}
               <ArrowRight size={16} aria-hidden="true" />
             </button>
           </form>
