@@ -1,5 +1,6 @@
 "use client";
 
+import { useBahasa } from "@/lib/bahasa";
 import { useState, useEffect, use } from "react";
 import { Navbar } from "@/components/navbar";
 import { Play, Share2, Copy, Star, Users, Calendar, Loader2 } from "lucide-react";
@@ -17,6 +18,7 @@ const JENIS: Record<string, string> = {
 };
 
 export default function QuizDetailPage({ params }: { params: Promise<{ hostId: string, quizId: string }> }) {
+  const { tt } = useBahasa();
   const unwrappedParams = use(params);
   const [quiz, setQuiz] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -122,8 +124,8 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground font-bold animate-pulse uppercase tracking-widest">Memuat kuis…</div>;
-  if (!quiz) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground font-bold uppercase tracking-widest">Kuis tidak ditemukan.</div>;
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground font-bold animate-pulse uppercase tracking-widest">{tt("Memuat kuis…", "Loading quiz…")}</div>;
+  if (!quiz) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground font-bold uppercase tracking-widest">{tt("Kuis tidak ditemukan.", "Quiz not found.")}</div>;
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/90/30">
@@ -141,20 +143,20 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
               </div>
               
               <h1 className="text-4xl font-black text-foreground mb-4 mt-4 tracking-tight">{quiz.title}</h1>
-              <p className="text-muted-foreground text-lg mb-8 leading-relaxed">{quiz.description || "Kuis ini belum diberi keterangan."}</p>
+              <p className="text-muted-foreground text-lg mb-8 leading-relaxed">{quiz.description || tt("Kuis ini belum diberi keterangan.", "This quiz has no description yet.")}</p>
               
               <div className="flex flex-wrap gap-6 text-sm text-muted-foreground mb-8 pt-6 border-t border-border">
                 <div className="flex items-center gap-2">
                   <Users size={18} className="text-primary" />
-                  <span className="font-bold text-foreground">{(quiz.plays || 0).toLocaleString("id-ID")}</span> kali dibawakan
+                  <span className="font-bold text-foreground">{(quiz.plays || 0).toLocaleString("id-ID")}</span>{" "}{tt("kali dibawakan", "times played")}
                 </div>
                 <div className="flex items-center gap-2">
                   <Star size={18} className="text-yellow-500 fill-yellow-500" />
-                  <span className="font-bold text-foreground">{quiz.rating || "belum dinilai"}</span>{quiz.rating ? " penilaian" : ""}
+                  <span className="font-bold text-foreground">{quiz.rating || tt("belum dinilai", "not rated yet")}</span>{quiz.rating ? tt("penilaian", "ratings") : ""}
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar size={18} className="text-purple-500" />
-                  <span>Dibuat {new Date(quiz.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</span>
+                  <span>{tt("Dibuat", "Created")}{" "}{new Date(quiz.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</span>
                 </div>
               </div>
 
@@ -177,13 +179,13 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
                   {hosting ? (
                     <Loader2 size={20} className="animate-spin mr-2" />
                   ) : null}
-                  {status !== "authenticated" ? "Masuk dulu untuk membawakan" : "Bawakan sekarang"}
+                  {status !== "authenticated" ? tt("Masuk dulu untuk membawakan", "Sign in to host") : tt("Bawakan sekarang", "Host now")}
                   {!hosting && <Play size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={bagikan}
-                  aria-label="Bagikan tautan kuis ini"
+                  aria-label={tt("Bagikan tautan kuis ini", "Share this quiz's link")}
                   className="px-6 rounded-2xl border-border dark:border-white/20 dark:text-white/80 dark:bg-white/5 hover:bg-accent dark:hover:bg-white/10"
                 >
                   <Share2 size={20} aria-hidden="true" />
@@ -194,17 +196,17 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
             {/* Questions Preview — answers hidden for integrity */}
             <div className="space-y-4">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-2 px-2">
-                Daftar soal <span className="text-muted-foreground text-lg font-medium">({quiz.questions?.length || 0})</span>
+                {tt("Daftar soal", "Question list")}{" "}<span className="text-muted-foreground text-lg font-medium">({quiz.questions?.length || 0})</span>
               </h2>
               <div className="text-xs text-muted-foreground px-2 flex items-center gap-1.5">
                 <span className="inline-block w-2 h-2 rounded-full bg-amber-500" />
-                Kunci jawaban disembunyikan — ikut sesi langsung untuk menjawabnya.
+                {tt("Kunci jawaban disembunyikan — ikut sesi langsung untuk menjawabnya.", "Answer key hidden — join a live session to answer it.")}
               </div>
               {quiz.questions?.map((q: any, i: number) => (
                 <div key={i} className="bg-card border border-border rounded-2xl p-6 hover:border-primary/30 transition-colors shadow-lg">
                   <div className="flex justify-between items-start mb-4">
-                    <span className="text-xs font-black text-muted-foreground uppercase tracking-widest">Soal {i + 1} • {JENIS[q.type] ?? q.type}</span>
-                    <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">{q.points} poin</span>
+                    <span className="text-xs font-black text-muted-foreground uppercase tracking-widest">{tt("Soal", "Question")}{" "}{i + 1} • {JENIS[q.type] ?? q.type}</span>
+                    <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">{q.points}{" "}{tt("poin", "points")}</span>
                   </div>
                   <p className="text-lg text-foreground font-medium mb-4">{q.text}</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -222,14 +224,14 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
           {/* Right: Sidebar */}
           <div className="space-y-6">
             <div className="bg-card border border-border rounded-3xl p-6 sticky top-24 shadow-xl">
-              <h3 className="font-bold text-foreground mb-4 uppercase tracking-widest text-xs text-muted-foreground">Penyusun</h3>
+              <h3 className="font-bold text-foreground mb-4 uppercase tracking-widest text-xs text-muted-foreground">{tt("Penyusun", "Author")}</h3>
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center font-black text-white">
                   {quiz.author?.[0] || "A"}
                 </div>
                 <div>
-                  <div className="font-bold text-foreground">{quiz.author || "Tanpa nama"}</div>
-                  <div className="text-xs text-muted-foreground">Penyusun kuis</div>
+                  <div className="font-bold text-foreground">{quiz.author || tt("Tanpa nama", "Untitled")}</div>
+                  <div className="text-xs text-muted-foreground">{tt("Penyusun kuis", "Quiz builder")}</div>
                 </div>
               </div>
               <Button
@@ -239,12 +241,11 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
                 className="w-full rounded-xl py-5 group border-border dark:border-white/20 dark:text-white/80 dark:bg-white/5 hover:bg-accent dark:hover:bg-white/10"
               >
                 {menyalin
-                  ? <><Loader2 size={18} className="mr-2 animate-spin" aria-hidden="true" /> Menyalin…</>
-                  : <><Copy size={18} className="mr-2" aria-hidden="true" /> Salin ke kuis saya</>}
+                  ? <><Loader2 size={18} className="mr-2 animate-spin" aria-hidden="true" />{" "}{tt("Menyalin…", "Copying…")}</>
+                  : <><Copy size={18} className="mr-2" aria-hidden="true" />{" "}{tt("Salin ke kuis saya", "Copy to my quizzes")}</>}
               </Button>
               <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
-                Salinannya masuk ke kuis Anda sebagai kuis pribadi, siap diubah
-                sesuai kebutuhan kelas.
+                {tt("Salinannya masuk ke kuis Anda sebagai kuis pribadi, siap diubah sesuai kebutuhan kelas.", "The copy goes into your quizzes as a private quiz, ready to edit however you like.")}
               </p>
             </div>
           </div>

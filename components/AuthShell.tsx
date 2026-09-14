@@ -31,7 +31,7 @@ interface AuthShellProps {
 }
 
 export function AuthShell({ title, subtitle, children, footer }: AuthShellProps) {
-  const { t } = useBahasa();
+  const { tt, t } = useBahasa();
   const { theme, setTheme } = useTheme();
 
   return (
@@ -77,7 +77,7 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
         <div style={{ textAlign: 'center', marginBottom: 'var(--sp-6)' }}>
           <Link
             href="/"
-            aria-label="Kembali ke beranda"
+            aria-label={tt("Kembali ke beranda", "Back to home")}
             style={{ display: 'inline-block', marginBottom: 'var(--sp-4)' }}
           >
             <Logo size={44} />

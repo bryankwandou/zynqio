@@ -1,10 +1,12 @@
 "use client";
 
+import { useBahasa } from "@/lib/bahasa";
 import * as React from "react";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
 export function ThemeToggle() {
+  const { tt } = useBahasa();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
 
@@ -23,7 +25,7 @@ export function ThemeToggle() {
     <button
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
       className="p-2 rounded-full hover:bg-accent hover:text-accent-foreground zy-motion duration-300 border border-border flex items-center justify-center bg-card shadow-sm"
-      aria-label="Toggle theme"
+      aria-label={tt("Ganti tema", "Toggle theme")}
     >
       {theme === "dark" ? (
         <Sun className="h-5 w-5 text-yellow-400" />

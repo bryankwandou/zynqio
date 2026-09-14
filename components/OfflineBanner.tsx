@@ -1,8 +1,10 @@
 "use client";
 
+import { useBahasa } from "@/lib/bahasa";
 import { useEffect, useState } from "react";
 
 export function OfflineBanner() {
+  const { tt } = useBahasa();
   const [isOnline, setIsOnline] = useState(true);
   const [showReconnected, setShowReconnected] = useState(false);
 
@@ -36,7 +38,7 @@ export function OfflineBanner() {
           : "bg-red-500 text-white animate-pulse"
       }`}
     >
-      {isOnline ? "✓ Connected!" : "⚠️ No connection — trying to reconnect..."}
+      {isOnline ? tt("✓ Tersambung!", "✓ Connected!") : tt("⚠️ Tidak ada sambungan — mencoba menyambung lagi…", "⚠️ No connection — trying to reconnect…")}
     </div>
   );
 }

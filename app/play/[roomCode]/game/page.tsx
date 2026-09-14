@@ -1,5 +1,6 @@
 "use client";
 
+import { useBahasa } from "@/lib/bahasa";
 import { useState, useEffect, useRef, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getAvatar } from "@/lib/avatars";
@@ -48,6 +49,7 @@ const OPTION_LETTERS = ["A", "B", "C", "D"];
 const OPTION_COLOR_NAMES = ["merah", "biru", "kuning", "hijau"];
 
 export default function PlayerGame({ params }: { params: Promise<{ roomCode: string }> }) {
+  const { tt } = useBahasa();
   const router = useRouter();
   const { roomCode } = use(params);
 
@@ -496,9 +498,9 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
     return (
       <div className="min-h-screen bg-[#0f0f1a] flex flex-col items-center justify-center p-8 text-center text-white">
         <div className="text-6xl mb-6">🚫</div>
-        <h2 className="text-2xl font-bold mb-2">Anda dikeluarkan dari ruangan</h2>
-        <p className="text-white/60">Pengajar mengeluarkan Anda dari ruangan ini.</p>
-        <p className="text-sm text-white/40 mt-2" role="status">Kembali ke halaman depan…</p>
+        <h2 className="text-2xl font-bold mb-2">{tt("Anda dikeluarkan dari ruangan", "You were removed from the room")}</h2>
+        <p className="text-white/60">{tt("Pengajar mengeluarkan Anda dari ruangan ini.", "The teacher removed you from this room.")}</p>
+        <p className="text-sm text-white/40 mt-2" role="status">{tt("Kembali ke halaman depan…", "Back to the home page…")}</p>
       </div>
     );
   }
@@ -508,10 +510,10 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
     return (
       <div className="min-h-screen bg-[#0f0f1a] flex flex-col items-center justify-center p-8 text-center text-white">
         <div className="text-7xl mb-6 grayscale animate-pulse">💔</div>
-        <h2 className="text-3xl font-black uppercase tracking-widest mb-3">GUGUR</h2>
-        <p className="text-white/60 max-w-xs">Nyawa Anda habis. Silakan menyimak sisa permainannya.</p>
+        <h2 className="text-3xl font-black uppercase tracking-widest mb-3">{tt("GUGUR", "KNOCKED OUT")}</h2>
+        <p className="text-white/60 max-w-xs">{tt("Nyawa Anda habis. Silakan menyimak sisa permainannya.", "You are out of lives. Enjoy watching the rest of the game.")}</p>
         <div className="mt-10 bg-white/5 border border-white/10 p-6 rounded-2xl">
-          <div className="text-xs text-white/40 uppercase font-bold tracking-widest mb-1">Skor akhir</div>
+          <div className="text-xs text-white/40 uppercase font-bold tracking-widest mb-1">{tt("Skor akhir", "Final score")}</div>
           <div className="text-5xl font-black text-blue-400">{score}</div>
         </div>
       </div>
@@ -523,12 +525,12 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
     return (
       <div className="min-h-screen bg-[#0f0f1a] flex flex-col items-center justify-center p-8 text-center text-white">
         <div className="text-6xl mb-4">🏁</div>
-        <div className="text-xs font-black text-blue-400 uppercase tracking-widest mb-2">⚡ Klasik</div>
-        <h2 className="text-3xl font-black mb-2">Selesai</h2>
-        <p className="text-white/50 mb-6 text-sm" role="status">Menyiapkan hasil Anda…</p>
+        <div className="text-xs font-black text-blue-400 uppercase tracking-widest mb-2">{tt("⚡ Klasik", "⚡ Classic")}</div>
+        <h2 className="text-3xl font-black mb-2">{tt("Selesai", "Done")}</h2>
+        <p className="text-white/50 mb-6 text-sm" role="status">{tt("Menyiapkan hasil Anda…", "Preparing your results…")}</p>
         <div className="bg-white/5 border border-white/10 rounded-2xl p-6 w-full max-w-xs">
           <div className="text-4xl font-black text-blue-400 mb-1">{score.toLocaleString()}</div>
-          <div className="text-xs text-white/40 uppercase tracking-widest">Skor total</div>
+          <div className="text-xs text-white/40 uppercase tracking-widest">{tt("Skor total", "Total score")}</div>
         </div>
         <div className="mt-6 w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
       </div>
@@ -541,15 +543,15 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       <div className="h-[100dvh] bg-[#0f0f1a] flex flex-col items-center justify-center text-white">
         {isWayground && (
           <div className="mb-6 px-4 py-2 bg-blue-600/20 border border-blue-500/30 rounded-full text-xs font-black text-blue-400 uppercase tracking-widest">
-            ⚡ CLASSIC MODE
+            {tt("⚡ RAGAM KLASIK", "⚡ CLASSIC MODE")}
           </div>
         )}
         <div className="w-14 h-14 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-5" />
-        <h2 className="text-xl font-bold">Bersiap</h2>
-        <p className="text-white/50 text-sm mt-1" role="status">Menunggu pengajar memulai permainan…</p>
+        <h2 className="text-xl font-bold">{tt("Bersiap", "Get ready")}</h2>
+        <p className="text-white/50 text-sm mt-1" role="status">{tt("Menunggu pengajar memulai permainan…", "Waiting for the teacher to start the game…")}</p>
         {isWayground && (
           <p className="text-white/30 text-xs mt-3 max-w-xs text-center">
-            Jawab, langsung lanjut. Tidak perlu menunggu waktu habis.
+            {tt("Jawab, langsung lanjut. Tidak perlu menunggu waktu habis.", "Answer and move straight on. No waiting for the timer.")}
           </p>
         )}
       </div>
@@ -564,18 +566,18 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
         <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-[#0f0f1a]/95">
           {isWayground && (
             <div className="mb-4 px-4 py-1.5 bg-blue-600/20 border border-blue-500/30 rounded-full text-xs font-black text-blue-400 uppercase tracking-widest">
-              ⚡ Klasik
+              {tt("⚡ Klasik", "⚡ Classic")}
             </div>
           )}
           <div key={String(countdownValue)} className="text-9xl font-black animate-ping-once"
             style={{ textShadow: "0 0 60px rgba(79,142,255,0.6)" }}>
-            {countdownValue === "GO!" ? "MULAI" : countdownValue}
+            {countdownValue === "GO!" ? tt("MULAI", "GO") : countdownValue}
           </div>
           <p className="mt-8 text-white/50 font-bold text-lg tracking-widest uppercase">
-            {countdownValue === "GO!" ? "Mulai!" : "Bersiap…"}
+            {countdownValue === "GO!" ? tt("Mulai!", "Go!") : tt("Bersiap…", "Get ready…")}
           </p>
           {isWayground && countdownValue !== "GO!" && (
-            <p className="mt-3 text-white/30 text-sm">⚡ Ragam klasik — jawab, langsung lanjut</p>
+            <p className="mt-3 text-white/30 text-sm">{tt("⚡ Ragam klasik — jawab, langsung lanjut", "⚡ Classic mode — answer and move on")}</p>
           )}
         </div>
       )}
@@ -584,7 +586,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       {correctStreak >= 3 && !showCountdown && (
         <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 zy-motion ${streakAnimation ? "scale-125" : "scale-100"}`}>
           <div className={`px-4 py-1.5 rounded-full font-black text-sm flex items-center gap-1.5 shadow-lg ${correctStreak >= 5 ? "bg-purple-500 animate-pulse" : "bg-orange-500"}`}>
-            🔥 {correctStreak}x Streak!
+            🔥 {correctStreak}{tt("x beruntun!", "x Streak!")}
           </div>
         </div>
       )}
@@ -621,7 +623,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
             {timeLeft}
           </div>
           {isWayground && (
-            <span className="text-[8px] text-white/25 mt-0.5">tidak mengunci</span>
+            <span className="text-[8px] text-white/25 mt-0.5">{tt("tidak mengunci", "does not lock")}</span>
           )}
         </div>
 
@@ -631,7 +633,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
             <div className="text-yellow-400 text-sm font-bold">🪙 {gold}</div>
           )}
           <div className="bg-blue-500/15 px-3 py-1 rounded-full font-black text-blue-400 text-sm border border-blue-500/20">
-            {score.toLocaleString("id-ID")} poin
+            {score.toLocaleString("id-ID")}{" "}{tt("poin", "points")}
           </div>
           <GameMusicPlayer defaultVolume={0.4} />
         </div>
@@ -648,7 +650,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       {/* Wayground mode badge */}
       {isWayground && !showCountdown && (
         <div className="flex items-center justify-center gap-2 py-1 bg-blue-600/10 border-b border-blue-500/10 shrink-0">
-          <span className="text-[9px] font-black text-blue-400/60 uppercase tracking-widest">⚡ Klasik · jawab, langsung lanjut</span>
+          <span className="text-[9px] font-black text-blue-400/60 uppercase tracking-widest">{tt("⚡ Klasik · jawab, langsung lanjut", "⚡ Classic · answer and move on")}</span>
         </div>
       )}
 
@@ -656,7 +658,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       {classAccuracy !== null && (
         <div className="flex justify-center py-1.5 shrink-0">
           <div className="text-xs text-white/40 bg-white/5 px-3 py-1 rounded-full border border-white/10">
-            Ketepatan kelas: <span className={`font-bold ${classAccuracy >= 70 ? "text-green-400" : classAccuracy >= 40 ? "text-amber-400" : "text-red-400"}`}>{classAccuracy}%</span>
+            {tt("Ketepatan kelas:", "Class accuracy:")}{" "}<span className={`font-bold ${classAccuracy >= 70 ? "text-green-400" : classAccuracy >= 40 ? "text-amber-400" : "text-red-400"}`}>{classAccuracy}%</span>
           </div>
         </div>
       )}
@@ -672,7 +674,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
                 : `Q${(currentQuestion.index ?? 0) + 1}`}
             </span>
             {correctStreak >= 3 && (
-              <span className="text-[11px] font-black text-orange-400">🔥 {correctStreak} streak</span>
+              <span className="text-[11px] font-black text-orange-400">🔥 {correctStreak}{" "}{tt("beruntun", "streak")}</span>
             )}
           </div>
 
@@ -718,7 +720,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
                   key={i}
                   disabled={isSubmitted}
                   onClick={() => handleSubmit(i.toString())}
-                  aria-label={`Pilihan ${OPTION_LETTERS[i % 4]}, ${OPTION_COLOR_NAMES[i % 4]}: ${opt}`}
+                  aria-label={tt(`Pilihan ${OPTION_LETTERS[i % 4]}, ${OPTION_COLOR_NAMES[i % 4]}: ${opt}`, `Option ${OPTION_LETTERS[i % 4]}: ${opt}`)}
                   aria-pressed={isSelected}
                   className={`w-full p-3 sm:p-4 rounded-2xl text-white font-bold text-sm sm:text-base shadow-lg transform zy-motion active:scale-95 border-b-4 flex items-center gap-2 ${
                     OPTION_COLORS[i % OPTION_COLORS.length]
@@ -757,9 +759,9 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
                       : "bg-white/5 border-white/10 text-white/50 hover:border-white/30"
                   }`}
                 >
-                  {p === "2x" && "2× poin"}
-                  {p === "freeze" && "❄️ Tahan waktu"}
-                  {p === "shield" && "🛡️ Perisai"}
+                  {p === "2x" && tt("2× poin", "2× points")}
+                  {p === "freeze" && tt("❄️ Tahan waktu", "❄️ Freeze time")}
+                  {p === "shield" && tt("🛡️ Perisai", "🛡️ Shield")}
                 </button>
               ))}
             </div>
@@ -777,7 +779,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
             <div className="text-7xl mb-5 animate-bounce">📝</div>
           ) : memeMode && currentMeme ? (
             <div className="flex flex-col items-center mb-5">
-              <img src={currentMeme.gif} alt="meme" className="rounded-2xl max-h-52 shadow-2xl mb-3" />
+              <img src={currentMeme.gif} alt={tt("meme", "meme")} className="rounded-2xl max-h-52 shadow-2xl mb-3" />
               <div className="text-white font-black text-lg tracking-widest">{currentMeme.caption}</div>
             </div>
           ) : (
@@ -785,48 +787,48 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
           )}
 
           <h2 className="text-3xl font-black text-white mb-2 tracking-wide uppercase">
-            {result.message || (result.correct === null ? "Terkirim" : result.correct ? "Benar" : "Belum tepat")}
+            {result.message || (result.correct === null ? tt("Terkirim", "Sent") : result.correct ? tt("Benar", "Correct") : tt("Belum tepat", "Not quite"))}
           </h2>
 
           {result.correct === null && (
             <div className="mt-2 text-white/60 text-sm font-medium text-center max-w-xs">
-              Answer hidden by host — results revealed at the end
+              {tt("Jawaban disembunyikan pengajar — hasilnya dibuka di akhir", "Answer hidden by host — results revealed at the end")}
             </div>
           )}
 
           {result.correct === true && result.points > 0 && (
             <div className="bg-white/20 px-5 py-2 rounded-full mt-3 font-bold text-lg text-white">
-              +{result.points} poin
+              +{result.points}{" "}{tt("poin", "points")}
               {result.speedBonus && result.speedBonus > 0 && (
-                <span className="ml-2 text-sm opacity-80">(+{result.speedBonus} beruntun)</span>
+                <span className="ml-2 text-sm opacity-80">(+{result.speedBonus}{" "}{tt("beruntun)", "streak)")}</span>
               )}
             </div>
           )}
 
           {result.correct === null && result.points > 0 && (
             <div className="bg-white/15 px-5 py-2 rounded-full mt-3 font-bold text-lg text-white">
-              +{result.points} poin tercatat
+              +{result.points}{" "}{tt("poin tercatat", "points recorded")}
             </div>
           )}
 
           {result.correct === true && correctStreak >= 3 && (
             <div className="mt-3 px-4 py-1.5 bg-orange-500 rounded-full font-black text-white text-sm animate-bounce">
-              🔥 {correctStreak}x streak!
+              🔥 {correctStreak}{tt("x beruntun!", "x streak!")}
             </div>
           )}
 
           {gameMode === "battle_royale" && result.correct === false && (
-            <div className="mt-4 text-2xl">💔 -1 Life</div>
+            <div className="mt-4 text-2xl">{tt("💔 -1 Nyawa", "💔 -1 Life")}</div>
           )}
 
           {/* Wayground: next arrow indicator */}
           {isWayground ? (
             <div className="mt-6 flex items-center gap-2 text-white/60 text-sm font-bold">
               <div className="w-4 h-4 border-2 border-white/40 border-t-transparent rounded-full animate-spin" />
-              Next question loading...
+              {tt("Memuat soal berikutnya…", "Next question loading…")}
             </div>
           ) : (
-            <div className="mt-8 text-white/70 font-medium text-sm" role="status">Menunggu soal berikutnya…</div>
+            <div className="mt-8 text-white/70 font-medium text-sm" role="status">{tt("Menunggu soal berikutnya…", "Waiting for the next question…")}</div>
           )}
         </div>
       )}
@@ -834,7 +836,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
       {/* Gold Quest Chests */}
       {showChests && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0f0f1a]/95">
-          <h2 className="text-2xl font-black text-yellow-400 mb-6 uppercase tracking-widest">Pilih satu peti</h2>
+          <h2 className="text-2xl font-black text-yellow-400 mb-6 uppercase tracking-widest">{tt("Pilih satu peti", "Pick a chest")}</h2>
           <div className="flex gap-5">
             {[0, 1, 2].map((i) => (
               <button
@@ -870,13 +872,14 @@ const TOMBOL_KIRIM =
   "w-full mt-3 p-4 rounded-2xl bg-primary text-white font-black text-base shadow-lg zy-motion active:scale-95 disabled:opacity-40";
 
 function IsianJawaban({ disabled, onKirim }: { disabled: boolean; onKirim: (a: string) => void }) {
+  const { tt } = useBahasa();
   const [teks, setTeks] = useState("");
   return (
     <form
       className="flex flex-col"
       onSubmit={(e) => { e.preventDefault(); if (teks.trim()) onKirim(teks.trim()); }}
     >
-      <label htmlFor="isian-jawaban" className="text-xs font-bold text-white/50 mb-2">Ketik jawabanmu</label>
+      <label htmlFor="isian-jawaban" className="text-xs font-bold text-white/50 mb-2">{tt("Ketik jawabanmu", "Type your answer")}</label>
       <input
         id="isian-jawaban"
         autoFocus
@@ -887,17 +890,18 @@ function IsianJawaban({ disabled, onKirim }: { disabled: boolean; onKirim: (a: s
         maxLength={200}
         className="w-full p-4 rounded-2xl bg-[#16162a] border border-white/20 text-white text-lg font-bold outline-none focus:ring-2 focus:ring-primary"
       />
-      <button type="submit" disabled={disabled || !teks.trim()} className={TOMBOL_KIRIM}>Kirim</button>
+      <button type="submit" disabled={disabled || !teks.trim()} className={TOMBOL_KIRIM}>{tt("Kirim", "Submit")}</button>
     </form>
   );
 }
 
 function GandaJawaban({ options, disabled, onKirim }: { options: string[]; disabled: boolean; onKirim: (a: string[]) => void }) {
+  const { tt } = useBahasa();
   const [dipilih, setDipilih] = useState<number[]>([]);
   const ubah = (i: number) => setDipilih((d) => (d.includes(i) ? d.filter((x) => x !== i) : [...d, i]));
   return (
     <div className="flex flex-col">
-      <p className="text-xs font-bold text-white/50 mb-2">Pilih semua jawaban yang benar</p>
+      <p className="text-xs font-bold text-white/50 mb-2">{tt("Pilih semua jawaban yang benar", "Select every correct answer")}</p>
       <div className={`grid gap-2 ${options.length <= 2 ? "grid-cols-1" : "grid-cols-2"}`}>
         {options.map((opt, i) => {
           const aktif = dipilih.includes(i);
@@ -918,13 +922,14 @@ function GandaJawaban({ options, disabled, onKirim }: { options: string[]; disab
         })}
       </div>
       <button type="button" disabled={disabled || dipilih.length === 0} onClick={() => onKirim([...dipilih].sort((a, b) => a - b).map(String))} className={TOMBOL_KIRIM}>
-        Kirim
+        {tt("Kirim", "Submit")}
       </button>
     </div>
   );
 }
 
 function UrutanJawaban({ options, optionIds, disabled, onKirim }: { options: string[]; optionIds: number[]; disabled: boolean; onKirim: (a: string[]) => void }) {
+  const { tt } = useBahasa();
   const [urutan, setUrutan] = useState(() => options.map((t, n) => ({ t, id: optionIds[n] ?? n })));
   const geser = (n: number, arah: -1 | 1) =>
     setUrutan((u) => {
@@ -936,19 +941,19 @@ function UrutanJawaban({ options, optionIds, disabled, onKirim }: { options: str
     });
   return (
     <div className="flex flex-col">
-      <p className="text-xs font-bold text-white/50 mb-2">Susun dari yang pertama sampai terakhir</p>
+      <p className="text-xs font-bold text-white/50 mb-2">{tt("Susun dari yang pertama sampai terakhir", "Arrange from first to last")}</p>
       <ol className="flex flex-col gap-2">
         {urutan.map((x, n) => (
           <li key={x.id} className="flex items-center gap-2 p-3 rounded-2xl bg-[#16162a] border border-white/15 text-white font-bold">
             <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-sm shrink-0">{n + 1}</span>
             <span className="flex-1 text-left">{x.t}</span>
-            <button type="button" disabled={disabled || n === 0} onClick={() => geser(n, -1)} aria-label={`Naikkan ${x.t}`} className="w-10 h-10 rounded-xl bg-white/10 disabled:opacity-30">▲</button>
-            <button type="button" disabled={disabled || n === urutan.length - 1} onClick={() => geser(n, 1)} aria-label={`Turunkan ${x.t}`} className="w-10 h-10 rounded-xl bg-white/10 disabled:opacity-30">▼</button>
+            <button type="button" disabled={disabled || n === 0} onClick={() => geser(n, -1)} aria-label={tt(`Naikkan ${x.t}`, `Move ${x.t} up`)} className="w-10 h-10 rounded-xl bg-white/10 disabled:opacity-30">▲</button>
+            <button type="button" disabled={disabled || n === urutan.length - 1} onClick={() => geser(n, 1)} aria-label={tt(`Turunkan ${x.t}`, `Move ${x.t} down`)} className="w-10 h-10 rounded-xl bg-white/10 disabled:opacity-30">▼</button>
           </li>
         ))}
       </ol>
       <button type="button" disabled={disabled} onClick={() => onKirim(urutan.map((x) => String(x.id)))} className={TOMBOL_KIRIM}>
-        Kirim
+        {tt("Kirim", "Submit")}
       </button>
     </div>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { useBahasa } from "@/lib/bahasa";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
@@ -48,6 +49,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
 }
 
 export default function HostLobby({ params }: { params: Promise<{ roomCode: string }> }) {
+  const { tt } = useBahasa();
   const { status } = useSession();
   const router = useRouter();
   const unwrappedParams = use(params);
@@ -171,18 +173,18 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
       <header className="px-6 py-4 border-b border-white/10 bg-[#16162a] flex justify-between items-center shadow-lg">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center font-black text-lg">Z</div>
-          <span className="font-bold text-white/80">Kendali pengajar</span>
+          <span className="font-bold text-white/80">{tt("Kendali pengajar", "Teacher controls")}</span>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-sm text-white/50 flex items-center gap-1.5">
             <Users size={14} className="text-blue-400" />
-            <span className="font-bold text-white">{players.length}</span> peserta
+            <span className="font-bold text-white">{players.length}</span>{" "}{tt("peserta", "players")}
           </div>
           <Button
             onClick={() => setShowLaunchModal(true)}
             className="bg-green-500 hover:bg-green-400 text-black font-black px-6 rounded-xl shadow-lg shadow-green-900/30"
           >
-            <Rocket size={16} className="mr-2" aria-hidden="true" /> Mulai permainan
+            <Rocket size={16} className="mr-2" aria-hidden="true" />{" "}{tt("Mulai permainan", "Start game")}
           </Button>
         </div>
       </header>
@@ -191,10 +193,10 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
         {/* Left: Join Info */}
         <div className="w-full md:w-80 shrink-0 flex flex-col gap-4">
           <div className="bg-[#16162a] border border-white/10 rounded-2xl p-6 flex flex-col items-center shadow-xl">
-            <div className="text-white/50 text-sm font-medium mb-1">Buka alamat</div>
+            <div className="text-white/50 text-sm font-medium mb-1">{tt("Buka alamat", "Open address")}</div>
             <div className="text-blue-400 font-bold text-base mb-4">zynqio.vercel.app</div>
 
-            <div className="text-white/40 text-xs uppercase tracking-widest mb-2">Kode ruangan</div>
+            <div className="text-white/40 text-xs uppercase tracking-widest mb-2">{tt("Kode ruangan", "Room code")}</div>
             <div className="text-5xl font-black tracking-[0.2em] text-white mb-6 bg-white/5 px-6 py-3 rounded-2xl border border-white/10 w-full text-center">
               {roomCode}
             </div>
@@ -205,20 +207,20 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
             >
               <QRCode value={joinUrl} size={160} />
             </div>
-            <p className="mt-2 text-xs text-white/30">Ketuk untuk memperbesar</p>
+            <p className="mt-2 text-xs text-white/30">{tt("Ketuk untuk memperbesar", "Tap to enlarge")}</p>
 
             <div className="flex gap-2 mt-4 w-full">
               <button
                 onClick={() => copyText(joinUrl, "Link copied!")}
                 className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold bg-primary hover:bg-primary/90 rounded-xl zy-motion"
               >
-                <Copy size={12} aria-hidden="true" /> Salin tautan
+                <Copy size={12} aria-hidden="true" />{" "}{tt("Salin tautan", "Copy link")}
               </button>
               <button
                 onClick={() => copyText(roomCode, "Code copied!")}
                 className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold bg-white/10 hover:bg-white/15 rounded-xl border border-white/10 zy-motion"
               >
-                <Copy size={12} aria-hidden="true" /> Salin kode
+                <Copy size={12} aria-hidden="true" />{" "}{tt("Salin kode", "Copy code")}
               </button>
             </div>
             {copySuccess && <div className="mt-2 text-xs text-green-400 font-bold">{copySuccess}</div>}
@@ -227,16 +229,16 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
           {/* Game info preview */}
           <div className="bg-[#16162a] border border-white/10 rounded-2xl p-4 space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-white/40">Ragam</span>
-              <span className="font-bold text-blue-400">{GAME_MODES.find((m) => m.id === gameMode)?.name || "Klasik"}</span>
+              <span className="text-white/40">{tt("Ragam", "Mode")}</span>
+              <span className="font-bold text-blue-400">{GAME_MODES.find((m) => m.id === gameMode)?.name || tt("Klasik", "Classic")}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-white/40">Waktu per soal</span>
-              <span className="font-bold text-white">{globalTimer} detik / soal</span>
+              <span className="text-white/40">{tt("Waktu per soal", "Time per question")}</span>
+              <span className="font-bold text-white">{globalTimer}{" "}{tt("detik / soal", "seconds / question")}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-white/40">Podium</span>
-              <span className="font-bold text-yellow-400">Top {winnerCount}</span>
+              <span className="text-white/40">{tt("Podium", "Podium")}</span>
+              <span className="font-bold text-yellow-400">{tt("Teratas", "Top")}{" "}{winnerCount}</span>
             </div>
           </div>
         </div>
@@ -245,7 +247,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
         <div className="flex-1 flex flex-col bg-[#16162a] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
           <div className="px-5 py-4 border-b border-white/10 flex justify-between items-center">
             <span className="font-bold text-white flex items-center gap-2">
-              <Users size={16} className="text-blue-400" aria-hidden="true" /> Peserta di ruang tunggu
+              <Users size={16} className="text-blue-400" aria-hidden="true" />{" "}{tt("Peserta di ruang tunggu", "Players in the lobby")}
             </span>
             <span className="bg-primary text-white text-xs font-black px-3 py-1 rounded-full">{players.length}</span>
           </div>
@@ -254,7 +256,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
             {players.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-white/30">
                 <div className="w-12 h-12 border-4 border-white/10 border-t-blue-500 rounded-full animate-spin mb-4" />
-                <p>Menunggu murid bergabung…</p>
+                <p>{tt("Menunggu murid bergabung…", "Waiting for students to join…")}</p>
               </div>
             ) : (
               <div className="flex flex-wrap gap-2">
@@ -293,12 +295,12 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
           >
             <X size={28} />
           </button>
-          <p className="text-white/50 text-lg mb-2">Buka alamat</p>
+          <p className="text-white/50 text-lg mb-2">{tt("Buka alamat", "Open address")}</p>
           <p className="text-blue-400 text-2xl font-bold mb-8">zynqio.vercel.app</p>
           <div className="bg-white p-6 rounded-3xl mb-8">
             <QRCode value={joinUrl} size={360} />
           </div>
-          <p className="text-white/50 text-base uppercase tracking-widest mb-3">atau ketik kode</p>
+          <p className="text-white/50 text-base uppercase tracking-widest mb-3">{tt("atau ketik kode", "or type the code")}</p>
           <p className="text-white zc-code">{roomCode}</p>
         </div>
       )}
@@ -311,11 +313,11 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
             <div className="p-6 border-b border-white/10 flex justify-between items-center sticky top-0 bg-[#16162a] z-10">
               <div>
                 <h2 className="text-xl font-black flex items-center gap-2">
-                  <Rocket className="text-green-400" size={20} aria-hidden="true" /> Pengaturan sebelum mulai
+                  <Rocket className="text-green-400" size={20} aria-hidden="true" />{" "}{tt("Pengaturan sebelum mulai", "Settings before starting")}
                 </h2>
-                <p className="text-white/40 text-sm mt-0.5">{players.length} peserta siap</p>
+                <p className="text-white/40 text-sm mt-0.5">{players.length}{" "}{tt("peserta siap", "players ready")}</p>
               </div>
-              <button onClick={() => setShowLaunchModal(false)} aria-label="Tutup pengaturan mulai" className="text-white/40 hover:text-white">
+              <button onClick={() => setShowLaunchModal(false)} aria-label={tt("Tutup pengaturan mulai", "Close start settings")} className="text-white/40 hover:text-white">
                 <X size={24} />
               </button>
             </div>
@@ -323,7 +325,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
             <div className="p-6 space-y-8">
               {/* Game Mode */}
               <div>
-                <label className="text-xs font-black text-white/40 uppercase tracking-widest block mb-3">Ragam permainan</label>
+                <label className="text-xs font-black text-white/40 uppercase tracking-widest block mb-3">{tt("Ragam permainan", "Game mode")}</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {GAME_MODES.map((mode) => (
                     <button
@@ -345,7 +347,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                 {gameMode === "team" && (
                   <div className="mt-3 p-4 bg-white/5 border border-white/10 rounded-2xl">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-bold text-white/70">Bagi kelas jadi regu</span>
+                      <span className="text-sm font-bold text-white/70">{tt("Bagi kelas jadi regu", "Split the class into teams")}</span>
                       <div className="flex gap-2">
                         {[2, 3, 4].map((n) => (
                           <Button
@@ -354,7 +356,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                             onClick={() => autoAssignTeams(n)}
                             className="border border-white/25 bg-white/10 text-xs text-white hover:bg-white/20"
                           >
-                            {n} regu
+                            {n}{" "}{tt("regu", "teams")}
                           </Button>
                         ))}
                       </div>
@@ -362,7 +364,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                     {Object.entries(teams).map(([teamId, members]) => (
                       <div key={teamId} className="text-xs text-white/50 mb-1">
                         <span className="font-bold text-white/70">{teamId.replace(/^Red Team$/, "Regu Merah").replace(/^Blue Team$/, "Regu Biru").replace(/^Team (\d+)$/, "Regu $1")}:</span>{" "}
-                        {(members as any[]).map((p) => p.name).join(", ") || "belum ada anggota"}
+                        {(members as any[]).map((p) => p.name).join(", ") || tt("belum ada anggota", "no members yet")}
                       </div>
                     ))}
                   </div>
@@ -372,7 +374,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
               {/* Timer */}
               <div>
                 <label className="text-xs font-black text-white/40 uppercase tracking-widest block mb-3">
-                  <Clock size={12} className="inline mr-1" aria-hidden="true" /> Waktu tiap soal
+                  <Clock size={12} className="inline mr-1" aria-hidden="true" />{" "}{tt("Waktu tiap soal", "Time per question")}
                 </label>
                 <div className="flex gap-2 flex-wrap">
                   {TIMERS.map((t) => (
@@ -392,7 +394,7 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
               {/* Winner Count */}
               <div>
                 <label className="text-xs font-black text-white/40 uppercase tracking-widest block mb-3">
-                  <Trophy size={12} className="inline mr-1" aria-hidden="true" /> Berapa yang naik podium (1 – 5)
+                  <Trophy size={12} className="inline mr-1" aria-hidden="true" />{" "}{tt("Berapa yang naik podium (1 – 5)", "How many reach the podium (1 – 5)")}
                 </label>
                 <div className="flex gap-3 items-end">
                   {[1, 2, 3, 4, 5].map((n) => {
@@ -416,13 +418,13 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                       </button>
                     );
                   })}
-                  <div className="ml-3 text-white/60 text-sm font-medium">{winnerCount} teratas naik podium</div>
+                  <div className="ml-3 text-white/60 text-sm font-medium">{winnerCount}{" "}{tt("teratas naik podium", "top players reach the podium")}</div>
                 </div>
               </div>
 
               {/* Toggles */}
               <div>
-                <label className="text-xs font-black text-white/40 uppercase tracking-widest block mb-3">Pilihan</label>
+                <label className="text-xs font-black text-white/40 uppercase tracking-widest block mb-3">{tt("Pilihan", "Options")}</label>
                 <div className="space-y-2">
                   {[
                     { icon: <Eye size={15} aria-hidden="true" />, label: "Tampilkan kunci jawaban", sub: "Murid melihat jawaban benar setelah waktunya habis", val: showAnswerAfter, set: () => setShowAnswerAfter((v) => !v) },
@@ -454,9 +456,9 @@ export default function HostLobby({ params }: { params: Promise<{ roomCode: stri
                 className="w-full bg-green-500 hover:bg-green-400 text-black font-black text-lg py-7 rounded-2xl shadow-2xl shadow-green-900/30 zy-motion"
               >
                 {isLaunching ? (
-                  <span className="flex items-center gap-2"><div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" /> Launching...</span>
+                  <span className="flex items-center gap-2"><div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />{" "}{tt("Memulai…", "Launching…")}</span>
                 ) : (
-                  <span className="flex items-center gap-2"><Rocket size={20} aria-hidden="true" /> Mulai dengan {players.length} peserta</span>
+                  <span className="flex items-center gap-2"><Rocket size={20} aria-hidden="true" />{" "}{tt("Mulai dengan", "Start with")}{" "}{players.length}{" "}{tt("peserta", "players")}</span>
                 )}
               </Button>
             </div>

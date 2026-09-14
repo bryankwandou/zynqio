@@ -47,7 +47,7 @@ interface Quiz {
 }
 
 export default function ExplorePage() {
-  const { t } = useBahasa();
+  const { tt, t } = useBahasa();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
@@ -194,7 +194,7 @@ export default function ExplorePage() {
               */}
               <SampulKuis kategori={quiz.category ?? null} judul={quiz.title} />
               <div className="zy-row-between" style={{ alignItems: "flex-start", marginBottom: "var(--sp-3)" }}>
-                <span className="zy-badge">{quiz.category ?? "Umum"}</span>
+                <span className="zy-badge">{quiz.category ?? tt("Umum", "General")}</span>
                 {quiz.rating ? (
                   <span
                     className="zy-row zy-num"
@@ -223,7 +223,7 @@ export default function ExplorePage() {
 
               <div className="zy-row" style={{ gap: "var(--sp-4)", marginBottom: "var(--sp-4)" }}>
                 <span className="zy-label zy-row" style={{ gap: "var(--sp-1)" }}>
-                  <User size={12} aria-hidden="true" /> {quiz.author ?? "Anonim"}
+                  <User size={12} aria-hidden="true" /> {quiz.author ?? tt("Anonim", "Anonymous")}
                 </span>
                 <span className="zy-label zy-row zy-num" style={{ gap: "var(--sp-1)" }}>
                   <FileQuestion size={12} aria-hidden="true" /> {quiz.questionCount ?? 0} {t("satuanSoal")}

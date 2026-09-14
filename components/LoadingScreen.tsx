@@ -1,5 +1,6 @@
 "use client";
 
+import { useBahasa } from "@/lib/bahasa";
 import { useEffect, useState } from "react";
 
 interface Props {
@@ -13,6 +14,7 @@ export function LoadingScreen({
   timeout = 10000,
   onTimeout,
 }: Props) {
+  const { tt } = useBahasa();
   const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
@@ -28,15 +30,15 @@ export function LoadingScreen({
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8 text-center">
         <div className="text-5xl mb-6">⚠️</div>
-        <h2 className="text-2xl font-bold text-foreground mb-2">Connection Lost</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-2">{tt("Sambungan terputus", "Connection lost")}</h2>
         <p className="text-muted-foreground mb-6">
-          Could not reach the server. Please check your connection.
+          {tt("Server tidak terjangkau. Periksa sambungan Anda.", "Could not reach the server. Please check your connection.")}
         </p>
         <button
           onClick={() => window.location.reload()}
           className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold zy-motion"
         >
-          Retry
+          {tt("Coba lagi", "Retry")}
         </button>
       </div>
     );

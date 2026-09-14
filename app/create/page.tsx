@@ -1,5 +1,6 @@
 "use client";
 
+import { useBahasa } from "@/lib/bahasa";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -38,6 +39,7 @@ function normalizeQuestionType(value: unknown): QuestionType {
 }
 
 export default function CreateQuiz() {
+  const { tt } = useBahasa();
   const { data: session, status } = useSession();
   const router = useRouter();
   const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
@@ -507,12 +509,12 @@ export default function CreateQuiz() {
       <div className="border-b border-border bg-card/60 sticky top-0 z-50 backdrop-blur-md">
         <div className="container mx-auto px-4 py-2 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <button onClick={() => router.back()} aria-label="Kembali ke halaman sebelumnya" className="p-2 hover:bg-accent rounded-lg transition-colors shrink-0">
+            <button onClick={() => router.back()} aria-label={tt("Kembali ke halaman sebelumnya", "Back to the previous page")} className="p-2 hover:bg-accent rounded-lg transition-colors shrink-0">
               <ArrowLeft size={20} aria-hidden="true" />
             </button>
             <input
               type="text"
-              placeholder="Judul kuis…"
+              placeholder={tt("Judul kuis…", "Quiz title…")}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="bg-transparent text-base md:text-xl font-bold text-foreground outline-none placeholder:text-muted-foreground/30 focus:border-b-2 border-primary zy-motion px-1 min-w-0 w-full"
@@ -531,8 +533,8 @@ export default function CreateQuiz() {
               size="sm"
               className="border-border hover:bg-accent dark:border-white/20 dark:text-white/80 dark:bg-white/5 px-2 md:px-3"
               onClick={downloadTemplate}
-              title="Unduh berkas contoh untuk diisi di Excel"
-              aria-label="Unduh berkas contoh"
+              title={tt("Unduh berkas contoh untuk diisi di Excel", "Download a sample file to fill in with Excel")}
+              aria-label={tt("Unduh berkas contoh", "Download sample file")}
             >
               <Download size={16} aria-hidden="true" />
             </Button>
@@ -541,13 +543,13 @@ export default function CreateQuiz() {
               size="sm"
               className="border-border hover:bg-accent dark:border-white/20 dark:text-white/80 dark:bg-white/5 px-2 md:px-3"
               onClick={() => document.getElementById('csv-import')?.click()}
-              aria-label="Impor soal dari berkas"
+              aria-label={tt("Impor soal dari berkas", "Import questions from a file")}
             >
-              <FileUp size={16} className="md:mr-1" aria-hidden="true" /><span className="hidden md:inline">Impor</span>
+              <FileUp size={16} className="md:mr-1" aria-hidden="true" /><span className="hidden md:inline">{tt("Impor", "Import")}</span>
             </Button>
             <span className="hidden sm:inline-flex"><ThemeToggle /></span>
             <Button variant="outline" size="sm" className="border-border hover:bg-accent dark:border-white/20 dark:text-white/80 dark:bg-white/5 px-2 md:px-3" onClick={() => setShowSettings(true)}>
-              <Settings size={16} className="md:mr-1" /><span className="hidden md:inline">Pengaturan</span>
+              <Settings size={16} className="md:mr-1" /><span className="hidden md:inline">{tt("Pengaturan", "Settings")}</span>
             </Button>
             <Button
               size="sm"
@@ -555,8 +557,8 @@ export default function CreateQuiz() {
               onClick={saveQuiz}
               disabled={isSaving}
             >
-              <Save size={16} className="md:mr-1" aria-hidden="true" /><span className="hidden md:inline">{isSaving ? 'Menyimpan…' : editingQuizId ? 'Perbarui' : 'Simpan'}</span>
-              <span className="md:hidden">{isSaving ? '…' : 'Simpan'}</span>
+              <Save size={16} className="md:mr-1" aria-hidden="true" /><span className="hidden md:inline">{isSaving ? tt("Menyimpan…", "Saving…") : editingQuizId ? tt("Perbarui", "Update") : tt("Simpan", "Save")}</span>
+              <span className="md:hidden">{isSaving ? '…' : tt("Simpan", "Save")}</span>
             </Button>
           </div>
         </div>
@@ -566,7 +568,7 @@ export default function CreateQuiz() {
         
         {/* GLOBAL QUESTION TYPE TOGGLE (ZYNQIO UNIQUE FEATURE) */}
         <div className="bg-card border border-border rounded-2xl p-4 mb-8 md:sticky md:top-[120px] md:z-40 shadow-xl">
-          <div className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Ubah jenis semua soal sekaligus</div>
+          <div className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">{tt("Ubah jenis semua soal sekaligus", "Change the type of every question at once")}</div>
           <div className="flex flex-wrap gap-2">
             {QUESTION_TYPES.map(type => (
               <button
@@ -586,14 +588,14 @@ export default function CreateQuiz() {
           
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
             <div className="text-sm text-muted-foreground">
-              Soal berikutnya: <span className="text-primary font-bold">{QUESTION_TYPES.find(t => t.id === activeType)?.label}</span>
+              {tt("Soal berikutnya:", "Next question:")}{" "}<span className="text-primary font-bold">{QUESTION_TYPES.find(t => t.id === activeType)?.label}</span>
             </div>
             <Button
               onClick={addQuestion}
               className="bg-primary hover:bg-primary text-white font-bold py-6 px-8 rounded-xl shadow-lg hover:shadow-primary/20 zy-motion w-full sm:w-auto justify-center"
             >
               <Plus size={20} className="mr-2" />
-              Tambah soal
+              {tt("Tambah soal", "Add question")}
             </Button>
           </div>
         </div>
@@ -611,7 +613,7 @@ export default function CreateQuiz() {
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">Points:</span>
+                    <span className="text-muted-foreground">{tt("Poin:", "Points:")}</span>
                     <select 
                       className="bg-background border border-border rounded px-2 py-1 outline-none text-foreground"
                       value={q.points}
@@ -624,7 +626,7 @@ export default function CreateQuiz() {
                       {[1,2,3,4,5,10].map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </div>
-                  <button onClick={() => removeQuestion(q.id)} aria-label={`Hapus soal nomor ${index + 1}`} className="text-muted-foreground hover:text-red-500 transition-colors">
+                  <button onClick={() => removeQuestion(q.id)} aria-label={tt(`Hapus soal nomor ${index + 1}`, `Delete question ${index + 1}`)} className="text-muted-foreground hover:text-red-500 transition-colors">
                     <Trash2 size={18} aria-hidden="true" />
                   </button>
                 </div>
@@ -633,7 +635,7 @@ export default function CreateQuiz() {
               {/* Question Body */}
               <div className="p-6 space-y-6">
                 <textarea 
-                  placeholder="Tulis soalnya di sini…"
+                  placeholder={tt("Tulis soalnya di sini…", "Write the question here…")}
                   className="w-full bg-background border border-border rounded-xl p-4 text-lg text-foreground outline-none focus:border-primary resize-none min-h-[100px] placeholder:text-muted-foreground/30"
                   value={q.text}
                   onChange={(e) => {
@@ -660,7 +662,7 @@ export default function CreateQuiz() {
                         </button>
                         <input 
                           type="text" 
-                          placeholder={`Option ${i+1}`}
+                          placeholder={tt(`Pilihan ${i+1}`, `Option ${i+1}`)}
                           className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground/20"
                           value={opt}
                           onChange={(e) => {
@@ -692,10 +694,10 @@ export default function CreateQuiz() {
 
                 {q.type === 'FIB' && (
                   <div className="bg-background border border-border rounded-xl p-4">
-                    <p className="text-sm text-muted-foreground mb-2">Jawaban yang diterima, dipisah titik koma:</p>
+                    <p className="text-sm text-muted-foreground mb-2">{tt("Jawaban yang diterima, dipisah titik koma:", "Accepted answers, separated by semicolons:")}</p>
                     <input 
                       type="text" 
-                      placeholder="mis. Jakarta;DKI Jakarta;Ibukota"
+                      placeholder={tt("mis. Jakarta;DKI Jakarta;Ibukota", "e.g. Jakarta;DKI Jakarta;Capital")}
                       className="w-full bg-transparent border-b border-border pb-2 text-foreground outline-none focus:border-primary placeholder:text-muted-foreground/20"
                       value={typeof q.correctAnswer === 'string' ? q.correctAnswer : ''}
                       onChange={(e) => {
@@ -710,7 +712,7 @@ export default function CreateQuiz() {
                 {q.type === 'ORDER' && (
                   <div className="space-y-4">
                     <div>
-                      <p className="text-sm text-muted-foreground mb-3 font-semibold">Butir yang diurutkan — seret untuk menyusun urutan benarnya:</p>
+                      <p className="text-sm text-muted-foreground mb-3 font-semibold">{tt("Butir yang diurutkan — seret untuk menyusun urutan benarnya:", "Items to order — drag to set the correct order:")}</p>
                       <div className="space-y-2">
                         {q.options?.map((opt, i) => (
                           <div key={i} className="flex items-center gap-3 p-3 bg-background border border-border rounded-lg hover:border-muted-foreground/40 transition-colors group">
@@ -720,7 +722,7 @@ export default function CreateQuiz() {
                             <span className="text-xs font-bold bg-accent px-2.5 py-1 rounded min-w-[40px] text-center">{i + 1}</span>
                             <input
                               type="text"
-                              placeholder={`Step ${i + 1}`}
+                              placeholder={tt(`Langkah ${i + 1}`, `Step ${i + 1}`)}
                               className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground/20"
                               value={opt}
                               onChange={(e) => {
@@ -751,14 +753,14 @@ export default function CreateQuiz() {
                       }}
                       className="w-full py-2 px-4 border border-dashed border-muted-foreground/30 rounded-lg text-sm font-semibold text-muted-foreground hover:border-muted-foreground/60 hover:text-foreground transition-colors"
                     >
-                      + Add Step
+                      {tt("+ Tambah langkah", "+ Add step")}
                     </button>
                   </div>
                 )}
 
                 {q.type === 'MSQ' && (
                   <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground font-semibold">Pilihan jawaban — tandai semua yang benar:</p>
+                    <p className="text-sm text-muted-foreground font-semibold">{tt("Pilihan jawaban — tandai semua yang benar:", "Answer options — mark every correct one:")}</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {q.options?.map((opt, i) => {
                         const selected = Array.isArray(q.correctAnswer)
@@ -786,7 +788,7 @@ export default function CreateQuiz() {
                             </button>
                             <input
                               type="text"
-                              placeholder={`Option ${i + 1}`}
+                              placeholder={tt(`Pilihan ${i + 1}`, `Option ${i + 1}`)}
                               className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground/20"
                               value={opt}
                               onChange={(e) => {
@@ -799,14 +801,14 @@ export default function CreateQuiz() {
                         );
                       })}
                     </div>
-                    <p className="text-xs text-muted-foreground">Murid harus menandai semuanya untuk mendapat poin penuh.</p>
+                    <p className="text-xs text-muted-foreground">{tt("Murid harus menandai semuanya untuk mendapat poin penuh.", "Students must mark all of them to earn full points.")}</p>
                   </div>
                 )}
 
                 {q.type === 'OPEN' && (
                   <div className="bg-accent/20 rounded-xl p-4 border border-dashed border-border space-y-2">
-                    <p className="text-sm font-semibold text-foreground">Soal uraian</p>
-                    <p className="text-xs text-muted-foreground">Murid mengetik jawabannya sendiri. Jawaban ini tidak dinilai otomatis — Anda membacanya dan memberi nilai setelah sesi selesai.</p>
+                    <p className="text-sm font-semibold text-foreground">{tt("Soal uraian", "Open-ended question")}</p>
+                    <p className="text-xs text-muted-foreground">{tt("Murid mengetik jawabannya sendiri. Jawaban ini tidak dinilai otomatis — Anda membacanya dan memberi nilai setelah sesi selesai.", "Students type their own answer. These answers are not graded automatically.")}</p>
                   </div>
                 )}
               </div>
@@ -815,8 +817,8 @@ export default function CreateQuiz() {
           
           {questions.length === 0 && (
             <div className="text-center py-20 text-muted-foreground">
-              <p className="mb-2">Kuis ini masih kosong.</p>
-              <p>Pilih jenis soal di atas, lalu tekan Tambah soal.</p>
+              <p className="mb-2">{tt("Kuis ini masih kosong.", "This quiz is still empty.")}</p>
+              <p>{tt("Pilih jenis soal di atas, lalu tekan Tambah soal.", "Pick a question type above, then press Add question.")}</p>
             </div>
           )}
         </div>
@@ -827,8 +829,8 @@ export default function CreateQuiz() {
         <div className="fixed inset-0 z-[110] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-card border border-border rounded-3xl w-full max-w-lg shadow-2xl">
             <div className="flex items-center justify-between px-6 py-5 border-b border-border">
-              <h2 className="text-xl font-black uppercase tracking-wider text-foreground">Pengaturan kuis</h2>
-              <button onClick={() => setShowSettings(false)} aria-label="Tutup pengaturan kuis" className="p-2 hover:bg-accent rounded-full text-muted-foreground transition-colors">
+              <h2 className="text-xl font-black uppercase tracking-wider text-foreground">{tt("Pengaturan kuis", "Quiz settings")}</h2>
+              <button onClick={() => setShowSettings(false)} aria-label={tt("Tutup pengaturan kuis", "Close quiz settings")} className="p-2 hover:bg-accent rounded-full text-muted-foreground transition-colors">
                 <X size={22} aria-hidden="true" />
               </button>
             </div>
@@ -836,7 +838,7 @@ export default function CreateQuiz() {
             <div className="p-6 space-y-6">
               {/* Privacy / Visibility */}
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Siapa yang bisa melihat</p>
+                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">{tt("Siapa yang bisa melihat", "Who can see it")}</p>
                 <div className="flex gap-3">
                   <button
                     onClick={() => setQuizPrivacy('public')}
@@ -844,8 +846,8 @@ export default function CreateQuiz() {
                   >
                     <Globe size={20} />
                     <div className="text-left">
-                      <div className="font-black text-sm">Umum</div>
-                      <div className="text-xs opacity-70">Anyone can find & play</div>
+                      <div className="font-black text-sm">{tt("Umum", "General")}</div>
+                      <div className="text-xs opacity-70">{tt("Siapa pun bisa menemukan dan memainkannya", "Anyone can find & play")}</div>
                     </div>
                   </button>
                   <button
@@ -854,8 +856,8 @@ export default function CreateQuiz() {
                   >
                     <Lock size={20} />
                     <div className="text-left">
-                      <div className="font-black text-sm">Ubah dari umum jadi pribadi</div>
-                      <div className="text-xs opacity-70">Hidden from Explore, room-only</div>
+                      <div className="font-black text-sm">{tt("Ubah dari umum jadi pribadi", "Switch from public to private")}</div>
+                      <div className="text-xs opacity-70">{tt("Tidak tampil di Jelajahi, hanya lewat ruangan", "Hidden from Explore, room-only")}</div>
                     </div>
                   </button>
                 </div>
@@ -863,7 +865,7 @@ export default function CreateQuiz() {
 
               {/* Hide Answer */}
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Tampilan kunci jawaban</p>
+                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">{tt("Tampilan kunci jawaban", "Answer key display")}</p>
                 <button
                   onClick={() => setHideAnswer((v) => !v)}
                   className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 zy-motion text-left ${hideAnswer ? 'border-purple-500 bg-purple-500/10 text-purple-400' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}
@@ -872,11 +874,11 @@ export default function CreateQuiz() {
                     {hideAnswer ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
                   </div>
                   <div>
-                    <div className="font-black text-sm">{hideAnswer ? 'Hide Answer Enabled' : 'Show Answer (Default)'}</div>
+                    <div className="font-black text-sm">{hideAnswer ? tt("Jawaban disembunyikan", "Hide answer enabled") : tt("Tampilkan jawaban (bawaan)", "Show answer (default)")}</div>
                     <div className="text-xs opacity-60">
                       {hideAnswer
-                        ? 'Players see "Answered" — correct/wrong hidden until host reveals'
-                        : 'Players see green ✓ or red ✗ immediately after answering'}
+                        ? tt("Peserta hanya melihat \"Terjawab\" — benar/salah disembunyikan sampai pengajar membukanya", "Players see \"Answered\" — correct/wrong hidden until host reveals")
+                        : tt("Peserta langsung melihat ✓ hijau atau ✗ merah setelah menjawab", "Players see green ✓ or red ✗ immediately after answering")}
                     </div>
                   </div>
                   <div className={`ml-auto w-10 h-6 rounded-full zy-motion shrink-0 relative ${hideAnswer ? 'bg-purple-500' : 'bg-border'}`}>
@@ -887,7 +889,7 @@ export default function CreateQuiz() {
 
               {/* Category */}
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Mata pelajaran</p>
+                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">{tt("Mata pelajaran", "Subject")}</p>
                 <div className="flex flex-wrap gap-2">
                   {CATEGORIES.map(cat => (
                     <button
@@ -903,9 +905,9 @@ export default function CreateQuiz() {
 
               {/* Description */}
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Keterangan</p>
+                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">{tt("Keterangan", "Description")}</p>
                 <textarea
-                  placeholder="Keterangan singkat tentang kuis ini…"
+                  placeholder={tt("Keterangan singkat tentang kuis ini…", "A short description of this quiz…")}
                   value={quizDescription}
                   onChange={(e) => setQuizDescription(e.target.value)}
                   maxLength={200}
@@ -917,7 +919,7 @@ export default function CreateQuiz() {
 
               {/* Cover Image URL */}
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Alamat gambar sampul</p>
+                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">{tt("Alamat gambar sampul", "Cover image URL")}</p>
                 <div className="flex gap-2">
                   <input
                     type="url"
@@ -927,23 +929,23 @@ export default function CreateQuiz() {
                     className="flex-1 bg-background border border-border rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-primary placeholder:text-muted-foreground/30"
                   />
                   {coverImage && (
-                    <button onClick={() => setCoverImage('')} aria-label="Hapus gambar sampul" className="p-2 text-muted-foreground hover:text-red-500 transition-colors">
+                    <button onClick={() => setCoverImage('')} aria-label={tt("Hapus gambar sampul", "Remove cover image")} className="p-2 text-muted-foreground hover:text-red-500 transition-colors">
                       <X size={18} aria-hidden="true" />
                     </button>
                   )}
                 </div>
                 {coverImage && (
                   <div className="mt-3 h-24 rounded-xl overflow-hidden border border-border">
-                    <img src={coverImage} alt="Cover preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    <img src={coverImage} alt={tt("Pratinjau sampul", "Cover preview")} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                   </div>
                 )}
               </div>
             </div>
 
             <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
-              <Button variant="outline" className="border-border dark:border-white/20 dark:text-white/70" onClick={() => setShowSettings(false)}>Batal</Button>
+              <Button variant="outline" className="border-border dark:border-white/20 dark:text-white/70" onClick={() => setShowSettings(false)}>{tt("Batal", "Cancel")}</Button>
               <Button className="bg-primary hover:bg-primary text-white font-bold px-6" onClick={() => setShowSettings(false)}>
-                Terapkan pengaturan
+                {tt("Terapkan pengaturan", "Apply settings")}
               </Button>
             </div>
           </div>
@@ -957,11 +959,11 @@ export default function CreateQuiz() {
             <div className="flex justify-between items-center mb-8">
               <div>
                 <h2 className="text-3xl font-black text-foreground flex items-center gap-3 uppercase">
-                  <FileUp className="text-primary" /> Confirm Import
+                  <FileUp className="text-primary" />{" "}{tt("Konfirmasi impor", "Confirm import")}
                 </h2>
-                <p className="text-muted-foreground mt-1">Periksa soalnya sekali lagi sebelum dimasukkan ke kuis.</p>
+                <p className="text-muted-foreground mt-1">{tt("Periksa soalnya sekali lagi sebelum dimasukkan ke kuis.", "Check the questions once more before adding them to the quiz.")}</p>
               </div>
-              <button onClick={() => setIsImporting(false)} aria-label="Tutup pratinjau impor" className="p-2 hover:bg-accent rounded-full text-muted-foreground">
+              <button onClick={() => setIsImporting(false)} aria-label={tt("Tutup pratinjau impor", "Close import preview")} className="p-2 hover:bg-accent rounded-full text-muted-foreground">
                 <X size={32} aria-hidden="true" />
               </button>
             </div>
@@ -972,9 +974,9 @@ export default function CreateQuiz() {
                   <thead className="bg-accent/50 sticky top-0 z-10">
                     <tr>
                       <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border">#</th>
-                      <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Soal</th>
-                      <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Jenis</th>
-                      <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Jawaban benar</th>
+                      <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border">{tt("Soal", "Question")}</th>
+                      <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border">{tt("Jenis", "Type")}</th>
+                      <th className="p-4 text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border">{tt("Jawaban benar", "Correct answer")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -997,18 +999,18 @@ export default function CreateQuiz() {
               <div className="p-6 bg-accent/20 border-t border-border flex justify-between items-center">
                 <div className="flex flex-col">
                   <div className="text-muted-foreground text-sm flex items-center gap-2">
-                    Found <span className="text-foreground font-bold">{importPreview.length}</span> questions in file.
+                    {tt("Ditemukan", "Found")}{" "}<span className="text-foreground font-bold">{importPreview.length}</span>{" "}{tt("soal di berkas.", "questions in file.")}
                     {headerRowIndex > 0 && (
                       <span className="px-2 py-0.5 bg-green-500/10 text-green-500 text-[10px] font-black uppercase rounded-full border border-green-500/20">
-                        Smart-Scan Optimized
+                        {tt("Pemindaian cerdas", "Smart-scan optimized")}
                       </span>
                     )}
                   </div>
                 </div>
                 <div className="flex gap-4">
-                  <Button variant="outline" className="border-border dark:border-white/20 dark:text-white/70" onClick={() => setIsImporting(false)}>Batal</Button>
+                  <Button variant="outline" className="border-border dark:border-white/20 dark:text-white/70" onClick={() => setIsImporting(false)}>{tt("Batal", "Cancel")}</Button>
                   <Button className="bg-primary hover:bg-primary px-8 py-6 rounded-xl font-bold text-white shadow-lg" onClick={confirmImport}>
-                    <CheckCircle2 size={18} className="mr-2" /> Add All Questions
+                    <CheckCircle2 size={18} className="mr-2" />{" "}{tt("Tambahkan semua soal", "Add all questions")}
                   </Button>
                 </div>
               </div>

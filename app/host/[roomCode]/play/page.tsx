@@ -24,7 +24,7 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
   // Layar guru selama ini menulis kalimatnya langsung di kode — sebagian
   // Inggris, sebagian Indonesia — sehingga menekan tombol bahasa tidak
   // menggerakkan apa pun di sini.
-  const { t } = useBahasa();
+  const { tt, t } = useBahasa();
 
   const [currentQuestion, setCurrentQuestion] = useState<any>(null);
   const [isRevealed, setIsRevealed] = useState(false);
@@ -357,7 +357,7 @@ const RAGAM: Record<string, string> = {
     return (
       <div className="min-h-screen bg-[#0f0f1a] flex flex-col items-center justify-center gap-4">
         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-white/60 font-bold animate-pulse" role="status">Menyiapkan permainan…</p>
+        <p className="text-white/60 font-bold animate-pulse" role="status">{tt("Menyiapkan permainan…", "Preparing the game…")}</p>
       </div>
     );
   }
@@ -370,9 +370,9 @@ const RAGAM: Record<string, string> = {
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <div className="bg-[#16162a] border border-red-500/30 rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl">
             <div className="text-4xl mb-4 text-center">⚠️</div>
-            <h3 className="text-xl font-black text-white text-center mb-2">Hentikan permainan sekarang?</h3>
+            <h3 className="text-xl font-black text-white text-center mb-2">{tt("Hentikan permainan sekarang?", "Stop the game now?")}</h3>
             <p className="text-white/50 text-sm text-center mb-6">
-              Semua peserta langsung dibawa ke halaman hasil. Langkah ini tidak bisa dibatalkan.
+              {tt("Semua peserta langsung dibawa ke halaman hasil. Langkah ini tidak bisa dibatalkan.", "Every player is taken straight to the results page. This step cannot be undone.")}
             </p>
             <div className="flex gap-3">
               <Button
@@ -380,13 +380,13 @@ const RAGAM: Record<string, string> = {
                 variant="outline"
                 className="flex-1 border-white/25 bg-white/5 text-white hover:bg-white/10"
               >
-                Tahan dulu
+                {tt("Tahan dulu", "Hold on")}
               </Button>
               <Button
                 onClick={() => { setShowEndConfirm(false); handleEndGame(); }}
                 className="flex-1 bg-red-600 hover:bg-red-500 font-bold"
               >
-                Ya, hentikan
+                {tt("Ya, hentikan", "Yes, stop it")}
               </Button>
             </div>
           </div>
@@ -414,20 +414,20 @@ const RAGAM: Record<string, string> = {
               <div className="flex items-center gap-1.5 text-sm text-white/50">
                 <Zap size={13} className="text-blue-400" />
                 <span className="font-bold text-white">{playersFinished}</span>
-                <span>/ {totalPlayers} tamat</span>
+                <span>/ {totalPlayers}{" "}{tt("tamat", "out")}</span>
               </div>
               {totalQuestions > 0 && (
                 <div className="text-xs text-white/40 font-bold">
-                  {leaderboard.reduce((n: number, p: any) => n + (p.totalAnswered || 0), 0)} jawaban masuk
+                  {leaderboard.reduce((n: number, p: any) => n + (p.totalAnswered || 0), 0)}{" "}{tt("jawaban masuk", "answers in")}
                 </div>
               )}
               {playersFinished > 0 && totalPlayers > 0 && playersFinished >= totalPlayers ? (
                 <div className="text-[10px] px-2 py-0.5 bg-green-600/20 rounded-full text-green-400 font-black uppercase tracking-widest animate-pulse">
-                  ✓ Semua selesai — permainan ditutup
+                  {tt("✓ Semua selesai — permainan ditutup", "✓ All done — the game is closed")}
                 </div>
               ) : (
                 <div className="text-[10px] px-2 py-0.5 bg-blue-600/20 rounded-full text-blue-400 font-black uppercase tracking-widest">
-                  ⚡ Klasik
+                  {tt("⚡ Klasik", "⚡ Classic")}
                 </div>
               )}
             </>
@@ -436,14 +436,14 @@ const RAGAM: Record<string, string> = {
               <div className="flex items-center gap-1.5 text-sm text-white/50">
                 <Users size={14} className="text-blue-400" />
                 <span className="font-bold text-white">{totalAnswered}</span>
-                <span>/ {totalPlayers} menjawab</span>
+                <span>/ {totalPlayers}{" "}{tt("menjawab", "answered")}</span>
               </div>
               <div className="text-xs text-white/30 font-bold">
                 Q{qIndex + 1}{totalQuestions > 0 ? `/${totalQuestions}` : ""}
               </div>
               {advanceCountdown !== null && (
                 <div className="text-[10px] px-2 py-0.5 bg-amber-500/20 rounded-full text-amber-400 font-black uppercase tracking-widest animate-pulse">
-                  Lanjut dalam {advanceCountdown} detik…
+                  {tt("Lanjut dalam", "Continuing in")}{" "}{advanceCountdown}{" "}{tt("detik…", "seconds…")}
                 </div>
               )}
             </>
@@ -469,21 +469,21 @@ const RAGAM: Record<string, string> = {
               onClick={() => { setIsRevealed(true); setTimeLeft(0); }}
               className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm"
             >
-              <Eye size={15} className="mr-1" aria-hidden="true" /> Buka jawaban
+              <Eye size={15} className="mr-1" aria-hidden="true" />{" "}{tt("Buka jawaban", "Reveal answer")}
             </Button>
           ) : totalQuestions > 0 && qIndex >= totalQuestions - 1 ? (
             <Button
               onClick={handleEndGame}
               className="bg-green-600 hover:bg-green-500 font-bold text-sm"
             >
-              <Trophy size={13} className="mr-1" /> View Results
+              <Trophy size={13} className="mr-1" />{" "}{tt("Lihat hasil", "View results")}
             </Button>
           ) : (
             <Button
               onClick={handleNextQuestion}
               className="bg-blue-600 hover:bg-blue-500 font-bold text-sm"
             >
-              Lanjut <SkipForward size={15} className="ml-1" aria-hidden="true" />
+              {tt("Lanjut", "Next")}{" "}<SkipForward size={15} className="ml-1" aria-hidden="true" />
             </Button>
           )}
           {/* Music player */}
@@ -493,7 +493,7 @@ const RAGAM: Record<string, string> = {
             onClick={() => setShowEndConfirm(true)}
             variant="outline"
             className="border-red-500/40 text-red-400 hover:bg-red-500/10 font-bold text-xs px-2"
-            title="Hentikan permainan sekarang"
+            title={tt("Hentikan permainan sekarang", "Stop the game now")}
           >
             <Square size={12} />
           </Button>
@@ -634,7 +634,7 @@ const RAGAM: Record<string, string> = {
                         return (
                           <div
                             key={qi}
-                            title={`Q${qi + 1}: ${status || "not answered yet"}`}
+                            title={`Q${qi + 1}: ${status || tt("belum dijawab", "not answered yet")}`}
                             className={`h-3 flex-1 min-w-[6px] max-w-[14px] rounded-sm ${cellColor} zy-motion`}
                           />
                         );
@@ -650,11 +650,11 @@ const RAGAM: Record<string, string> = {
 
             {leaderboard.length > 15 && (
               <div className="text-center text-[10px] text-white/20 py-2">
-                +{leaderboard.length - 15} more players
+                +{leaderboard.length - 15}{" "}{tt("peserta lainnya", "more players")}
               </div>
             )}
             {leaderboard.length === 0 && (
-              <div className="text-center py-10 text-white/20 text-xs">Belum ada peserta</div>
+              <div className="text-center py-10 text-white/20 text-xs">{tt("Belum ada peserta", "No players yet")}</div>
             )}
           </div>
         </div>
@@ -669,7 +669,7 @@ const RAGAM: Record<string, string> = {
               {/* Question card */}
               <div className="bg-[#16162a] border border-white/10 rounded-2xl p-5 text-center shrink-0 shadow-xl">
                 <div className="text-xs font-black text-white/30 uppercase tracking-widest mb-2">
-                  Q{qIndex + 1}{totalQuestions > 0 ? ` of ${totalQuestions}` : ""} · {currentQuestion.type}
+                  Q{qIndex + 1}{totalQuestions > 0 ? tt(` dari ${totalQuestions}`, ` of ${totalQuestions}`) : ""} · {currentQuestion.type}
                 </div>
                 <h1 className="text-xl md:text-2xl font-black leading-tight">
                   {currentQuestion.text}
@@ -705,7 +705,7 @@ const RAGAM: Record<string, string> = {
                         </div>
                         <div className="bg-black/40 px-4 py-2.5">
                           <div className="flex justify-between text-xs font-bold mb-1.5 text-white/50">
-                            <span>{count} peserta</span>
+                            <span>{count}{" "}{tt("peserta", "players")}</span>
                           </div>
                           <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
                             <div
@@ -724,10 +724,10 @@ const RAGAM: Record<string, string> = {
               {(currentQuestion.type === "FIB" || currentQuestion.type === "OPEN") && isRevealed && (
                 <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-5">
                   <div className="text-xs font-black text-green-400 uppercase tracking-widest mb-2">
-                    Accepted Answers
+                    {tt("Jawaban yang diterima", "Accepted answers")}
                   </div>
                   <div className="font-bold text-white text-lg">
-                    {currentQuestion.correctAnswer || "Open ended — no fixed answer"}
+                    {currentQuestion.correctAnswer || tt("Uraian — tanpa jawaban pasti", "Open ended — no fixed answer")}
                   </div>
                 </div>
               )}
@@ -765,7 +765,7 @@ const RAGAM: Record<string, string> = {
               {/* Column headers */}
               <div className="flex items-center justify-between px-5 mb-2 shrink-0">
                 <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">
-                  Kemajuan peserta · {totalPlayers} peserta
+                  {tt("Kemajuan peserta ·", "Player progress ·")}{" "}{totalPlayers}{" "}{tt("peserta", "players")}
                 </span>
                 <span className="text-[10px] font-black text-white/20 uppercase">
                   {totalQuestions > 0
@@ -776,10 +776,10 @@ const RAGAM: Record<string, string> = {
 
               {/* Legend */}
               <div className="px-5 pb-2 flex items-center gap-3 flex-wrap shrink-0 text-[9px] font-bold uppercase tracking-wider">
-                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-green-500 rounded-sm" /><span className="text-white/40">Benar</span></div>
-                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-red-500 rounded-sm" /><span className="text-white/40">Salah</span></div>
-                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-red-900/50 rounded-sm" /><span className="text-white/40">Belum menjawab</span></div>
-                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-white/10 rounded-sm" /><span className="text-white/40">Belum dijawab</span></div>
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-green-500 rounded-sm" /><span className="text-white/40">{tt("Benar", "Correct")}</span></div>
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-red-500 rounded-sm" /><span className="text-white/40">{tt("Salah", "Wrong")}</span></div>
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-red-900/50 rounded-sm" /><span className="text-white/40">{tt("Belum menjawab", "Not answered yet")}</span></div>
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-white/10 rounded-sm" /><span className="text-white/40">{tt("Belum dijawab", "Unanswered")}</span></div>
               </div>
 
               {/* Player progress rows */}
@@ -877,7 +877,7 @@ const RAGAM: Record<string, string> = {
                               return (
                                 <div
                                   key={qi}
-                                  title={`Q${qi + 1}: ${status || "not yet"}`}
+                                  title={`Q${qi + 1}: ${status || tt("belum", "not yet")}`}
                                   className={`h-3.5 flex-1 min-w-[8px] rounded-sm ${cellColor} zy-motion`}
                                 />
                               );
@@ -907,7 +907,7 @@ const RAGAM: Record<string, string> = {
                           <div className="font-black text-lg text-blue-400 leading-none">
                             {(p.score || 0).toLocaleString()}
                           </div>
-                          <div className="text-[10px] text-white/30 mt-0.5">poin</div>
+                          <div className="text-[10px] text-white/30 mt-0.5">{tt("poin", "points")}</div>
                         </div>
                       </div>
                     );
@@ -915,7 +915,7 @@ const RAGAM: Record<string, string> = {
 
                 {leaderboard.length === 0 && (
                   <div className="text-center py-12 text-white/30 text-sm">
-                    No players have answered yet
+                    {tt("Belum ada peserta yang menjawab", "No players have answered yet")}
                   </div>
                 )}
               </div>
@@ -928,7 +928,7 @@ const RAGAM: Record<string, string> = {
       <div className="shrink-0 bg-[#16162a] border-t border-white/10 px-4 py-2.5 flex items-center gap-6 text-xs">
         {/* Class accuracy */}
         <div className="flex items-center gap-1.5">
-          <span className="text-white/30 font-black uppercase tracking-widest">Ketepatan kelas</span>
+          <span className="text-white/30 font-black uppercase tracking-widest">{tt("Ketepatan kelas", "Class accuracy")}</span>
           <span className={`font-black ${
             classAccuracyPct === null ? "text-white/40" :
             classAccuracyPct >= 70 ? "text-green-400" :
@@ -944,7 +944,7 @@ const RAGAM: Record<string, string> = {
         <div className="flex items-center gap-1.5">
           <Users size={11} className="text-blue-400" />
           <span className="text-white/30 font-black uppercase tracking-widest">
-            {isClassicMode ? "Selesai" : "Sudah menjawab"}
+            {isClassicMode ? tt("Selesai", "Done") : tt("Sudah menjawab", "Answered")}
           </span>
           <span className="font-black text-white">
             {isClassicMode ? playersFinished : totalAnswered}
@@ -957,7 +957,7 @@ const RAGAM: Record<string, string> = {
         {/* Correct count */}
         <div className="flex items-center gap-1.5">
           <Flame size={11} className="text-orange-400" />
-          <span className="text-white/30 font-black uppercase tracking-widest">Benar</span>
+          <span className="text-white/30 font-black uppercase tracking-widest">{tt("Benar", "Correct")}</span>
           <span className="font-black text-green-400">{answerStats.correct || 0}</span>
         </div>
 
@@ -965,11 +965,11 @@ const RAGAM: Record<string, string> = {
         <div className="ml-auto flex items-center gap-2">
           {isClassicMode && (
             <span className="px-2 py-0.5 bg-blue-600/20 rounded-full text-blue-400 font-black text-[10px] uppercase tracking-widest">
-              ⚡ Classic
+              {tt("⚡ Klasik", "⚡ Classic")}
             </span>
           )}
           <span className="text-white/20 font-bold capitalize">
-            {isClassicMode ? "Klasik" : (RAGAM[roomState?.gameMode ?? ""] ?? "Klasik")}
+            {isClassicMode ? tt("Klasik", "Classic") : (RAGAM[roomState?.gameMode ?? ""] ?? tt("Klasik", "Classic"))}
           </span>
         </div>
       </div>

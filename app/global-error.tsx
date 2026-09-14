@@ -21,8 +21,16 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // Tanpa penyedia konteks, pilihan bahasa dibaca langsung dari tempat
+  // PenyediaBahasa menyimpannya. Gagal membaca berarti bahasa bawaan.
+  let en = false;
+  try {
+    en = typeof window !== "undefined" && localStorage.getItem("zynqio-bahasa") === "en";
+  } catch {}
+  const tt = (id: string, inggris: string) => (en ? inggris : id);
+
   return (
-    <html lang="id">
+    <html lang={en ? "en" : "id"}>
       <body
         style={{
           margin: 0,
@@ -58,7 +66,7 @@ export default function GlobalError({
           </div>
 
           <h1 style={{ fontSize: 24, fontWeight: 700, margin: "0 0 12px" }}>
-            Ada yang tidak beres di sisi kami
+            {tt("Ada yang tidak beres di sisi kami", "Something went wrong on our side")}
           </h1>
 
           <p
@@ -69,8 +77,10 @@ export default function GlobalError({
               margin: "0 0 28px",
             }}
           >
-            Halaman ini gagal dimuat sepenuhnya. Coba muat ulang; kalau masih
-            sama, kembali sebentar lagi.
+            {tt(
+              "Halaman ini gagal dimuat sepenuhnya. Coba muat ulang; kalau masih sama, kembali sebentar lagi.",
+              "This page failed to load completely. Try reloading; if it stays the same, come back in a moment."
+            )}
           </p>
 
           <button
@@ -87,7 +97,7 @@ export default function GlobalError({
               background: "#7c6ffd",
             }}
           >
-            Muat ulang halaman
+            {tt("Muat ulang halaman", "Reload page")}
           </button>
 
           {/*
@@ -104,7 +114,7 @@ export default function GlobalError({
                 fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
               }}
             >
-              Penanda kejadian: {error.digest}
+              {tt("Penanda kejadian:", "Incident reference:")} {error.digest}
             </p>
           ) : null}
         </main>
