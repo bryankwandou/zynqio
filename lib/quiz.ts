@@ -155,15 +155,15 @@ export async function getQuizForOwner(
  */
 export async function getGradingKey(
   quizId: string
-): Promise<Map<string, { correctAnswer: unknown; points: number; type: string }>> {
+): Promise<Map<string, { correctAnswer: unknown; points: number; type: string; options: unknown }>> {
   const rows = (await sql`
-    SELECT id, correct_answer, points, type
+    SELECT id, correct_answer, points, type, options
     FROM questions
     WHERE quiz_id = ${quizId}
-  `) as { id: string; correct_answer: unknown; points: number; type: string }[];
+  `) as { id: string; correct_answer: unknown; points: number; type: string; options: unknown }[];
 
   return new Map(
-    rows.map((r) => [r.id, { correctAnswer: r.correct_answer, points: r.points, type: r.type }])
+    rows.map((r) => [r.id, { correctAnswer: r.correct_answer, points: r.points, type: r.type, options: r.options }])
   );
 }
 

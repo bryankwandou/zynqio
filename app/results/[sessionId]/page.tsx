@@ -618,9 +618,9 @@ export default function ResultsPage({ params }: { params: Promise<{ sessionId: s
                     ))}
                   </ul>
                 )}
-                {(!Array.isArray(q.options) || q.options.length === 0) && q.correctAnswer && (
+                {(q.answerKind === "urutan" || !Array.isArray(q.options) || q.options.length === 0) && q.correctAnswer && (
                   <p className="mt-4 rounded-xl border border-green-500 bg-green-500/10 px-3 py-2 text-sm font-bold text-green-700 dark:text-green-400">
-                    ✓ Jawaban benar: {q.correctAnswer}
+                    ✓ {q.answerKind === "urutan" ? "Urutan benar" : "Jawaban benar"}: {q.correctAnswer}
                   </p>
                 )}
                 {q.explanation && (

@@ -1,3 +1,4 @@
+import { nilaiJawaban } from './kunci';
 /**
  * lib/answers.ts — penerimaan dan penilaian jawaban.
  *
@@ -33,35 +34,6 @@ export interface SubmitResult {
   sessionId: string;
 }
 
-/**
- * Membandingkan jawaban peserta dengan kunci, sesuai jenis soalnya.
- * Kunci jawaban hanya hidup di dalam fungsi ini dan tidak pernah
- * ikut dikembalikan ke pemanggil.
- */
-function isAnswerCorrect(type: string, correctAnswer: unknown, submitted: unknown): boolean {
-  if (submitted === undefined || submitted === null) return false;
-
-  const norm = (v: unknown) => String(v ?? '').trim().toLowerCase();
-
-  switch (type) {
-    case 'TRUE_FALSE':
-    case 'MCQ':
-      return norm(correctAnswer) === norm(submitted);
-
-    case 'TYPE_ANSWER': {
-      // Beberapa jawaban sah dipisah titik koma.
-      const accepted = String(correctAnswer ?? '').split(';').map(norm).filter(Boolean);
-      return accepted.includes(norm(submitted));
-    }
-
-    case 'POLL':
-      // Jajak pendapat tidak punya jawaban benar.
-      return false;
-
-    default:
-      return false;
-  }
-}
 
 export async function submitAnswer(params: {
   roomCode: string;
@@ -79,7 +51,7 @@ export async function submitAnswer(params: {
   const question = key.get(params.questionId);
   if (!question) throw new RoomError('Soal tidak ditemukan pada kuis ini.', 404);
 
-  const correct = isAnswerCorrect(question.type, question.correctAnswer, params.selectedAnswer);
+  const correct = nilaiJawaban(question.type, question.options, question.correctAnswer, params.selectedAnswer);
 
   // Jam server yang dipakai, bukan angka kiriman peserta.
   const startedAt = room.question_started_at ? new Date(room.question_started_at).getTime() : Date.now();
