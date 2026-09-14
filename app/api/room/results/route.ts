@@ -166,7 +166,7 @@ function kunciSoal(r: { type: string; options: unknown; correct_answer: unknown;
   const benar = new Set(k.jenis === 'pilihan' ? k.indeks : []);
   const norm = (v: unknown) => String(v ?? '').trim().toLowerCase();
   const hitung = (i: number, teks: string) =>
-    r.pilihan.filter((c) => norm(c) === String(i) || norm(c) === norm(teks)).length;
+    r.pilihan.filter((c) => (Array.isArray(c) ? c.map(norm).includes(String(i)) : norm(c) === String(i) || norm(c) === norm(teks))).length;
   const correctAnswer =
     k.jenis === 'pilihan' ? k.indeks.map((i) => opsi[i]).join(', ')
     : k.jenis === 'urutan' ? k.indeks.map((i) => opsi[i]).join(' → ')

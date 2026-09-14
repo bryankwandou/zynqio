@@ -354,9 +354,9 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
     return () => clearInterval(interval);
   }, [currentQuestion]);
 
-  const handleSubmit = async (answer: string) => {
+  const handleSubmit = async (answer: string | string[]) => {
     if (isSubmitted) return;
-    setSelectedAnswer(answer);
+    setSelectedAnswer(Array.isArray(answer) ? answer.join(",") : answer);
     setIsSubmitted(true);
 
     const isTimeout = answer === "__no_answer__";
@@ -687,6 +687,27 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
           </div>
 
           {/* Answer options */}
+          {currentQuestion.answerKind === "isian" && (
+            <IsianJawaban key={currentQuestion.id} disabled={isSubmitted} onKirim={handleSubmit} />
+          )}
+          {currentQuestion.answerKind === "urutan" && (
+            <UrutanJawaban
+              key={currentQuestion.id}
+              options={currentQuestion.options ?? []}
+              optionIds={currentQuestion.optionIds ?? []}
+              disabled={isSubmitted}
+              onKirim={handleSubmit}
+            />
+          )}
+          {currentQuestion.answerKind === "ganda" && (
+            <GandaJawaban
+              key={currentQuestion.id}
+              options={currentQuestion.options ?? []}
+              disabled={isSubmitted}
+              onKirim={handleSubmit}
+            />
+          )}
+          {!["isian", "urutan", "ganda"].includes(currentQuestion.answerKind) && (
           <div className={`grid gap-2 flex-1 ${
             (currentQuestion.options?.length ?? 0) <= 2 ? "grid-cols-1" : "grid-cols-2"
           }`}>
@@ -721,6 +742,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
               );
             })}
           </div>
+          )}
 
           {/* Powerups (not shown in wayground) */}
           {!isSubmitted && !isWayground && powerups.length > 0 && (
@@ -840,6 +862,94 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
         }
         .animate-ping-once { animation: ping-once 0.6s ease-out forwards; }
       `}</style>
+    </div>
+  );
+}
+
+const TOMBOL_KIRIM =
+  "w-full mt-3 p-4 rounded-2xl bg-primary text-white font-black text-base shadow-lg zy-motion active:scale-95 disabled:opacity-40";
+
+function IsianJawaban({ disabled, onKirim }: { disabled: boolean; onKirim: (a: string) => void }) {
+  const [teks, setTeks] = useState("");
+  return (
+    <form
+      className="flex flex-col"
+      onSubmit={(e) => { e.preventDefault(); if (teks.trim()) onKirim(teks.trim()); }}
+    >
+      <label htmlFor="isian-jawaban" className="text-xs font-bold text-white/50 mb-2">Ketik jawabanmu</label>
+      <input
+        id="isian-jawaban"
+        autoFocus
+        autoComplete="off"
+        disabled={disabled}
+        value={teks}
+        onChange={(e) => setTeks(e.target.value)}
+        maxLength={200}
+        className="w-full p-4 rounded-2xl bg-[#16162a] border border-white/20 text-white text-lg font-bold outline-none focus:ring-2 focus:ring-primary"
+      />
+      <button type="submit" disabled={disabled || !teks.trim()} className={TOMBOL_KIRIM}>Kirim</button>
+    </form>
+  );
+}
+
+function GandaJawaban({ options, disabled, onKirim }: { options: string[]; disabled: boolean; onKirim: (a: string[]) => void }) {
+  const [dipilih, setDipilih] = useState<number[]>([]);
+  const ubah = (i: number) => setDipilih((d) => (d.includes(i) ? d.filter((x) => x !== i) : [...d, i]));
+  return (
+    <div className="flex flex-col">
+      <p className="text-xs font-bold text-white/50 mb-2">Pilih semua jawaban yang benar</p>
+      <div className={`grid gap-2 ${options.length <= 2 ? "grid-cols-1" : "grid-cols-2"}`}>
+        {options.map((opt, i) => {
+          const aktif = dipilih.includes(i);
+          return (
+            <button
+              key={i}
+              type="button"
+              role="checkbox"
+              aria-checked={aktif}
+              disabled={disabled}
+              onClick={() => ubah(i)}
+              className={`w-full p-3 sm:p-4 rounded-2xl text-white font-bold text-sm sm:text-base shadow-lg border-b-4 flex items-center gap-2 zy-motion ${OPTION_COLORS[i % OPTION_COLORS.length]} ${aktif ? "ring-4 ring-white scale-[1.02]" : "opacity-80"}`}
+            >
+              <span aria-hidden="true" className="w-8 h-8 rounded-lg bg-white/25 flex items-center justify-center shrink-0">{aktif ? "✓" : ""}</span>
+              <span className="text-left leading-tight">{opt}</span>
+            </button>
+          );
+        })}
+      </div>
+      <button type="button" disabled={disabled || dipilih.length === 0} onClick={() => onKirim([...dipilih].sort((a, b) => a - b).map(String))} className={TOMBOL_KIRIM}>
+        Kirim
+      </button>
+    </div>
+  );
+}
+
+function UrutanJawaban({ options, optionIds, disabled, onKirim }: { options: string[]; optionIds: number[]; disabled: boolean; onKirim: (a: string[]) => void }) {
+  const [urutan, setUrutan] = useState(() => options.map((t, n) => ({ t, id: optionIds[n] ?? n })));
+  const geser = (n: number, arah: -1 | 1) =>
+    setUrutan((u) => {
+      const m = n + arah;
+      if (m < 0 || m >= u.length) return u;
+      const salin = [...u];
+      [salin[n], salin[m]] = [salin[m], salin[n]];
+      return salin;
+    });
+  return (
+    <div className="flex flex-col">
+      <p className="text-xs font-bold text-white/50 mb-2">Susun dari yang pertama sampai terakhir</p>
+      <ol className="flex flex-col gap-2">
+        {urutan.map((x, n) => (
+          <li key={x.id} className="flex items-center gap-2 p-3 rounded-2xl bg-[#16162a] border border-white/15 text-white font-bold">
+            <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-sm shrink-0">{n + 1}</span>
+            <span className="flex-1 text-left">{x.t}</span>
+            <button type="button" disabled={disabled || n === 0} onClick={() => geser(n, -1)} aria-label={`Naikkan ${x.t}`} className="w-10 h-10 rounded-xl bg-white/10 disabled:opacity-30">▲</button>
+            <button type="button" disabled={disabled || n === urutan.length - 1} onClick={() => geser(n, 1)} aria-label={`Turunkan ${x.t}`} className="w-10 h-10 rounded-xl bg-white/10 disabled:opacity-30">▼</button>
+          </li>
+        ))}
+      </ol>
+      <button type="button" disabled={disabled} onClick={() => onKirim(urutan.map((x) => String(x.id)))} className={TOMBOL_KIRIM}>
+        Kirim
+      </button>
     </div>
   );
 }

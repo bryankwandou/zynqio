@@ -1,4 +1,16 @@
 import { nilaiJawaban } from './kunci';
+
+/**
+ * Bobot soal sebagai pengali. Penyunting menyimpan 100 untuk soal biasa,
+ * sedangkan templat Excel menulis 1, 2, atau 3. Membagi keduanya dengan 100
+ * membuat soal dari templat bernilai seperseratus — jawaban benar hanya
+ * memberi 8 poin. Angka kecil karena itu dibaca langsung sebagai pengali.
+ */
+export function bobotSoal(points: unknown): number {
+  const p = Number(points);
+  if (!Number.isFinite(p) || p <= 0) return 1;
+  return p < 50 ? p : p / 100;
+}
 /**
  * lib/answers.ts — penerimaan dan penilaian jawaban.
  *
@@ -72,7 +84,7 @@ export async function submitAnswer(params: {
     // dihitung sebagai 600 × 100. Satu soal menghasilkan hampir seratus
     // ribu poin, dan papan peringkat penuh angka yang tidak berarti apa-apa
     // bagi siapa pun yang melihatnya.
-    pointsWeight: (question.points || 100) / 100,
+    pointsWeight: bobotSoal(question.points),
     streak: player.streak,
   });
 
