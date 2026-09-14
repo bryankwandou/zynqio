@@ -71,11 +71,42 @@ function periksaEkspresi(berkas, sf, e) {
   }
 }
 
+/*
+ * Teks yang tidak ditulis di JSX tetapi tetap sampai ke layar: isi daftar
+ * (label ragam permainan, jenis soal, menu), pesan alert()/confirm(), dan
+ * pesan salin. Lolos bila berupa tt(...) atau pasangan ["id", "en"].
+ */
+const KUNCI_DATA = new Set(['label', 'name', 'desc', 'sub', 'caption', 'msg', 'message', 'title', 'description', 'hint']);
+const PANGGILAN_LAYAR = /^(window\.)?(alert|confirm|prompt)$|^(copyText|setError|setMessage|setPesan|setCopySuccess)$/;
+function pasangan(e) {
+  if (ts.isAsExpression(e)) e = e.expression;
+  return ts.isArrayLiteralExpression(e) && e.elements.length === 2 && e.elements.every((x) => ts.isStringLiteral(x));
+}
+function periksaData(berkas, sf, n) {
+  const teksDari = (e) => {
+    if (!e || pasangan(e)) return;
+    if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) {
+      if (bermakna(e.text)) catat(berkas, sf, e, e.text, 'data');
+    } else if (ts.isTemplateExpression(e)) {
+      const potongan = [e.head.text, ...e.templateSpans.map((s) => s.literal.text)].join(' ');
+      if (bermakna(potongan)) catat(berkas, sf, e, potongan, 'data');
+    } else if (ts.isConditionalExpression(e)) { teksDari(e.whenTrue); teksDari(e.whenFalse); }
+    else if (ts.isBinaryExpression(e) && [ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(e.operatorToken.kind)) teksDari(e.right);
+  };
+  if (ts.isPropertyAssignment(n) && KUNCI_DATA.has(n.name.getText(sf).replace(/['"]/g, ''))) {
+    // metadata halaman (layout.tsx) dan penyedia masuk next-auth bukan teks antarmuka yang dialihkan
+    if (!ts.isObjectLiteralExpression(n.parent) || !/metadata|CredentialsProvider/.test(n.parent.parent?.getText(sf).slice(0, 40) ?? '')) teksDari(n.initializer);
+  } else if (ts.isCallExpression(n) && PANGGILAN_LAYAR.test(n.expression.getText(sf))) {
+    n.arguments.forEach(teksDari);
+  }
+}
+
 const berkas = AKAR.flatMap((a) => telusuri(a));
 for (const b of berkas) {
   const nama = b.split(sep).join('/');
   const sf = ts.createSourceFile(b, readFileSync(b, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const kunjungi = (n) => {
+    periksaData(nama, sf, n);
     if (ts.isJsxText(n)) {
       if (bermakna(n.text)) catat(nama, sf, n, n.text, 'teks');
     } else if (ts.isJsxAttribute(n)) {

@@ -9,18 +9,18 @@ import GameMusicPlayer from "@/components/GameMusicPlayer";
 import { readSession, clearSession } from "@/lib/player-session";
 
 const CORRECT_MEMES = [
-  { gif: "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif", caption: "MIND = BLOWN 🤯" },
-  { gif: "https://media.giphy.com/media/26u4cqiYI30juCOGY/giphy.gif", caption: "LETS GOOO 🎉" },
-  { gif: "https://media.giphy.com/media/3o6Zt8KNIFkBMeoMMM/giphy.gif", caption: "WELL PLAYED 👏" },
-  { gif: "https://media.giphy.com/media/TdfyKrN7HGTIY/giphy.gif", caption: "BIG BRAIN TIME 🧠" },
-  { gif: "https://media.giphy.com/media/l4Ki2obCyAQS5WhFe/giphy.gif", caption: "EASY CLAP 😎" },
+  { gif: "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif", caption: ["OTAK MELEDAK 🤯", "MIND = BLOWN 🤯"] as [string, string] },
+  { gif: "https://media.giphy.com/media/26u4cqiYI30juCOGY/giphy.gif", caption: ["GASSS 🎉", "LETS GOOO 🎉"] as [string, string] },
+  { gif: "https://media.giphy.com/media/3o6Zt8KNIFkBMeoMMM/giphy.gif", caption: ["MANTAP 👏", "WELL PLAYED 👏"] as [string, string] },
+  { gif: "https://media.giphy.com/media/TdfyKrN7HGTIY/giphy.gif", caption: ["OTAK ENCER 🧠", "BIG BRAIN TIME 🧠"] as [string, string] },
+  { gif: "https://media.giphy.com/media/l4Ki2obCyAQS5WhFe/giphy.gif", caption: ["GAMPANG 😎", "EASY CLAP 😎"] as [string, string] },
 ];
 
 const WRONG_MEMES = [
-  { gif: "https://media.giphy.com/media/26BRrSvJUa0crqw4E/giphy.gif", caption: "NOT AGAIN 😭" },
-  { gif: "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif", caption: "WAIT WHAT 😂" },
-  { gif: "https://media.giphy.com/media/xT5LMHxhOfscxPfIfm/giphy.gif", caption: "SO CLOSE 😬" },
-  { gif: "https://media.giphy.com/media/14uQ3cOFteDaU/giphy.gif", caption: "BETTER LUCK NEXT TIME 😅" },
+  { gif: "https://media.giphy.com/media/26BRrSvJUa0crqw4E/giphy.gif", caption: ["LAGI-LAGI 😭", "NOT AGAIN 😭"] as [string, string] },
+  { gif: "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif", caption: ["LOH KOK 😂", "WAIT WHAT 😂"] as [string, string] },
+  { gif: "https://media.giphy.com/media/xT5LMHxhOfscxPfIfm/giphy.gif", caption: ["DIKIT LAGI 😬", "SO CLOSE 😬"] as [string, string] },
+  { gif: "https://media.giphy.com/media/14uQ3cOFteDaU/giphy.gif", caption: ["COBA LAGI NANTI 😅", "BETTER LUCK NEXT TIME 😅"] as [string, string] },
 ];
 
 const OPTION_COLORS = [
@@ -71,7 +71,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
   const [team, setTeam] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(30);
   const [memeMode, setMemeMode] = useState(false);
-  const [currentMeme, setCurrentMeme] = useState<{ gif: string; caption: string } | null>(null);
+  const [currentMeme, setCurrentMeme] = useState<{ gif: string; caption: [string, string] } | null>(null);
   const [streakAnimation, setStreakAnimation] = useState(false);
   const [isKicked, setIsKicked] = useState(false);
   const [countdownValue, setCountdownValue] = useState<number | string | null>(null);
@@ -469,10 +469,10 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
   const handleChestSelect = (index: number) => {
     setSelectedChest(index);
     const outcomes = [
-      { val: 500, msg: "+500 GOLD!" },
-      { val: 200, msg: "+200 GOLD" },
-      { val: 1000, msg: "JACKPOT! +1000" },
-      { val: -100, msg: "TRAP! -100 GOLD" },
+      { val: 500, msg: tt("+500 EMAS!", "+500 GOLD!") },
+      { val: 200, msg: tt("+200 EMAS", "+200 GOLD") },
+      { val: 1000, msg: tt("JACKPOT! +1000", "JACKPOT! +1000") },
+      { val: -100, msg: tt("JEBAKAN! -100 EMAS", "TRAP! -100 GOLD") },
     ];
     const outcome = outcomes[Math.floor(Math.random() * outcomes.length)];
     setTimeout(() => {
@@ -780,7 +780,7 @@ export default function PlayerGame({ params }: { params: Promise<{ roomCode: str
           ) : memeMode && currentMeme ? (
             <div className="flex flex-col items-center mb-5">
               <img src={currentMeme.gif} alt={tt("meme", "meme")} className="rounded-2xl max-h-52 shadow-2xl mb-3" />
-              <div className="text-white font-black text-lg tracking-widest">{currentMeme.caption}</div>
+              <div className="text-white font-black text-lg tracking-widest">{tt(...currentMeme.caption)}</div>
             </div>
           ) : (
             <div className="text-7xl mb-5 animate-bounce">{result.correct ? "🎉" : "❌"}</div>

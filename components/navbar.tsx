@@ -28,10 +28,10 @@ import { Sun, Moon, LogOut, Compass, LayoutGrid, History } from "lucide-react";
 import { Logo } from "./Logo";
 
 const TAUTAN = [
-  { href: "/explore", label: "Jelajahi", Icon: Compass, perluMasuk: false },
-  { href: "/dashboard", label: "Kuis saya", Icon: LayoutGrid, perluMasuk: true },
+  { href: "/explore", label: ["Jelajahi", "Explore"] as [string, string], Icon: Compass, perluMasuk: false },
+  { href: "/dashboard", label: ["Kuis saya", "My quizzes"] as [string, string], Icon: LayoutGrid, perluMasuk: true },
   // Dulu tertulis "Analytics" padahal isinya riwayat permainan.
-  { href: "/history", label: "Riwayat", Icon: History, perluMasuk: true },
+  { href: "/history", label: ["Riwayat", "History"] as [string, string], Icon: History, perluMasuk: true },
 ];
 
 export function Navbar() {
@@ -97,7 +97,7 @@ export function Navbar() {
               }}
             >
               <Icon size={15} aria-hidden="true" />
-              <span className="hidden sm:inline">{label}</span>
+              <span className="hidden sm:inline">{tt(...label)}</span>
             </Link>
           );
         })}

@@ -17,6 +17,16 @@ import { SampulKuis } from "@/components/SampulKuis";
  * menghasilkan daftar kosong, dan tidak ada pesan galat yang muncul
  * karena secara teknis tidak ada yang gagal.
  */
+/* Nilai kategori tersimpan di basis data dalam bahasa Indonesia; hanya
+   labelnya yang ikut berpindah bahasa. */
+const KATEGORI_EN: Record<string, string> = {
+  Matematika: "Mathematics", Fisika: "Physics", Kimia: "Chemistry", Biologi: "Biology",
+  Sains: "Science", Sejarah: "History", Geografi: "Geography", PPKn: "Civics",
+  Ekonomi: "Economics", "Bahasa Indonesia": "Indonesian", "Bahasa Inggris": "English",
+  Teknologi: "Technology", "Seni Budaya": "Arts & Culture", Olahraga: "Sports",
+  Karakter: "Character", Umum: "General",
+};
+
 const KATEGORI = [
   "Matematika",
   "Fisika",
@@ -137,7 +147,7 @@ export default function ExplorePage() {
             className="zy-motion"
             style={chipStyle(category === cat)}
           >
-            {cat}
+            {tt(cat, KATEGORI_EN[cat] ?? cat)}
           </button>
         ))}
       </div>

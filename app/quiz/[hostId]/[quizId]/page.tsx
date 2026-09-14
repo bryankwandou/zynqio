@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
-const JENIS: Record<string, string> = {
-  MCQ: "Pilihan ganda",
-  MSQ: "Pilihan jamak",
-  TF: "Benar / Salah",
-  FIB: "Isian singkat",
-  ORDER: "Urutan",
-  OPEN: "Uraian",
+const JENIS: Record<string, [string, string]> = {
+  MCQ: ["Pilihan ganda", "Multiple choice"],
+  MSQ: ["Pilihan jamak", "Multi-select"],
+  TF: ["Benar / Salah", "True / False"],
+  FIB: ["Isian singkat", "Short answer"],
+  ORDER: ["Urutan", "Ordering"],
+  OPEN: ["Uraian", "Essay"],
 };
 
 export default function QuizDetailPage({ params }: { params: Promise<{ hostId: string, quizId: string }> }) {
@@ -83,7 +83,7 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
     const alamat = window.location.href;
     try {
       if (navigator.share) {
-        await navigator.share({ title: quiz?.title ?? "Kuis", url: alamat });
+        await navigator.share({ title: quiz?.title ?? tt("Kuis", "Quiz"), url: alamat });
         return;
       }
       await navigator.clipboard.writeText(alamat);
@@ -205,7 +205,7 @@ export default function QuizDetailPage({ params }: { params: Promise<{ hostId: s
               {quiz.questions?.map((q: any, i: number) => (
                 <div key={i} className="bg-card border border-border rounded-2xl p-6 hover:border-primary/30 transition-colors shadow-lg">
                   <div className="flex justify-between items-start mb-4">
-                    <span className="text-xs font-black text-muted-foreground uppercase tracking-widest">{tt("Soal", "Question")}{" "}{i + 1} • {JENIS[q.type] ?? q.type}</span>
+                    <span className="text-xs font-black text-muted-foreground uppercase tracking-widest">{tt("Soal", "Question")}{" "}{i + 1} • {JENIS[q.type] ? tt(...JENIS[q.type]) : q.type}</span>
                     <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">{q.points}{" "}{tt("poin", "points")}</span>
                   </div>
                   <p className="text-lg text-foreground font-medium mb-4">{q.text}</p>

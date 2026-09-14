@@ -24,13 +24,13 @@ interface Question {
   timeOverride?: number;
 }
 
-const QUESTION_TYPES: { id: QuestionType; label: string; desc: string }[] = [
-  { id: 'MCQ',   label: 'Pilihan ganda', desc: 'Satu jawaban benar' },
-  { id: 'MSQ',   label: 'Pilihan jamak', desc: 'Boleh lebih dari satu' },
-  { id: 'TF',    label: 'Benar / Salah', desc: 'Dua pilihan saja' },
-  { id: 'FIB',   label: 'Isian singkat', desc: 'Murid mengetik jawabannya' },
-  { id: 'ORDER', label: 'Urutan',        desc: 'Susun dari yang pertama' },
-  { id: 'OPEN',  label: 'Uraian',        desc: 'Jawaban panjang, dinilai guru' },
+const QUESTION_TYPES: { id: QuestionType; label: [string, string]; desc: [string, string] }[] = [
+  { id: 'MCQ',   label: ['Pilihan ganda', 'Multiple choice'], desc: ['Satu jawaban benar', 'One correct answer'] },
+  { id: 'MSQ',   label: ['Pilihan jamak', 'Multi-select'], desc: ['Boleh lebih dari satu', 'More than one allowed'] },
+  { id: 'TF',    label: ['Benar / Salah', 'True / False'], desc: ['Dua pilihan saja', 'Just two options'] },
+  { id: 'FIB',   label: ['Isian singkat', 'Short answer'], desc: ['Murid mengetik jawabannya', 'Students type the answer'] },
+  { id: 'ORDER', label: ['Urutan', 'Ordering'], desc: ['Susun dari yang pertama', 'Arrange from first to last'] },
+  { id: 'OPEN',  label: ['Uraian', 'Essay'], desc: ['Jawaban panjang, dinilai guru', 'Long answer, graded by the teacher'] },
 ];
 
 function normalizeQuestionType(value: unknown): QuestionType {
@@ -61,6 +61,8 @@ export default function CreateQuiz() {
   const [hideAnswer, setHideAnswer] = useState(false);
 
   const CATEGORIES = ['General', 'Math', 'Science', 'History', 'Tech', 'Language', 'Gaming'];
+  // Nilai tersimpan tetap bahasa Inggris; hanya labelnya yang diterjemahkan.
+  const KATEGORI_ID: Record<string, string> = { General: 'Umum', Math: 'Matematika', Science: 'Sains', History: 'Sejarah', Tech: 'Teknologi', Language: 'Bahasa', Gaming: 'Gim' };
 
   const downloadTemplate = () => {
     const link = document.createElement("a");
@@ -203,7 +205,7 @@ export default function CreateQuiz() {
         }
       } catch (err) {
         console.error("Parse error:", err);
-        alert("Failed to parse file. Please ensure it is a valid CSV or Excel file.");
+        alert(tt("Gagal membaca berkas. Pastikan berkas CSV atau Excel yang valid.", "Failed to parse file. Please ensure it is a valid CSV or Excel file."));
       }
     };
 
@@ -216,7 +218,7 @@ export default function CreateQuiz() {
 
   const processImportedData = (rawData: any[]) => {
     if (!rawData || rawData.length === 0) {
-      alert("ERROR: The file seems to be empty or unreadable. Please check your file content.");
+      alert(tt("GALAT: Berkas kosong atau tidak terbaca. Periksa isi berkas Anda.", "ERROR: The file seems to be empty or unreadable. Please check your file content."));
       return;
     }
 
@@ -298,7 +300,7 @@ export default function CreateQuiz() {
       }).filter((q): q is Question => q !== null);
 
       if (mapped.length === 0) {
-        alert("ERROR: Could not find valid questions in the Quizizz file.\n\nMake sure you are using the official Quizizz spreadsheet export format.");
+        alert(tt("GALAT: Tidak ada soal valid di berkas Quizizz.\n\nPastikan Anda memakai format ekspor spreadsheet resmi Quizizz.", "ERROR: Could not find valid questions in the Quizizz file.\n\nMake sure you are using the official Quizizz spreadsheet export format."));
         return;
       }
       setQuestions(prev => [...prev, ...mapped]);
@@ -425,7 +427,7 @@ export default function CreateQuiz() {
 
     if (mappedQuestions.length === 0) {
       const foundHeaders = Object.keys(data[0] || {}).join(', ');
-      alert(`ERROR: Could not find valid questions.\n\nFound columns: [${foundHeaders}]\n\nRequired: 'Question', 'Option A', 'Option B', 'Correct Answer'.\n\nPlease use the provided template or a Quizizz XLSX export.`);
+      alert(tt(`GALAT: Tidak ada soal valid.\n\nKolom yang ditemukan: [${foundHeaders}]\n\nWajib: 'Question', 'Option A', 'Option B', 'Correct Answer'.\n\nGunakan templat yang disediakan atau ekspor XLSX Quizizz.`, `ERROR: Could not find valid questions.\n\nFound columns: [${foundHeaders}]\n\nRequired: 'Question', 'Option A', 'Option B', 'Correct Answer'.\n\nPlease use the provided template or a Quizizz XLSX export.`));
       return;
     }
 
@@ -444,7 +446,7 @@ export default function CreateQuiz() {
 
   const saveQuiz = async () => {
     if (!title.trim()) {
-      alert("Judul kuis belum diisi.");
+      alert(tt("Judul kuis belum diisi.", "Quiz title is empty."));
       return;
     }
     setIsSaving(true);
@@ -467,7 +469,7 @@ export default function CreateQuiz() {
           }),
         });
         if (!created.ok) {
-          alert("Gagal membuat kuis. Coba lagi.");
+          alert(tt("Gagal membuat kuis. Coba lagi.", "Failed to create quiz. Try again."));
           setIsSaving(false);
           return;
         }
@@ -491,11 +493,11 @@ export default function CreateQuiz() {
         router.push('/dashboard');
       } else {
         const errBody = await res.json().catch(() => ({}));
-        alert(errBody.error || "Failed to save quiz.");
+        alert(errBody.error || tt("Gagal menyimpan kuis.", "Failed to save quiz."));
       }
     } catch (err) {
       console.error("Save failed", err);
-      alert("Failed to save quiz.");
+      alert(tt("Gagal menyimpan kuis.", "Failed to save quiz."));
     } finally {
       setIsSaving(false);
     }
@@ -580,15 +582,15 @@ export default function CreateQuiz() {
                     : 'bg-background border-border text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground'
                 }`}
               >
-                <div className="font-bold mb-1">{type.label}</div>
-                <div className="text-xs opacity-70">{type.desc}</div>
+                <div className="font-bold mb-1">{tt(...type.label)}</div>
+                <div className="text-xs opacity-70">{tt(...type.desc)}</div>
               </button>
             ))}
           </div>
           
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
             <div className="text-sm text-muted-foreground">
-              {tt("Soal berikutnya:", "Next question:")}{" "}<span className="text-primary font-bold">{QUESTION_TYPES.find(t => t.id === activeType)?.label}</span>
+              {tt("Soal berikutnya:", "Next question:")}{" "}<span className="text-primary font-bold">{tt(...(QUESTION_TYPES.find(t => t.id === activeType)?.label ?? ["", ""]))}</span>
             </div>
             <Button
               onClick={addQuestion}
@@ -897,7 +899,7 @@ export default function CreateQuiz() {
                       onClick={() => setQuizCategory(cat)}
                       className={`px-4 py-2 rounded-xl text-sm font-bold border-2 zy-motion ${quizCategory === cat ? 'border-primary bg-primary/90/10 text-primary' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}
                     >
-                      {cat}
+                      {tt(KATEGORI_ID[cat] ?? cat, cat)}
                     </button>
                   ))}
                 </div>

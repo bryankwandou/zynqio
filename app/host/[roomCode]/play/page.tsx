@@ -52,13 +52,13 @@ export default function HostGame({ params }: { params: Promise<{ roomCode: strin
 
 /* Nama ragam permainan sebagaimana dibaca pengajar. Pengenalnya
    tersimpan di basis data dan tidak boleh ikut diterjemahkan. */
-const RAGAM: Record<string, string> = {
-  wayground_classic: "Klasik",
-  speed_rush: "Adu cepat",
-  battle_royale: "Gugur",
-  survival: "Sisa satu",
-  gold_quest: "Buru harta",
-  team: "Beregu",
+const RAGAM: Record<string, [string, string]> = {
+  wayground_classic: ["Klasik", "Classic"],
+  speed_rush: ["Adu cepat", "Speed rush"],
+  battle_royale: ["Gugur", "Battle royale"],
+  survival: ["Sisa satu", "Survival"],
+  gold_quest: ["Buru harta", "Gold quest"],
+  team: ["Beregu", "Teams"],
 };
 
   // "Classic" mode = wayground_classic (self-paced per player)
@@ -736,9 +736,9 @@ const RAGAM: Record<string, string> = {
               {isRevealed && (
                 <div className="flex gap-6 justify-center py-2 shrink-0">
                   {[
-                    { label: "Benar", val: answerStats.correct || 0, color: "text-green-400" },
-                    { label: "Salah", val: totalAnswered - (answerStats.correct || 0), color: "text-red-400" },
-                    { label: "Belum menjawab", val: totalPlayers - totalAnswered, color: "text-white/40" },
+                    { label: tt("Benar", "Correct"), val: answerStats.correct || 0, color: "text-green-400" },
+                    { label: tt("Salah", "Wrong"), val: totalAnswered - (answerStats.correct || 0), color: "text-red-400" },
+                    { label: tt("Belum menjawab", "No answer"), val: totalPlayers - totalAnswered, color: "text-white/40" },
                   ].map((s) => (
                     <div key={s.label} className="text-center">
                       <div className={`text-3xl font-black ${s.color}`}>{s.val}</div>
@@ -969,7 +969,7 @@ const RAGAM: Record<string, string> = {
             </span>
           )}
           <span className="text-white/20 font-bold capitalize">
-            {isClassicMode ? tt("Klasik", "Classic") : (RAGAM[roomState?.gameMode ?? ""] ?? tt("Klasik", "Classic"))}
+            {isClassicMode ? tt("Klasik", "Classic") : tt(...(RAGAM[roomState?.gameMode ?? ""] ?? ["Klasik", "Classic"]))}
           </span>
         </div>
       </div>
